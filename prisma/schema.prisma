@@ -141,7 +141,6 @@ model Equipment {
   cpus             EquipmentCpu[]
   memories         EquipmentMemory[]
   networkPorts     NetworkPort[]
-  auditLogs        AuditLog[]
   prometheusTarget PrometheusTarget?
 
   // Prometheus target label for metric queries (legacy, prefer PrometheusTarget relation)

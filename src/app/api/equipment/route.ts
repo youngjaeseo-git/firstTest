@@ -1,0 +1,64 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = req.nextUrl;
+  const status = searchParams.get("status");
+  const type = searchParams.get("type");
+  const roomId = searchParams.get("roomId");
+  const search = searchParams.get("search");
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "50");
+
+  const where: Record<string, unknown> = {};
+  if (status) where.status = status;
+  if (type) where.type = type;
+  if (roomId) where.rack = { roomId };
+  if (search) {
+    where.OR = [
+      { hostname: { contains: search, mode: "insensitive" } },
+      { ipAddress: { contains: search } },
+      { serialNumber: { contains: search, mode: "insensitive" } },
+    ];
+  }
+
+  const [items, total] = await Promise.all([
+    prisma.equipment.findMany({
+      where,
+      include: {
+        rack: { include: { room: true } },
+        cpus: true,
+        _count: { select: { memories: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.equipment.count({ where }),
+  ]);
+
+  return NextResponse.json({ items, total, page, limit });
+}
+
+export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session || (session.user as { role: string }).role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const body = await req.json();
+  const { cpus, memories, ...equipmentData } = body;
+
+  const equipment = await prisma.equipment.create({
+    data: {
+      ...equipmentData,
+      cpus: cpus ? { create: cpus } : undefined,
+      memories: memories ? { create: memories } : undefined,
+    },
+    include: { cpus: true, memories: true, rack: true },
+  });
+
+  return NextResponse.json(equipment, { status: 201 });
+}
