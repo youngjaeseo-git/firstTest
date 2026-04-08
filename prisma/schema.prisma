@@ -1,0 +1,279 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Auth Models
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          Role      @default(VIEWER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  alertAcks     AlertAcknowledgement[]
+  auditLogs     AuditLog[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  ADMIN
+  OPERATOR
+  VIEWER
+}
+
+// ============================================
+// Data Center Models
+// ============================================
+
+model DataCenter {
+  id          String   @id @default(cuid())
+  name        String
+  location    String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  floors Floor[]
+}
+
+model Floor {
+  id           String   @id @default(cuid())
+  name         String
+  level        Int
+  dataCenterId String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  dataCenter DataCenter @relation(fields: [dataCenterId], references: [id], onDelete: Cascade)
+  rows       Row[]
+}
+
+model Row {
+  id        String   @id @default(cuid())
+  name      String
+  floorId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  floor Floor @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  racks Rack[]
+}
+
+// ============================================
+// Rack & Equipment Models
+// ============================================
+
+model Rack {
+  id            String   @id @default(cuid())
+  name          String
+  rowId         String
+  totalUnits    Int      @default(42)
+  maxPowerWatts Int?
+  positionX     Int?     // Floor plan coordinates
+  positionY     Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  row       Row          @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  equipment Equipment[]
+  pdus      PDU[]
+}
+
+model Equipment {
+  id             String          @id @default(cuid())
+  hostname       String?
+  ipAddress      String?
+  type           EquipmentType
+  manufacturer   String?
+  model          String?
+  serialNumber   String?         @unique
+  assetTag       String?         @unique
+  rackId         String?
+  rackPosition   Int?            // U position in rack (bottom = 1)
+  rackHeight     Int             @default(1) // Height in U
+  status         EquipmentStatus @default(ACTIVE)
+  purchaseDate   DateTime?
+  warrantyExpiry DateTime?
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  rack        Rack?         @relation(fields: [rackId], references: [id], onDelete: SetNull)
+  networkPorts NetworkPort[]
+  auditLogs   AuditLog[]
+
+  // Prometheus target label for metric queries
+  prometheusTarget String?
+}
+
+enum EquipmentType {
+  SERVER
+  SWITCH
+  ROUTER
+  FIREWALL
+  STORAGE
+  PDU
+  UPS
+  PATCH_PANEL
+  OTHER
+}
+
+enum EquipmentStatus {
+  ACTIVE
+  MAINTENANCE
+  DECOMMISSIONED
+  PLANNED
+  FAILED
+}
+
+model NetworkPort {
+  id          String  @id @default(cuid())
+  name        String
+  equipmentId String
+  speed       String? // e.g., "1G", "10G", "25G", "100G"
+  connected   Boolean @default(false)
+  connectedTo String? // ID of connected port
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+}
+
+model PDU {
+  id            String   @id @default(cuid())
+  name          String
+  rackId        String
+  maxAmps       Float?
+  voltage       Int?     @default(220)
+  phases        Int?     @default(1)
+  outlets       Int?
+  snmpTarget    String?  // For SNMP polling
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  rack Rack @relation(fields: [rackId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// Alert Models
+// ============================================
+
+model AlertRule {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  metric      String        // PromQL expression
+  condition   String        // e.g., "> 80"
+  duration    Int           // seconds
+  severity    AlertSeverity
+  enabled     Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  alerts Alert[]
+}
+
+model Alert {
+  id         String        @id @default(cuid())
+  ruleId     String
+  status     AlertStatus   @default(FIRING)
+  severity   AlertSeverity
+  summary    String
+  details    String?
+  source     String?       // server/equipment identifier
+  firedAt    DateTime      @default(now())
+  resolvedAt DateTime?
+
+  rule            AlertRule              @relation(fields: [ruleId], references: [id])
+  acknowledgement AlertAcknowledgement[]
+}
+
+model AlertAcknowledgement {
+  id      String   @id @default(cuid())
+  alertId String
+  userId  String
+  note    String?
+  ackedAt DateTime @default(now())
+
+  alert Alert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+}
+
+enum AlertSeverity {
+  CRITICAL
+  WARNING
+  INFO
+}
+
+enum AlertStatus {
+  FIRING
+  RESOLVED
+  ACKNOWLEDGED
+}
+
+// ============================================
+// Maintenance & Audit
+// ============================================
+
+model MaintenanceWindow {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  targetType  String   // "server", "rack", "datacenter"
+  targetId    String
+  createdAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String   // "CREATE", "UPDATE", "DELETE"
+  entityType  String   // "Equipment", "Rack", etc.
+  entityId    String
+  changes     Json?    // { field: { old: x, new: y } }
+  createdAt   DateTime @default(now())
+
+  user      User       @relation(fields: [userId], references: [id])
+  equipment Equipment? @relation(fields: [entityId], references: [id])
+}
