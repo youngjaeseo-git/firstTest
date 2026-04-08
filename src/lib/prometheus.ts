@@ -1,13 +1,14 @@
 /**
  * Prometheus HTTP API client
  *
- * Queries Prometheus for server metrics.
- * Configure PROMETHEUS_URL in .env (e.g., http://prometheus:9090)
+ * Queries Prometheus for server metrics and auto-discovery.
+ * Prometheus URL: http://10.144.38.100:30004
  */
 
 import type { PrometheusQueryResult } from "@/types/metrics";
 
-const PROMETHEUS_URL = process.env.PROMETHEUS_URL || "http://localhost:9090";
+const PROMETHEUS_URL =
+  process.env.PROMETHEUS_URL || "http://10.144.38.100:30004";
 
 export async function instantQuery(
   query: string,
@@ -41,7 +42,63 @@ export async function rangeQuery(
   return res.json();
 }
 
-// Common PromQL queries for server metrics
+// ============================================
+// Auto-Discovery: Fetch Prometheus Targets
+// ============================================
+
+interface PrometheusTargetsResponse {
+  status: "success" | "error";
+  data: {
+    activeTargets: {
+      labels: Record<string, string>;
+      scrapePool: string;
+      scrapeUrl: string;
+      globalUrl: string;
+      lastScrape: string;
+      lastScrapeDuration: number;
+      health: "up" | "down" | "unknown";
+    }[];
+    droppedTargets: unknown[];
+  };
+}
+
+export interface DiscoveredPrometheusTarget {
+  instance: string;
+  job: string;
+  labels: Record<string, string>;
+  health: "up" | "down" | "unknown";
+  lastScrape: string;
+  scrapeUrl: string;
+}
+
+/**
+ * Fetch all active targets from Prometheus /api/v1/targets.
+ * Used for auto-discovery of servers.
+ */
+export async function fetchTargets(): Promise<DiscoveredPrometheusTarget[]> {
+  const url = new URL("/api/v1/targets", PROMETHEUS_URL);
+
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`Prometheus targets fetch failed: ${res.statusText}`);
+  }
+
+  const data: PrometheusTargetsResponse = await res.json();
+
+  return data.data.activeTargets.map((target) => ({
+    instance: target.labels.instance || target.scrapeUrl,
+    job: target.labels.job || target.scrapePool,
+    labels: target.labels,
+    health: target.health,
+    lastScrape: target.lastScrape,
+    scrapeUrl: target.scrapeUrl,
+  }));
+}
+
+// ============================================
+// Common PromQL Queries
+// ============================================
+
 export const queries = {
   cpuUsage: (instance: string) =>
     `100 - (avg by(instance)(rate(node_cpu_seconds_total{instance="${instance}",mode="idle"}[5m])) * 100)`,
@@ -55,11 +112,20 @@ export const queries = {
   memoryTotal: (instance: string) =>
     `node_memory_MemTotal_bytes{instance="${instance}"}`,
 
+  memoryAvailable: (instance: string) =>
+    `node_memory_MemAvailable_bytes{instance="${instance}"}`,
+
+  swapUsage: (instance: string) =>
+    `(1 - node_memory_SwapFree_bytes{instance="${instance}"} / node_memory_SwapTotal_bytes{instance="${instance}"}) * 100`,
+
   diskUsage: (instance: string) =>
     `(1 - node_filesystem_avail_bytes{instance="${instance}",fstype!~"tmpfs|devtmpfs"} / node_filesystem_size_bytes{instance="${instance}",fstype!~"tmpfs|devtmpfs"}) * 100`,
 
-  diskIO: (instance: string) =>
+  diskIORead: (instance: string) =>
     `rate(node_disk_read_bytes_total{instance="${instance}"}[5m])`,
+
+  diskIOWrite: (instance: string) =>
+    `rate(node_disk_written_bytes_total{instance="${instance}"}[5m])`,
 
   networkRx: (instance: string) =>
     `rate(node_network_receive_bytes_total{instance="${instance}",device!~"lo|veth.*|docker.*|br-.*"}[5m])`,
@@ -73,10 +139,16 @@ export const queries = {
   uptime: (instance: string) =>
     `node_time_seconds{instance="${instance}"} - node_boot_time_seconds{instance="${instance}"}`,
 
-  // PDU / power metrics (SNMP-based or IPMI)
+  // PDU / power metrics (IPMI)
   powerWatts: (instance: string) =>
     `ipmi_power_watts{instance="${instance}"}`,
 
   fanSpeed: (instance: string) =>
     `ipmi_fan_speed_rpm{instance="${instance}"}`,
+
+  // Server up/down status
+  nodeUp: (instance: string) => `up{instance="${instance}"}`,
+
+  // All servers up status
+  allNodesUp: () => `up{job=~"node.*"}`,
 };

@@ -74,30 +74,20 @@ model DataCenter {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  floors Floor[]
+  rooms Room[]
 }
 
-model Floor {
+model Room {
   id           String   @id @default(cuid())
   name         String
-  level        Int
+  sortOrder    Int      @default(0)
   dataCenterId String
+  description  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   dataCenter DataCenter @relation(fields: [dataCenterId], references: [id], onDelete: Cascade)
-  rows       Row[]
-}
-
-model Row {
-  id        String   @id @default(cuid())
-  name      String
-  floorId   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  floor Floor @relation(fields: [floorId], references: [id], onDelete: Cascade)
-  racks Rack[]
+  racks      Rack[]
 }
 
 // ============================================
@@ -107,15 +97,17 @@ model Row {
 model Rack {
   id            String   @id @default(cuid())
   name          String
-  rowId         String
-  totalUnits    Int      @default(42)
+  roomId        String
+  rowLabel      String?    // e.g., "A", "B" - for grouping within room
+  sortOrder     Int        @default(0) // ordering within room
+  totalUnits    Int        @default(42)
   maxPowerWatts Int?
-  positionX     Int?     // Floor plan coordinates
-  positionY     Int?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  positionX     Int?       // room layout grid X
+  positionY     Int?       // room layout grid Y
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
-  row       Row          @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  room      Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
   equipment Equipment[]
   pdus      PDU[]
 }
@@ -133,18 +125,27 @@ model Equipment {
   rackPosition   Int?            // U position in rack (bottom = 1)
   rackHeight     Int             @default(1) // Height in U
   status         EquipmentStatus @default(ACTIVE)
+  // System-level info
+  osType         String?         // "Linux", "Windows", "ESXi"
+  osVersion      String?
+  biosVersion    String?
+  bmcIpAddress   String?         // IPMI/BMC address
+  totalMemoryGB  Int?            // Cached total memory
   purchaseDate   DateTime?
   warrantyExpiry DateTime?
   notes          String?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
-  rack        Rack?         @relation(fields: [rackId], references: [id], onDelete: SetNull)
-  networkPorts NetworkPort[]
-  auditLogs   AuditLog[]
+  rack             Rack?              @relation(fields: [rackId], references: [id], onDelete: SetNull)
+  cpus             EquipmentCpu[]
+  memories         EquipmentMemory[]
+  networkPorts     NetworkPort[]
+  auditLogs        AuditLog[]
+  prometheusTarget PrometheusTarget?
 
-  // Prometheus target label for metric queries
-  prometheusTarget String?
+  // Prometheus target label for metric queries (legacy, prefer PrometheusTarget relation)
+  prometheusInstance String?
 }
 
 enum EquipmentType {
@@ -160,12 +161,79 @@ enum EquipmentType {
 }
 
 enum EquipmentStatus {
-  ACTIVE
-  MAINTENANCE
-  DECOMMISSIONED
-  PLANNED
-  FAILED
+  PLANNED           // Ordered / expected
+  RECEIVING         // Physically received, not installed
+  INSTALLED         // Mounted in rack but not in production
+  ACTIVE            // In production
+  MAINTENANCE       // Under planned maintenance
+  REPAIR            // Sent for repair (수리 의뢰)
+  FAILED            // Hardware failure
+  DECOMMISSIONED    // Retired from service
+  DISPOSED          // Physically removed / scrapped
 }
+
+// ============================================
+// CPU & Memory Detail Models
+// ============================================
+
+model EquipmentCpu {
+  id            String  @id @default(cuid())
+  equipmentId   String
+  socketIndex   Int     @default(0)     // 0-based socket number
+  manufacturer  String?                 // "Intel", "AMD"
+  model         String?                 // "Xeon Gold 6348"
+  cores         Int?
+  threads       Int?
+  baseFreqMhz   Int?                    // Base clock in MHz
+  maxFreqMhz    Int?                    // Turbo/boost clock in MHz
+  architecture  String?                 // "x86_64", "aarch64"
+  tdpWatts      Int?
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([equipmentId, socketIndex])
+}
+
+/// DIMM slot level memory detail (HIGH PRIORITY)
+model EquipmentMemory {
+  id              String      @id @default(cuid())
+  equipmentId     String
+  slotName        String      // "DIMM_A1", "DIMM_B2", "CPU0_CH0_DIMM0"
+  slotIndex       Int         // 0-based for ordering
+  populated       Boolean     @default(false) // Whether a DIMM is installed
+  capacityGb      Float?      // e.g. 32, 64
+  memoryType      MemoryType? // DDR4, DDR5, HBM, etc.
+  manufacturer    String?     // "Samsung", "SK Hynix", "Micron"
+  partNumber      String?
+  serialNumber    String?
+  speedMhz        Int?        // Rated speed, e.g. 3200
+  currentSpeedMhz Int?        // Actual running speed
+  rank            Int?        // Single=1, Dual=2, Quad=4
+  eccEnabled      Boolean?
+  formFactor      String?     // "RDIMM", "LRDIMM", "UDIMM"
+  voltage         Float?      // e.g. 1.2V
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([equipmentId, slotIndex])
+  @@index([equipmentId])
+}
+
+enum MemoryType {
+  DDR3
+  DDR4
+  DDR5
+  HBM
+  HBM2
+  HBM2E
+  HBM3
+  LPDDR4
+  LPDDR5
+}
+
+// ============================================
+// Network & Power Models
+// ============================================
 
 model NetworkPort {
   id          String  @id @default(cuid())
@@ -194,6 +262,25 @@ model PDU {
 }
 
 // ============================================
+// Prometheus Auto-Discovery
+// ============================================
+
+model PrometheusTarget {
+  id          String   @id @default(cuid())
+  instance    String   @unique    // e.g., "10.144.38.50:9100"
+  job         String              // e.g., "node_exporter"
+  hostname    String?
+  labels      Json?               // All Prometheus labels
+  health      String   @default("unknown") // "up", "down", "unknown"
+  lastSeen    DateTime @default(now())
+  equipmentId String?  @unique    // Linked Equipment record
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  equipment Equipment? @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+}
+
+// ============================================
 // Alert Models
 // ============================================
 
@@ -205,6 +292,7 @@ model AlertRule {
   condition   String        // e.g., "> 80"
   duration    Int           // seconds
   severity    AlertSeverity
+  category    String?       // e.g., "temperature", "disk", "network"
   enabled     Boolean       @default(true)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -214,17 +302,22 @@ model AlertRule {
 
 model Alert {
   id         String        @id @default(cuid())
-  ruleId     String
+  ruleId     String?
   status     AlertStatus   @default(FIRING)
   severity   AlertSeverity
+  category   String?       // For category-based filtering
   summary    String
   details    String?
   source     String?       // server/equipment identifier
   firedAt    DateTime      @default(now())
   resolvedAt DateTime?
 
-  rule            AlertRule              @relation(fields: [ruleId], references: [id])
+  rule            AlertRule?             @relation(fields: [ruleId], references: [id])
   acknowledgement AlertAcknowledgement[]
+
+  @@index([firedAt])
+  @@index([severity])
+  @@index([category])
 }
 
 model AlertAcknowledgement {
@@ -260,7 +353,7 @@ model MaintenanceWindow {
   description String?
   startTime   DateTime
   endTime     DateTime
-  targetType  String   // "server", "rack", "datacenter"
+  targetType  String   // "equipment", "rack", "room"
   targetId    String
   createdAt   DateTime @default(now())
 }
@@ -268,12 +361,14 @@ model MaintenanceWindow {
 model AuditLog {
   id          String   @id @default(cuid())
   userId      String
-  action      String   // "CREATE", "UPDATE", "DELETE"
-  entityType  String   // "Equipment", "Rack", etc.
+  action      String   // "CREATE", "UPDATE", "DELETE", "STATUS_CHANGE"
+  entityType  String   // "Equipment", "Rack", "Room", etc.
   entityId    String
   changes     Json?    // { field: { old: x, new: y } }
   createdAt   DateTime @default(now())
 
-  user      User       @relation(fields: [userId], references: [id])
-  equipment Equipment? @relation(fields: [entityId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
 }
