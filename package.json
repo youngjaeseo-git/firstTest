@@ -16,6 +16,9 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio"
   },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
     "@next-auth/prisma-adapter": "^1.0.7",

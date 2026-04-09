@@ -22,11 +22,27 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Pinned Prisma CLI + tsx for migrate / seed operations
+# (Next.js standalone output strips devDependencies, so install them globally here)
+RUN npm install -g prisma@5.15.0 tsx@4.11.0
+
+# Application runtime files
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/prisma ./prisma
 
+# Prisma schema + seed script (needed at runtime for migrate/seed)
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package.json ./package.json
+
+# Prisma engines generated from `prisma generate` - required by @prisma/client at runtime
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+
+# bcryptjs is a dep of seed.ts - standalone bundles it for app but seed runs via tsx outside
+COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
+
+RUN chown -R nextjs:nodejs /app
 USER nextjs
 
 EXPOSE 3000
