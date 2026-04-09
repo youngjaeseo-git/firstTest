@@ -19,12 +19,19 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# OpenSSL + libc6-compat required by Prisma engine on Alpine
+RUN apk add --no-cache openssl libc6-compat
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Pinned Prisma CLI + tsx for migrate / seed operations
 # (Next.js standalone output strips devDependencies, so install them globally here)
-RUN npm install -g prisma@5.15.0 tsx@4.11.0
+# Pre-fetch the Prisma engines as root, then chown so the nextjs user can read/write
+RUN npm install -g prisma@5.15.0 tsx@4.11.0 \
+    && prisma --version \
+    && chown -R nextjs:nodejs /usr/local/lib/node_modules/prisma \
+    && chown -R nextjs:nodejs /usr/local/lib/node_modules/@prisma 2>/dev/null || true
 
 # Application runtime files
 COPY --from=builder /app/public ./public
