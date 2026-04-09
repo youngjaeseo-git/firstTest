@@ -91,7 +91,7 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
                 {servers.map((s) => (
                   <tr key={s.id} className="text-gray-300 hover:bg-gray-800/50">
                     <td className="px-4 py-3">
-                      <Link href={`/infrastructure/${s.id}`} className="font-medium text-gray-100 hover:text-blue-400">
+                      <Link href={`/servers/${s.id}`} className="font-medium text-gray-100 hover:text-blue-400">
                         {s.hostname || "-"}
                       </Link>
                     </td>
@@ -279,7 +279,7 @@ function RackElevation({
                 </span>
                 {equipment && isStart ? (
                   <Link
-                    href={`/infrastructure/${equipment.id}`}
+                    href={`/servers/${equipment.id}`}
                     className={cn(
                       "flex flex-1 items-center rounded border px-2 text-xs transition-colors hover:brightness-125",
                       statusColor[equipment.status] || "bg-gray-800 border-gray-700 text-gray-400",

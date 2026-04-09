@@ -1,0 +1,398 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Card } from "@/components/ui/card";
+import { Badge, SeverityBadge } from "@/components/ui/badge";
+
+interface AlertRule {
+  id: string;
+  name: string;
+  description: string | null;
+  metric: string;
+  condition: string;
+  duration: number;
+  severity: string;
+  category: string | null;
+  enabled: boolean;
+  createdAt: string;
+  _count: { alerts: number };
+}
+
+const SEVERITIES = ["CRITICAL", "WARNING", "INFO"];
+const COMMON_CATEGORIES = [
+  "temperature",
+  "cpu",
+  "memory",
+  "disk",
+  "network",
+  "power",
+  "hardware",
+];
+
+const PRESETS = [
+  {
+    name: "High CPU Usage",
+    metric: '100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)',
+    condition: "> 90",
+    duration: 300,
+    severity: "WARNING",
+    category: "cpu",
+  },
+  {
+    name: "High Memory Usage",
+    metric: "(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100",
+    condition: "> 90",
+    duration: 300,
+    severity: "WARNING",
+    category: "memory",
+  },
+  {
+    name: "Disk Space Low",
+    metric: '(node_filesystem_avail_bytes{fstype!~"tmpfs|devtmpfs"} / node_filesystem_size_bytes) * 100',
+    condition: "< 10",
+    duration: 600,
+    severity: "CRITICAL",
+    category: "disk",
+  },
+  {
+    name: "High Temperature",
+    metric: "node_hwmon_temp_celsius",
+    condition: "> 80",
+    duration: 120,
+    severity: "CRITICAL",
+    category: "temperature",
+  },
+  {
+    name: "Node Down",
+    metric: "up",
+    condition: "== 0",
+    duration: 60,
+    severity: "CRITICAL",
+    category: "hardware",
+  },
+];
+
+export default function AlertRulesPage() {
+  const [rules, setRules] = useState<AlertRule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [error, setError] = useState("");
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [metric, setMetric] = useState("");
+  const [condition, setCondition] = useState("");
+  const [duration, setDuration] = useState(60);
+  const [severity, setSeverity] = useState("WARNING");
+  const [category, setCategory] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function loadRules() {
+    try {
+      const res = await fetch("/api/alert-rules");
+      if (res.ok) setRules(await res.json());
+    } catch {
+      setError("규칙을 불러올 수 없습니다.");
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadRules();
+  }, []);
+
+  function applyPreset(preset: (typeof PRESETS)[0]) {
+    setName(preset.name);
+    setMetric(preset.metric);
+    setCondition(preset.condition);
+    setDuration(preset.duration);
+    setSeverity(preset.severity);
+    setCategory(preset.category);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/alert-rules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          description: description || null,
+          metric,
+          condition,
+          duration,
+          severity,
+          category: category || null,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "생성 실패");
+      } else {
+        setShowForm(false);
+        setName("");
+        setDescription("");
+        setMetric("");
+        setCondition("");
+        setDuration(60);
+        setSeverity("WARNING");
+        setCategory("");
+        await loadRules();
+      }
+    } catch {
+      setError("서버 오류");
+    }
+    setSaving(false);
+  }
+
+  async function toggleRule(id: string, enabled: boolean) {
+    await fetch(`/api/alert-rules/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled }),
+    });
+    await loadRules();
+  }
+
+  async function deleteRule(id: string) {
+    if (!confirm("삭제하시겠습니까? 관련 알림 이력도 함께 삭제됩니다.")) return;
+    await fetch(`/api/alert-rules/${id}`, { method: "DELETE" });
+    await loadRules();
+  }
+
+  const inputClass =
+    "w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
+  const labelClass = "mb-1 block text-sm font-medium text-gray-300";
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+            <Link href="/alerts" className="hover:text-gray-200">
+              Alerts
+            </Link>
+            <span>/</span>
+            <span>Rules</span>
+          </div>
+          <h1 className="text-2xl font-bold">Alert Rules</h1>
+          <p className="mt-1 text-sm text-gray-400">
+            PromQL 기반 알림 규칙을 관리합니다.
+          </p>
+        </div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          {showForm ? "취소" : "+ 규칙 추가"}
+        </button>
+      </div>
+
+      {error && (
+        <div className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          {error}
+        </div>
+      )}
+
+      {/* New Rule Form */}
+      {showForm && (
+        <Card>
+          <p className="mb-4 font-medium">새 규칙</p>
+
+          {/* Presets */}
+          <div className="mb-4">
+            <p className={labelClass}>프리셋 사용</p>
+            <div className="flex flex-wrap gap-2">
+              {PRESETS.map((preset) => (
+                <button
+                  key={preset.name}
+                  type="button"
+                  onClick={() => applyPreset(preset)}
+                  className="rounded border border-gray-700 bg-gray-800 px-3 py-1 text-xs text-gray-300 hover:border-blue-500 hover:text-blue-300"
+                >
+                  {preset.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <form
+            onSubmit={handleSubmit}
+            className="grid grid-cols-1 gap-4 md:grid-cols-2"
+          >
+            <div>
+              <label className={labelClass}>규칙 이름 *</label>
+              <input
+                required
+                className={inputClass}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="High CPU Usage"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>카테고리</label>
+              <input
+                list="categories"
+                className={inputClass}
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="cpu, memory, disk..."
+              />
+              <datalist id="categories">
+                {COMMON_CATEGORIES.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
+            </div>
+            <div className="md:col-span-2">
+              <label className={labelClass}>설명</label>
+              <input
+                className={inputClass}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="CPU 사용률이 지속적으로 높음"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className={labelClass}>PromQL Metric *</label>
+              <textarea
+                required
+                rows={3}
+                className={`${inputClass} font-mono text-xs`}
+                value={metric}
+                onChange={(e) => setMetric(e.target.value)}
+                placeholder='100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)'
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Condition *</label>
+              <input
+                required
+                className={`${inputClass} font-mono`}
+                value={condition}
+                onChange={(e) => setCondition(e.target.value)}
+                placeholder="> 90"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Duration (초)</label>
+              <input
+                type="number"
+                className={inputClass}
+                value={duration}
+                onChange={(e) => setDuration(parseInt(e.target.value) || 60)}
+                min={10}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Severity *</label>
+              <select
+                className={inputClass}
+                value={severity}
+                onChange={(e) => setSeverity(e.target.value)}
+              >
+                {SEVERITIES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                {saving ? "저장 중..." : "규칙 생성"}
+              </button>
+            </div>
+          </form>
+        </Card>
+      )}
+
+      {/* Rules List */}
+      <Card>
+        {loading ? (
+          <p className="text-center text-gray-400">Loading...</p>
+        ) : rules.length === 0 ? (
+          <p className="py-8 text-center text-gray-500">
+            아직 규칙이 없습니다. "규칙 추가"를 눌러 시작하세요.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-700 text-left text-xs text-gray-400">
+                  <th className="px-3 py-2">이름</th>
+                  <th className="px-3 py-2">Severity</th>
+                  <th className="px-3 py-2">Category</th>
+                  <th className="px-3 py-2">Condition</th>
+                  <th className="px-3 py-2">Duration</th>
+                  <th className="px-3 py-2">Alerts</th>
+                  <th className="px-3 py-2">Enabled</th>
+                  <th className="px-3 py-2"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-800">
+                {rules.map((r) => (
+                  <tr key={r.id}>
+                    <td className="px-3 py-2">
+                      <p className="font-medium text-gray-100">{r.name}</p>
+                      {r.description && (
+                        <p className="text-xs text-gray-500">
+                          {r.description}
+                        </p>
+                      )}
+                      <p className="mt-0.5 font-mono text-[10px] text-gray-600 truncate max-w-md">
+                        {r.metric}
+                      </p>
+                    </td>
+                    <td className="px-3 py-2">
+                      <SeverityBadge severity={r.severity} />
+                    </td>
+                    <td className="px-3 py-2">
+                      {r.category ? (
+                        <Badge variant="info">{r.category}</Badge>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs">
+                      {r.condition}
+                    </td>
+                    <td className="px-3 py-2 text-xs">{r.duration}s</td>
+                    <td className="px-3 py-2 text-xs">{r._count.alerts}</td>
+                    <td className="px-3 py-2">
+                      <label className="inline-flex cursor-pointer items-center">
+                        <input
+                          type="checkbox"
+                          checked={r.enabled}
+                          onChange={(e) => toggleRule(r.id, e.target.checked)}
+                          className="h-4 w-4 rounded"
+                        />
+                      </label>
+                    </td>
+                    <td className="px-3 py-2">
+                      <button
+                        onClick={() => deleteRule(r.id)}
+                        className="text-xs text-red-400 hover:text-red-300"
+                      >
+                        삭제
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}

@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { SeverityBadge, Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -46,7 +47,15 @@ export default async function AlertsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Alerts</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Alerts</h1>
+        <Link
+          href="/alerts/rules"
+          className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-200 hover:border-blue-500 hover:text-blue-300"
+        >
+          규칙 관리 →
+        </Link>
+      </div>
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
