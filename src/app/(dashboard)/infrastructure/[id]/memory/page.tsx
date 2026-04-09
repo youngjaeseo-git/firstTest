@@ -29,8 +29,8 @@ export default async function MemoryDetailPage({
   const memories = equipment.memories;
   const populated = memories.filter((m) => m.populated);
   const totalCapacity = populated.reduce((s, m) => s + (m.capacityGb || 0), 0);
-  const memoryTypes = [...new Set(populated.map((m) => m.memoryType).filter(Boolean))];
-  const manufacturers = [...new Set(populated.map((m) => m.manufacturer).filter(Boolean))];
+  const memoryTypes = Array.from(new Set(populated.map((m) => m.memoryType).filter(Boolean)));
+  const manufacturers = Array.from(new Set(populated.map((m) => m.manufacturer).filter(Boolean)));
   const maxSpeed = Math.max(...populated.map((m) => m.speedMhz || 0), 0);
 
   // Group slots by CPU socket (simple heuristic: divide evenly or by slot name pattern)

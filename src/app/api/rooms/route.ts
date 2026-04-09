@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
@@ -8,6 +10,9 @@ export async function GET() {
       racks: {
         include: {
           _count: { select: { equipment: true } },
+          equipment: {
+            select: { rackPosition: true, rackHeight: true },
+          },
         },
         orderBy: { sortOrder: "asc" },
       },

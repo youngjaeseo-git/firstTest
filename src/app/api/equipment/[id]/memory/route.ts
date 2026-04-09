@@ -24,8 +24,8 @@ export async function GET(
     populatedSlots: populated.length,
     emptySlots: memories.length - populated.length,
     totalCapacityGb: populated.reduce((sum, m) => sum + (m.capacityGb || 0), 0),
-    memoryTypes: [...new Set(populated.map((m) => m.memoryType).filter(Boolean))],
-    manufacturers: [...new Set(populated.map((m) => m.manufacturer).filter(Boolean))],
+    memoryTypes: Array.from(new Set(populated.map((m) => m.memoryType).filter(Boolean))),
+    manufacturers: Array.from(new Set(populated.map((m) => m.manufacturer).filter(Boolean))),
     maxSpeedMhz: Math.max(...populated.map((m) => m.speedMhz || 0), 0) || null,
     eccEnabled: populated.some((m) => m.eccEnabled),
   };

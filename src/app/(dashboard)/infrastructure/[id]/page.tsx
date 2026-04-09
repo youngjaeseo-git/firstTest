@@ -182,11 +182,11 @@ export default async function EquipmentDetailPage({
                 <div className="mb-3 flex gap-4 text-sm">
                   <span className="text-gray-400">
                     Types:{" "}
-                    {[...new Set(populatedMemory.map((m) => m.memoryType).filter(Boolean))].join(", ") || "-"}
+                    {Array.from(new Set(populatedMemory.map((m) => m.memoryType).filter(Boolean))).join(", ") || "-"}
                   </span>
                   <span className="text-gray-400">
                     Manufacturers:{" "}
-                    {[...new Set(populatedMemory.map((m) => m.manufacturer).filter(Boolean))].join(", ") || "-"}
+                    {Array.from(new Set(populatedMemory.map((m) => m.manufacturer).filter(Boolean))).join(", ") || "-"}
                   </span>
                 </div>
                 <Link href={`/infrastructure/${equipment.id}/memory`}>

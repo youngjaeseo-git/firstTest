@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { prisma } from "@/lib/db";
 import { ServerPageClient } from "@/components/twin/server-page-client";
 

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { prisma } from "@/lib/db";
 import { SeverityBadge, Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";

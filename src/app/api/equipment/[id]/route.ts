@@ -37,10 +37,25 @@ export async function PUT(
   const body = await req.json();
   const { cpus, memories, ...equipmentData } = body;
 
-  const equipment = await prisma.equipment.update({
-    where: { id: params.id },
-    data: equipmentData,
-    include: { cpus: true, memories: true, rack: true },
+  // Update equipment and optionally replace CPUs
+  const equipment = await prisma.$transaction(async (tx) => {
+    if (cpus) {
+      await tx.equipmentCpu.deleteMany({ where: { equipmentId: params.id } });
+      if (cpus.length > 0) {
+        await tx.equipmentCpu.createMany({
+          data: cpus.map((c: Record<string, unknown>) => ({
+            ...c,
+            equipmentId: params.id,
+          })),
+        });
+      }
+    }
+
+    return tx.equipment.update({
+      where: { id: params.id },
+      data: equipmentData,
+      include: { cpus: true, memories: true, rack: true },
+    });
   });
 
   return NextResponse.json(equipment);
