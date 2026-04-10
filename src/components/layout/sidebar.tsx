@@ -30,12 +30,15 @@ export function Sidebar() {
   return (
     <aside className="flex w-64 flex-col border-r border-gray-800 bg-gray-900">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 border-b border-gray-800 px-6">
+      <Link
+        href="/"
+        className="flex h-16 items-center gap-2 border-b border-gray-800 px-6 transition-colors hover:bg-gray-800"
+      >
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold">
           DC
         </div>
         <span className="text-lg font-semibold">DCIM Manager</span>
-      </div>
+      </Link>
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-4">

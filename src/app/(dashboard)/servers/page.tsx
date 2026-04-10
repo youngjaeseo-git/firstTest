@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import { ServerPageClient } from "@/components/twin/server-page-client";
 
@@ -24,7 +25,18 @@ export default async function ServersPage() {
   const servers = rooms.flatMap((room) =>
     room.racks.flatMap((rack) =>
       rack.equipment.map((eq) => ({
-        ...eq,
+        id: eq.id,
+        hostname: eq.hostname,
+        ipAddress: eq.ipAddress,
+        bmcIpAddress: eq.bmcIpAddress,
+        status: eq.status,
+        type: eq.type,
+        model: eq.model,
+        manufacturer: eq.manufacturer,
+        cpuManufacturer: eq.cpus[0]?.manufacturer || null,
+        cpuModel: eq.cpus[0]?.model || null,
+        totalMemoryGB: eq.totalMemoryGB,
+        rackPosition: eq.rackPosition,
         roomName: room.name,
         rackName: rack.name,
       })),
@@ -32,9 +44,11 @@ export default async function ServersPage() {
   );
 
   return (
-    <ServerPageClient
-      rooms={JSON.parse(JSON.stringify(rooms))}
-      servers={JSON.parse(JSON.stringify(servers))}
-    />
+    <Suspense fallback={<div className="text-gray-500">Loading...</div>}>
+      <ServerPageClient
+        rooms={JSON.parse(JSON.stringify(rooms))}
+        servers={JSON.parse(JSON.stringify(servers))}
+      />
+    </Suspense>
   );
 }

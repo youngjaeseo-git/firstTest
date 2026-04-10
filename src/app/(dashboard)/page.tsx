@@ -4,17 +4,22 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DashboardSummaryCards } from "@/components/dashboard/summary-cards";
 
 export default async function DashboardPage() {
   const [
     totalEquipment,
-    activeEquipment,
-    maintenanceEquipment,
-    failedEquipment,
+    activeEquipmentCount,
+    maintenanceCount,
+    failedCount,
+    maintenanceEquipmentList,
+    failedEquipmentList,
+    activeEquipmentList,
     totalRacks,
     totalRooms,
     firingAlerts,
     recentAlerts,
+    statusBreakdown,
   ] = await Promise.all([
     prisma.equipment.count(),
     prisma.equipment.count({ where: { status: "ACTIVE" } }),
@@ -22,6 +27,36 @@ export default async function DashboardPage() {
       where: { status: { in: ["MAINTENANCE", "REPAIR"] } },
     }),
     prisma.equipment.count({ where: { status: "FAILED" } }),
+    prisma.equipment.findMany({
+      where: { status: { in: ["MAINTENANCE", "REPAIR"] } },
+      select: {
+        id: true,
+        hostname: true,
+        status: true,
+        ipAddress: true,
+      },
+      take: 10,
+    }),
+    prisma.equipment.findMany({
+      where: { status: "FAILED" },
+      select: {
+        id: true,
+        hostname: true,
+        status: true,
+        ipAddress: true,
+      },
+      take: 10,
+    }),
+    prisma.equipment.findMany({
+      where: { status: "ACTIVE" },
+      select: {
+        id: true,
+        hostname: true,
+        status: true,
+        ipAddress: true,
+      },
+      take: 10,
+    }),
     prisma.rack.count(),
     prisma.room.count(),
     prisma.alert.count({ where: { status: "FIRING" } }),
@@ -30,84 +65,61 @@ export default async function DashboardPage() {
       orderBy: { firedAt: "desc" },
       take: 5,
     }),
+    prisma.equipment.groupBy({
+      by: ["status"],
+      _count: true,
+    }),
   ]);
-
-  const statusBreakdown = await prisma.equipment.groupBy({
-    by: ["status"],
-    _count: true,
-  });
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-400">Total Equipment</h3>
-            <svg className="h-5 w-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="2" width="20" height="8" rx="2" />
-              <rect x="2" y="14" width="20" height="8" rx="2" />
-            </svg>
-          </div>
-          <p className="mt-2 text-3xl font-bold">
-            {activeEquipment}
-            <span className="text-lg text-gray-500">/{totalEquipment}</span>
-          </p>
-          <div className="mt-3 flex gap-3 text-xs">
-            <span className="text-green-400">{activeEquipment} Active</span>
-            <span className="text-amber-400">{maintenanceEquipment} Maint.</span>
-            <span className="text-red-400">{failedEquipment} Failed</span>
-          </div>
-        </Card>
+      {/* Summary Cards with hover overlay */}
+      <DashboardSummaryCards
+        totalEquipment={totalEquipment}
+        activeCount={activeEquipmentCount}
+        activeList={activeEquipmentList}
+        maintenanceCount={maintenanceCount}
+        maintenanceList={maintenanceEquipmentList}
+        failedCount={failedCount}
+        failedList={failedEquipmentList}
+        totalRacks={totalRacks}
+        totalRooms={totalRooms}
+        firingAlerts={firingAlerts}
+      />
 
-        <Card>
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-400">Infrastructure</h3>
-          </div>
-          <p className="mt-2 text-3xl font-bold">{totalRacks}</p>
-          <p className="mt-1 text-sm text-gray-500">
-            Racks across {totalRooms} rooms
-          </p>
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-400">Active Alerts</h3>
-          </div>
-          <p className="mt-2 text-3xl font-bold text-red-400">{firingAlerts}</p>
-          <Link href="/alerts" className="mt-2 inline-block text-xs text-blue-400 hover:text-blue-300">
-            View all alerts →
-          </Link>
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-400">Status Breakdown</h3>
-          </div>
-          <div className="mt-3 space-y-1">
-            {statusBreakdown.map((s) => (
-              <div key={s.status} className="flex items-center justify-between text-xs">
-                <Badge
-                  variant={
-                    s.status === "ACTIVE"
-                      ? "active"
-                      : s.status === "FAILED"
-                        ? "critical"
-                        : s.status === "MAINTENANCE" || s.status === "REPAIR"
-                          ? "maintenance"
-                          : "info"
-                  }
-                >
-                  {s.status}
-                </Badge>
-                <span className="font-mono text-gray-300">{s._count}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
+      {/* Status Breakdown Card */}
+      <Card>
+        <h3 className="mb-3 text-sm font-medium text-gray-400">
+          Status Breakdown
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {statusBreakdown.map((s) => (
+            <div
+              key={s.status}
+              className="flex items-center gap-2 rounded-lg border border-gray-800 bg-gray-800/30 px-3 py-2"
+            >
+              <Badge
+                variant={
+                  s.status === "ACTIVE"
+                    ? "active"
+                    : s.status === "FAILED"
+                      ? "critical"
+                      : s.status === "MAINTENANCE" || s.status === "REPAIR"
+                        ? "maintenance"
+                        : "info"
+                }
+              >
+                {s.status}
+              </Badge>
+              <span className="font-mono text-sm text-gray-300">
+                {s._count}
+              </span>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       {/* Main Content */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -115,21 +127,39 @@ export default async function DashboardPage() {
           <Card>
             <h2 className="mb-4 text-lg font-semibold">Quick Links</h2>
             <div className="grid grid-cols-2 gap-3">
-              <Link href="/servers" className="rounded-lg border border-gray-700 p-4 hover:border-blue-600 hover:bg-blue-600/5 transition-colors">
+              <Link
+                href="/servers"
+                className="rounded-lg border border-gray-700 p-4 transition-colors hover:border-blue-600 hover:bg-blue-600/5"
+              >
                 <p className="font-medium">Servers</p>
-                <p className="mt-1 text-xs text-gray-400">Server monitoring & Digital Twin</p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Server monitoring & Digital Twin
+                </p>
               </Link>
-              <Link href="/infrastructure" className="rounded-lg border border-gray-700 p-4 hover:border-blue-600 hover:bg-blue-600/5 transition-colors">
+              <Link
+                href="/infrastructure"
+                className="rounded-lg border border-gray-700 p-4 transition-colors hover:border-blue-600 hover:bg-blue-600/5"
+              >
                 <p className="font-medium">Infrastructure</p>
                 <p className="mt-1 text-xs text-gray-400">Equipment management</p>
               </Link>
-              <Link href="/alerts" className="rounded-lg border border-gray-700 p-4 hover:border-blue-600 hover:bg-blue-600/5 transition-colors">
+              <Link
+                href="/alerts"
+                className="rounded-lg border border-gray-700 p-4 transition-colors hover:border-blue-600 hover:bg-blue-600/5"
+              >
                 <p className="font-medium">Alerts</p>
-                <p className="mt-1 text-xs text-gray-400">Alert management & history</p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Alert management & history
+                </p>
               </Link>
-              <Link href="/settings/discovery" className="rounded-lg border border-gray-700 p-4 hover:border-blue-600 hover:bg-blue-600/5 transition-colors">
+              <Link
+                href="/settings/discovery"
+                className="rounded-lg border border-gray-700 p-4 transition-colors hover:border-blue-600 hover:bg-blue-600/5"
+              >
                 <p className="font-medium">Discovery</p>
-                <p className="mt-1 text-xs text-gray-400">Prometheus target sync</p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Prometheus target sync
+                </p>
               </Link>
             </div>
           </Card>
