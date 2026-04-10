@@ -25,7 +25,15 @@ export async function requireRole(...roles: Role[]) {
 }
 
 export function canEdit(role: Role): boolean {
+  return role === "ADMIN" || role === "OPERATOR";
+}
+
+export function canDelete(role: Role): boolean {
   return role === "ADMIN";
+}
+
+export function canChangeStatus(role: Role): boolean {
+  return role === "ADMIN" || role === "OPERATOR";
 }
 
 export function canAcknowledgeAlert(role: Role): boolean {

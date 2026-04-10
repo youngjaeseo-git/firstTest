@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionUser, canChangeStatus } from "@/lib/rbac";
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const session = await getServerSession(authOptions);
-  const role = (session?.user as { role?: string })?.role;
-  if (!session || !role || !["ADMIN", "OPERATOR"].includes(role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const user = await getSessionUser();
+  if (!user || !canChangeStatus(user.role)) {
+    return NextResponse.json(
+      { error: "Forbidden — ADMIN 또는 OPERATOR 권한 필요" },
+      { status: 403 },
+    );
   }
 
   const { status, note } = await req.json();
@@ -32,7 +33,7 @@ export async function PATCH(
   // Create audit log
   await prisma.auditLog.create({
     data: {
-      userId: (session.user as { id: string }).id,
+      userId: user.id,
       action: "STATUS_CHANGE",
       entityType: "Equipment",
       entityId: params.id,

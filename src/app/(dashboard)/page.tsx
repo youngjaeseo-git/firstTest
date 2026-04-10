@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardSummaryCards } from "@/components/dashboard/summary-cards";
+import { PrometheusMetrics } from "@/components/dashboard/prometheus-metrics";
 
 export default async function DashboardPage() {
   const [
@@ -74,6 +75,9 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
+
+      {/* Prometheus Live Metrics */}
+      <PrometheusMetrics />
 
       {/* Summary Cards with hover overlay */}
       <DashboardSummaryCards

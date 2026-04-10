@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionUser, canEdit, canDelete } from "@/lib/rbac";
 
 export async function GET(
   _req: NextRequest,
@@ -29,15 +28,17 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role: string }).role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const user = await getSessionUser();
+  if (!user || !canEdit(user.role)) {
+    return NextResponse.json(
+      { error: "Forbidden — ADMIN 또는 OPERATOR 권한 필요" },
+      { status: 403 },
+    );
   }
 
   const body = await req.json();
   const { cpus, memories, ...equipmentData } = body;
 
-  // Update equipment and optionally replace CPUs
   const equipment = await prisma.$transaction(async (tx) => {
     if (cpus) {
       await tx.equipmentCpu.deleteMany({ where: { equipmentId: params.id } });
@@ -65,9 +66,12 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role: string }).role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const user = await getSessionUser();
+  if (!user || !canDelete(user.role)) {
+    return NextResponse.json(
+      { error: "Forbidden — ADMIN 권한 필요" },
+      { status: 403 },
+    );
   }
 
   await prisma.equipment.delete({ where: { id: params.id } });

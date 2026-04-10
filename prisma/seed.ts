@@ -100,17 +100,22 @@ async function main() {
 
   // 5. Create Equipment with CPU and Memory
   const serverModels = [
-    { manufacturer: "Dell", model: "PowerEdge R750", height: 2 },
-    { manufacturer: "Dell", model: "PowerEdge R760", height: 2 },
-    { manufacturer: "HPE", model: "ProLiant DL380 Gen11", height: 2 },
-    { manufacturer: "Supermicro", model: "SYS-420GP-TNR", height: 4 },
-    { manufacturer: "Lenovo", model: "ThinkSystem SR650 V3", height: 2 },
+    { manufacturer: "Dell", model: "PowerEdge R750", height: 2, generation: "SPR" },
+    { manufacturer: "Dell", model: "PowerEdge R760", height: 2, generation: "EMR" },
+    { manufacturer: "HPE", model: "ProLiant DL380 Gen11", height: 2, generation: "GNR" },
+    { manufacturer: "Supermicro", model: "SYS-420GP-TNR", height: 4, generation: "SPR" },
+    { manufacturer: "Lenovo", model: "ThinkSystem SR650 V3", height: 2, generation: "GNR" },
+    { manufacturer: "Dell", model: "PowerEdge R960", height: 4, generation: "GNR" },
+    { manufacturer: "HPE", model: "ProLiant DL360 Gen11", height: 1, generation: "EMR" },
+    { manufacturer: "Supermicro", model: "AS-4125GS-TNRT2", height: 4, generation: "TURIN" },
   ];
 
   const cpuModels = [
-    { manufacturer: "Intel", model: "Xeon Gold 6348", cores: 28, threads: 56, baseFreqMhz: 2600, maxFreqMhz: 3500, tdpWatts: 235 },
-    { manufacturer: "Intel", model: "Xeon Platinum 8380", cores: 40, threads: 80, baseFreqMhz: 2300, maxFreqMhz: 3400, tdpWatts: 270 },
-    { manufacturer: "AMD", model: "EPYC 9454", cores: 48, threads: 96, baseFreqMhz: 2750, maxFreqMhz: 3800, tdpWatts: 290 },
+    { manufacturer: "Intel", model: "Xeon Gold 6438Y+ (SPR)", cores: 32, threads: 64, baseFreqMhz: 2000, maxFreqMhz: 4000, tdpWatts: 205, arch: "x86_64" },
+    { manufacturer: "Intel", model: "Xeon Gold 6548Y+ (EMR)", cores: 32, threads: 64, baseFreqMhz: 2500, maxFreqMhz: 4100, tdpWatts: 250, arch: "x86_64" },
+    { manufacturer: "Intel", model: "Xeon w9-3595X (GNR)", cores: 60, threads: 120, baseFreqMhz: 2000, maxFreqMhz: 4800, tdpWatts: 385, arch: "x86_64" },
+    { manufacturer: "AMD", model: "EPYC 9454 (GENOA)", cores: 48, threads: 96, baseFreqMhz: 2750, maxFreqMhz: 3800, tdpWatts: 290, arch: "x86_64" },
+    { manufacturer: "AMD", model: "EPYC 9554 (TURIN)", cores: 64, threads: 128, baseFreqMhz: 3100, maxFreqMhz: 3750, tdpWatts: 360, arch: "x86_64" },
   ];
 
   const memoryManufacturers = ["Samsung", "SK Hynix", "Micron"];
@@ -137,6 +142,7 @@ async function main() {
       const eqId = `server-${String(serverIndex).padStart(3, "0")}`;
       const hostname = `svr-${rack.rowLabel?.toLowerCase() || "x"}${String(serverIndex).padStart(3, "0")}`;
       const ip = `10.144.${38 + Math.floor(serverIndex / 256)}.${(serverIndex % 256) + 1}`;
+      const bmcIp = `10.144.${100 + Math.floor(serverIndex / 256)}.${(serverIndex % 256) + 1}`;
 
       const eq = await prisma.equipment.upsert({
         where: { id: eqId },
@@ -155,8 +161,10 @@ async function main() {
           rackHeight: sModel.height,
           status,
           osType: "Linux",
-          osVersion: "Ubuntu 22.04 LTS",
-          totalMemoryGB: 512,
+          osVersion: serverIndex % 3 === 0 ? "Rocky Linux 9.3" : serverIndex % 3 === 1 ? "Ubuntu 22.04 LTS" : "RHEL 8.9",
+          biosVersion: `${sModel.manufacturer === "Dell" ? "2.19.1" : sModel.manufacturer === "HPE" ? "U46 v3.10" : "3.6a"}`,
+          bmcIpAddress: bmcIp,
+          totalMemoryGB: serverIndex % 4 === 0 ? 256 : serverIndex % 4 === 1 ? 512 : serverIndex % 4 === 2 ? 1024 : 768,
           prometheusInstance: `${ip}:9100`,
         },
       });
@@ -180,7 +188,7 @@ async function main() {
             threads: cpuModel.threads,
             baseFreqMhz: cpuModel.baseFreqMhz,
             maxFreqMhz: cpuModel.maxFreqMhz,
-            architecture: "x86_64",
+            architecture: cpuModel.arch || "x86_64",
             tdpWatts: cpuModel.tdpWatts,
           },
         });
