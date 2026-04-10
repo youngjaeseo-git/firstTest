@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
@@ -9,6 +10,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const justRegistered = searchParams.get("registered") === "1";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -51,6 +53,11 @@ function LoginForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {justRegistered && (
+          <div className="rounded-lg bg-green-500/10 px-4 py-3 text-sm text-green-400">
+            회원가입이 완료되었습니다. 로그인해 주세요.
+          </div>
+        )}
         {error && (
           <div className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {error}
@@ -116,6 +123,16 @@ function LoginForm() {
           {loading ? "로그인 중..." : "로그인"}
         </button>
       </form>
+
+      <p className="mt-6 text-center text-sm text-gray-400">
+        계정이 없으신가요?{" "}
+        <Link
+          href="/signup"
+          className="font-medium text-blue-400 hover:text-blue-300"
+        >
+          회원가입
+        </Link>
+      </p>
     </div>
   );
 }
