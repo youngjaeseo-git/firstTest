@@ -5,15 +5,27 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const [cpuResult, tempResult, upResult, uptimeResult] =
-      await Promise.allSettled([
-        instantQuery(
-          'avg(100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100))',
-        ),
-        instantQuery("avg(node_hwmon_temp_celsius)"),
-        instantQuery(queries.allNodesUp()),
-        instantQuery("avg(node_time_seconds - node_boot_time_seconds)"),
-      ]);
+    const [
+      cpuResult,
+      tempResult,
+      upResult,
+      uptimeResult,
+      totalPowerResult,
+      avgMemoryResult,
+      totalRxResult,
+      totalTxResult,
+    ] = await Promise.allSettled([
+      instantQuery(
+        'avg(100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100))',
+      ),
+      instantQuery("avg(node_hwmon_temp_celsius)"),
+      instantQuery(queries.allNodesUp()),
+      instantQuery("avg(node_time_seconds - node_boot_time_seconds)"),
+      instantQuery(queries.fleetTotalPower()),
+      instantQuery(queries.fleetAvgMemory()),
+      instantQuery(queries.fleetTotalNetworkRx()),
+      instantQuery(queries.fleetTotalNetworkTx()),
+    ]);
 
     const extractScalar = (
       r: (typeof cpuResult),
@@ -43,6 +55,10 @@ export async function GET() {
       nodesUp,
       nodesDown,
       avgUptime: extractScalar(uptimeResult),
+      totalPowerWatts: extractScalar(totalPowerResult),
+      avgMemory: extractScalar(avgMemoryResult),
+      totalNetworkRxBps: extractScalar(totalRxResult),
+      totalNetworkTxBps: extractScalar(totalTxResult),
     });
   } catch {
     return NextResponse.json(
@@ -52,6 +68,10 @@ export async function GET() {
         nodesUp: 0,
         nodesDown: 0,
         avgUptime: null,
+        totalPowerWatts: null,
+        avgMemory: null,
+        totalNetworkRxBps: null,
+        totalNetworkTxBps: null,
         error: "Prometheus unreachable",
       },
       { status: 200 },

@@ -151,4 +151,88 @@ export const queries = {
 
   // All servers up status
   allNodesUp: () => `up{job=~"node.*"}`,
+
+  // ---- Phase 1 additions ----
+
+  // Load Average (1m / 5m / 15m)
+  loadAvg1: (instance: string) => `node_load1{instance="${instance}"}`,
+  loadAvg5: (instance: string) => `node_load5{instance="${instance}"}`,
+  loadAvg15: (instance: string) => `node_load15{instance="${instance}"}`,
+
+  // Normalized load = load1 / CPU count (saturation indicator)
+  normalizedLoad: (instance: string) =>
+    `node_load1{instance="${instance}"} / count without(cpu,mode)(node_cpu_seconds_total{instance="${instance}",mode="idle"})`,
+
+  // CPU mode breakdown (user / system / iowait / steal)
+  cpuModeUser: (instance: string) =>
+    `avg by(instance)(rate(node_cpu_seconds_total{instance="${instance}",mode="user"}[5m])) * 100`,
+  cpuModeSystem: (instance: string) =>
+    `avg by(instance)(rate(node_cpu_seconds_total{instance="${instance}",mode="system"}[5m])) * 100`,
+  cpuModeIowait: (instance: string) =>
+    `avg by(instance)(rate(node_cpu_seconds_total{instance="${instance}",mode="iowait"}[5m])) * 100`,
+  cpuModeSteal: (instance: string) =>
+    `avg by(instance)(rate(node_cpu_seconds_total{instance="${instance}",mode="steal"}[5m])) * 100`,
+
+  // Memory absolute values
+  memoryUsedBytes: (instance: string) =>
+    `node_memory_MemTotal_bytes{instance="${instance}"} - node_memory_MemAvailable_bytes{instance="${instance}"}`,
+  memoryCached: (instance: string) =>
+    `node_memory_Cached_bytes{instance="${instance}"} + node_memory_Buffers_bytes{instance="${instance}"}`,
+
+  // Disk IOPS
+  diskReadIOPS: (instance: string) =>
+    `rate(node_disk_reads_completed_total{instance="${instance}",device!~"dm-.*|loop.*"}[5m])`,
+  diskWriteIOPS: (instance: string) =>
+    `rate(node_disk_writes_completed_total{instance="${instance}",device!~"dm-.*|loop.*"}[5m])`,
+
+  // Disk I/O latency (milliseconds)
+  diskReadLatency: (instance: string) =>
+    `rate(node_disk_read_time_seconds_total{instance="${instance}",device!~"dm-.*|loop.*"}[5m]) / clamp_min(rate(node_disk_reads_completed_total{instance="${instance}",device!~"dm-.*|loop.*"}[5m]), 1) * 1000`,
+  diskWriteLatency: (instance: string) =>
+    `rate(node_disk_write_time_seconds_total{instance="${instance}",device!~"dm-.*|loop.*"}[5m]) / clamp_min(rate(node_disk_writes_completed_total{instance="${instance}",device!~"dm-.*|loop.*"}[5m]), 1) * 1000`,
+
+  // Disk I/O queue depth
+  diskIOQueue: (instance: string) =>
+    `node_disk_io_now{instance="${instance}",device!~"dm-.*|loop.*"}`,
+
+  // Network errors and drops
+  networkRxErrors: (instance: string) =>
+    `rate(node_network_receive_errs_total{instance="${instance}",device!~"lo|veth.*|docker.*|br-.*"}[5m])`,
+  networkTxErrors: (instance: string) =>
+    `rate(node_network_transmit_errs_total{instance="${instance}",device!~"lo|veth.*|docker.*|br-.*"}[5m])`,
+  networkRxDrops: (instance: string) =>
+    `rate(node_network_receive_drop_total{instance="${instance}",device!~"lo|veth.*|docker.*|br-.*"}[5m])`,
+  networkTxDrops: (instance: string) =>
+    `rate(node_network_transmit_drop_total{instance="${instance}",device!~"lo|veth.*|docker.*|br-.*"}[5m])`,
+
+  // TCP connections and retransmits
+  tcpEstablished: (instance: string) =>
+    `node_netstat_Tcp_CurrEstab{instance="${instance}"}`,
+  tcpRetransmits: (instance: string) =>
+    `rate(node_netstat_Tcp_RetransSegs{instance="${instance}"}[5m])`,
+
+  // IPMI temperature breakdown
+  inletTemp: (instance: string) =>
+    `ipmi_temperature_celsius{instance="${instance}",name=~"Inlet.*|Ambient.*|Intake.*"}`,
+  exhaustTemp: (instance: string) =>
+    `ipmi_temperature_celsius{instance="${instance}",name=~"Exhaust.*|Outlet.*"}`,
+  cpuSocketTemp: (instance: string) =>
+    `ipmi_temperature_celsius{instance="${instance}",name=~"CPU.*Temp|Processor.*Temp"}`,
+
+  // System: processes and file descriptors
+  procsRunning: (instance: string) => `node_procs_running{instance="${instance}"}`,
+  procsBlocked: (instance: string) => `node_procs_blocked{instance="${instance}"}`,
+  fileDescriptorUsage: (instance: string) =>
+    `node_filefd_allocated{instance="${instance}"} / node_filefd_maximum{instance="${instance}"} * 100`,
+
+  // ---- Dashboard fleet-wide aggregations ----
+  fleetTotalPower: () => `sum(ipmi_power_watts)`,
+  fleetAvgMemory: () =>
+    `avg((1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100)`,
+  fleetTotalNetworkRx: () =>
+    `sum(rate(node_network_receive_bytes_total{device!~"lo|veth.*|docker.*|br-.*"}[5m]))`,
+  fleetTotalNetworkTx: () =>
+    `sum(rate(node_network_transmit_bytes_total{device!~"lo|veth.*|docker.*|br-.*"}[5m]))`,
+  fleetTopCpu: () =>
+    `topk(5, 100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100))`,
 };
