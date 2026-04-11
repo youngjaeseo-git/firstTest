@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
 import { List, Building2, Search, GitCompareArrows } from "lucide-react";
 
@@ -221,14 +222,16 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
         /* TWIN VIEW - Level 3: Rack Elevation */
         <RackElevation
           rack={rooms.flatMap((r) => r.racks).find((r) => r.id === selectedRack)!}
-          onBack={() => setSelectedRack(null)}
+          roomName={rooms.find((r) => r.id === selectedRoom)?.name || "Room"}
+          onBackToRooms={() => { setSelectedRoom(null); setSelectedRack(null); }}
+          onBackToRoom={() => setSelectedRack(null)}
         />
       ) : selectedRoom ? (
         /* TWIN VIEW - Level 2: Room Floor Plan */
         <RoomFloorPlan
           room={rooms.find((r) => r.id === selectedRoom)!}
           onSelectRack={setSelectedRack}
-          onBack={() => setSelectedRoom(null)}
+          onBackToRooms={() => setSelectedRoom(null)}
         />
       ) : (
         /* TWIN VIEW - Level 1: Room Selector */
@@ -353,11 +356,11 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
 function RoomFloorPlan({
   room,
   onSelectRack,
-  onBack,
+  onBackToRooms,
 }: {
   room: ServerPageClientProps["rooms"][0];
   onSelectRack: (id: string) => void;
-  onBack: () => void;
+  onBackToRooms: () => void;
 }) {
   const groups = room.racks.reduce(
     (acc, rack) => {
@@ -370,8 +373,14 @@ function RoomFloorPlan({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={onBack}>← Back</Button>
+      <div>
+        <Breadcrumb
+          items={[
+            { label: "Servers", onClick: onBackToRooms },
+            { label: room.name },
+          ]}
+          className="mb-1"
+        />
         <h2 className="text-xl font-bold">{room.name}</h2>
       </div>
       {Object.entries(groups).map(([label, racks]) => (
@@ -434,10 +443,14 @@ function RoomFloorPlan({
 /* Level 3: Rack Elevation View */
 function RackElevation({
   rack,
-  onBack,
+  roomName,
+  onBackToRooms,
+  onBackToRoom,
 }: {
   rack: ServerPageClientProps["rooms"][0]["racks"][0];
-  onBack: () => void;
+  roomName: string;
+  onBackToRooms: () => void;
+  onBackToRoom: () => void;
 }) {
   const units = Array.from({ length: rack.totalUnits }, (_, i) => {
     const pos = rack.totalUnits - i; // top to bottom
@@ -458,12 +471,21 @@ function RackElevation({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={onBack}>← Back</Button>
-        <h2 className="text-xl font-bold">Rack {rack.name}</h2>
-        <span className="text-sm text-gray-400">
-          ({rack.equipment.length} devices / {rack.totalUnits}U)
-        </span>
+      <div>
+        <Breadcrumb
+          items={[
+            { label: "Servers", onClick: onBackToRooms },
+            { label: roomName, onClick: onBackToRoom },
+            { label: rack.name },
+          ]}
+          className="mb-1"
+        />
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl font-bold">Rack {rack.name}</h2>
+          <span className="text-sm text-gray-400">
+            ({rack.equipment.length} devices / {rack.totalUnits}U)
+          </span>
+        </div>
       </div>
 
       <div className="flex gap-6">

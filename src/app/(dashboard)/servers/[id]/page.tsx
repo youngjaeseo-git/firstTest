@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { ServerDetailClient } from "@/components/metrics/server-detail-client";
 import { PageTransition } from "@/components/ui/page-transition";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 
 export default async function ServerDetailPage({
   params,
@@ -39,13 +40,13 @@ export default async function ServerDetailPage({
       <div className="space-y-6">
         {/* Breadcrumb */}
         <div>
-          <div className="mb-1 flex items-center gap-2 text-sm text-gray-500">
-            <Link href="/servers" className="hover:text-gray-300 transition-colors">
-              Servers
-            </Link>
-            <span className="text-gray-700">/</span>
-            <span className="text-gray-400">{equipment.hostname || "Unknown"}</span>
-          </div>
+          <Breadcrumb
+            items={[
+              { label: "Servers", href: "/servers" },
+              { label: equipment.hostname || "Unknown" },
+            ]}
+            className="mb-1"
+          />
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold tracking-tight">
               {equipment.hostname || "Unnamed Server"}

@@ -1,12 +1,12 @@
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, LogOut, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { CommandPalette } from "@/components/command-palette/command-palette";
 
 interface AlertItem {
   id: string;
@@ -18,8 +18,6 @@ interface AlertItem {
 
 export function Header() {
   const { data: session } = useSession();
-  const router = useRouter();
-  const [query, setQuery] = useState("");
   const [bellOpen, setBellOpen] = useState(false);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [alertCount, setAlertCount] = useState(0);
@@ -62,26 +60,25 @@ export function Header() {
     }
   }, [bellOpen]);
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const q = query.trim();
-    if (!q) return;
-    router.push(`/servers?q=${encodeURIComponent(q)}`);
-  }
-
   return (
     <header className="flex h-16 items-center justify-between border-b border-gray-800/80 bg-gray-900/95 px-6 backdrop-blur-sm">
-      {/* Search */}
-      <form onSubmit={handleSubmit} className="relative w-96">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search servers by hostname or IP..."
-          className="w-full rounded-lg border border-gray-700/60 bg-gray-800/60 px-4 py-2 pl-10 text-sm text-gray-200 placeholder-gray-500 backdrop-blur-sm focus:border-blue-500/60 focus:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-        />
-      </form>
+      {/* Command Palette Trigger */}
+      <button
+        onClick={() => {
+          // Dispatch Cmd+K to open the palette
+          document.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "k", metaKey: true }),
+          );
+        }}
+        className="group flex w-96 items-center gap-3 rounded-lg border border-gray-700/60 bg-gray-800/60 px-4 py-2 text-sm text-gray-500 backdrop-blur-sm transition-all hover:border-gray-600 hover:bg-gray-800 hover:text-gray-400"
+      >
+        <Search className="h-4 w-4 text-gray-500" />
+        <span className="flex-1 text-left">Search servers, racks, alerts...</span>
+        <kbd className="hidden rounded-md border border-gray-700 bg-gray-800/80 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 sm:inline-block">
+          ⌘K
+        </kbd>
+      </button>
+      <CommandPalette />
 
       {/* Right side */}
       <div className="flex items-center gap-3">
