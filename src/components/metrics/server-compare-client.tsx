@@ -2,7 +2,10 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { GitCompareArrows, Search } from "lucide-react";
 import { MetricChart } from "./metric-chart";
+import { EmptyState } from "@/components/ui/empty-state";
 import { queries } from "@/lib/prometheus";
 
 interface ServerInfo {
@@ -140,38 +143,41 @@ export function ServerCompareClient({ servers }: { servers: ServerInfo[] }) {
           <span>/</span>
           <span>비교</span>
         </div>
-        <h1 className="text-2xl font-bold">서버 메트릭 비교</h1>
-        <p className="text-gray-400 text-sm mt-1">
-          2~4대 서버를 선택해 주요 메트릭을 나란히 비교합니다
+        <h1 className="text-2xl font-bold tracking-tight">Server Comparison</h1>
+        <p className="text-gray-500 text-sm mt-1">
+          Select 2-4 servers to compare key metrics side by side
         </p>
       </div>
 
       {/* Server selector */}
-      <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+      <div className="rounded-xl border border-gray-800/80 bg-gray-900/80 p-4 backdrop-blur-sm">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-gray-300">
-            서버 선택
-            <span className="ml-2 text-xs text-gray-500">
-              {selected.length}/4 선택됨
+          <h3 className="text-sm font-semibold text-gray-300">
+            Select Servers
+            <span className="ml-2 rounded-full bg-blue-500/15 px-2 py-0.5 text-[11px] font-medium text-blue-400">
+              {selected.length}/4
             </span>
           </h3>
           {selected.length > 0 && (
             <button
               onClick={() => setSelected([])}
-              className="text-xs text-gray-500 hover:text-gray-300"
+              className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
             >
-              선택 초기화
+              Clear selection
             </button>
           )}
         </div>
 
-        <input
-          type="text"
-          placeholder="호스트명, IP, 룸, 랙으로 검색..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full mb-3 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
-        />
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Search by hostname, IP, room, or rack..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-lg border border-gray-700/60 bg-gray-800/60 pl-10 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          />
+        </div>
 
         <div className="max-h-48 overflow-y-auto space-y-1">
           {filtered.map((srv) => {
@@ -219,17 +225,17 @@ export function ServerCompareClient({ servers }: { servers: ServerInfo[] }) {
       {selectedServers.length >= 2 && (
         <>
           {/* Time range selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-400">Range:</span>
-            <div className="flex gap-1">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Range</span>
+            <div className="flex rounded-lg border border-gray-800/80 bg-gray-800/40 p-0.5">
               {DURATIONS.map((d) => (
                 <button
                   key={d.label}
                   onClick={() => setDuration(d)}
-                  className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
                     duration.label === d.label
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                      ? "bg-blue-600 text-white shadow-sm shadow-blue-600/30"
+                      : "text-gray-400 hover:text-gray-200"
                   }`}
                 >
                   {d.label}
@@ -269,33 +275,19 @@ export function ServerCompareClient({ servers }: { servers: ServerInfo[] }) {
       )}
 
       {selectedServers.length < 2 && selected.length > 0 && (
-        <div className="rounded-lg border border-gray-800 bg-gray-900 p-8 text-center">
-          <p className="text-gray-500">
-            비교하려면 최소 2대의 서버를 선택하세요
-          </p>
-        </div>
+        <EmptyState
+          icon={GitCompareArrows}
+          title="Select at least 2 servers"
+          description="Pick one more server above to start comparing metrics"
+        />
       )}
 
       {selected.length === 0 && (
-        <div className="rounded-lg border border-gray-800 bg-gray-900 p-12 text-center">
-          <svg
-            className="mx-auto h-12 w-12 text-gray-600 mb-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"
-            />
-          </svg>
-          <p className="text-gray-400 font-medium">서버를 선택해 비교를 시작하세요</p>
-          <p className="text-gray-600 text-sm mt-1">
-            위에서 2~4대의 서버를 클릭하면 메트릭 차트가 표시됩니다
-          </p>
-        </div>
+        <EmptyState
+          icon={GitCompareArrows}
+          title="Select servers to compare"
+          description="Click 2-4 servers above to see their metrics side by side in shared charts"
+        />
       )}
     </div>
   );

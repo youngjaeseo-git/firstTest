@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/db";
 import { ServerCompareClient } from "@/components/metrics/server-compare-client";
+import { PageTransition } from "@/components/ui/page-transition";
 
 export default async function ServerComparePage() {
   const servers = await prisma.equipment.findMany({
@@ -26,5 +27,9 @@ export default async function ServerComparePage() {
     status: s.status,
   }));
 
-  return <ServerCompareClient servers={serverList} />;
+  return (
+    <PageTransition>
+      <ServerCompareClient servers={serverList} />
+    </PageTransition>
+  );
 }

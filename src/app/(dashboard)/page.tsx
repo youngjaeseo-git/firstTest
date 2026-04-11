@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardSummaryCards } from "@/components/dashboard/summary-cards";
 import { PrometheusMetrics } from "@/components/dashboard/prometheus-metrics";
+import { PageTransition } from "@/components/ui/page-transition";
 
 export default async function DashboardPage() {
   const [
@@ -73,158 +74,168 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
-
-      {/* Prometheus Live Metrics */}
-      <PrometheusMetrics />
-
-      {/* Summary Cards with hover overlay */}
-      <DashboardSummaryCards
-        totalEquipment={totalEquipment}
-        activeCount={activeEquipmentCount}
-        activeList={activeEquipmentList}
-        maintenanceCount={maintenanceCount}
-        maintenanceList={maintenanceEquipmentList}
-        failedCount={failedCount}
-        failedList={failedEquipmentList}
-        totalRacks={totalRacks}
-        totalRooms={totalRooms}
-        firingAlerts={firingAlerts}
-      />
-
-      {/* Status Breakdown Card */}
-      <Card>
-        <h3 className="mb-3 text-sm font-medium text-gray-400">
-          Status Breakdown
-        </h3>
-        <div className="flex flex-wrap gap-2">
-          {statusBreakdown.map((s) => (
-            <div
-              key={s.status}
-              className="flex items-center gap-2 rounded-lg border border-gray-800 bg-gray-800/30 px-3 py-2"
-            >
-              <Badge
-                variant={
-                  s.status === "ACTIVE"
-                    ? "active"
-                    : s.status === "FAILED"
-                      ? "critical"
-                      : s.status === "MAINTENANCE" || s.status === "REPAIR"
-                        ? "maintenance"
-                        : "info"
-                }
-              >
-                {s.status}
-              </Badge>
-              <span className="font-mono text-sm text-gray-300">
-                {s._count}
-              </span>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* Main Content */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <Card>
-            <h2 className="mb-4 text-lg font-semibold">Quick Links</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <Link
-                href="/servers"
-                className="rounded-lg border border-gray-700 p-4 transition-colors hover:border-blue-600 hover:bg-blue-600/5"
-              >
-                <p className="font-medium">Servers</p>
-                <p className="mt-1 text-xs text-gray-400">
-                  Server monitoring & Digital Twin
-                </p>
-              </Link>
-              <Link
-                href="/infrastructure"
-                className="rounded-lg border border-gray-700 p-4 transition-colors hover:border-blue-600 hover:bg-blue-600/5"
-              >
-                <p className="font-medium">Infrastructure</p>
-                <p className="mt-1 text-xs text-gray-400">Equipment management</p>
-              </Link>
-              <Link
-                href="/alerts"
-                className="rounded-lg border border-gray-700 p-4 transition-colors hover:border-blue-600 hover:bg-blue-600/5"
-              >
-                <p className="font-medium">Alerts</p>
-                <p className="mt-1 text-xs text-gray-400">
-                  Alert management & history
-                </p>
-              </Link>
-              <Link
-                href="/settings/discovery"
-                className="rounded-lg border border-gray-700 p-4 transition-colors hover:border-blue-600 hover:bg-blue-600/5"
-              >
-                <p className="font-medium">Discovery</p>
-                <p className="mt-1 text-xs text-gray-400">
-                  Prometheus target sync
-                </p>
-              </Link>
-            </div>
-          </Card>
-        </div>
-
-        {/* Recent Alerts Feed */}
+    <PageTransition>
+      <div className="space-y-6">
+        {/* Header */}
         <div>
-          <Card>
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Active Alerts</h2>
-              {firingAlerts > 0 && (
-                <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-400">
-                  {firingAlerts} active
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Infrastructure overview and live metrics
+          </p>
+        </div>
+
+        {/* Prometheus Live Metrics */}
+        <PrometheusMetrics />
+
+        {/* Summary Cards with hover overlay */}
+        <DashboardSummaryCards
+          totalEquipment={totalEquipment}
+          activeCount={activeEquipmentCount}
+          activeList={activeEquipmentList}
+          maintenanceCount={maintenanceCount}
+          maintenanceList={maintenanceEquipmentList}
+          failedCount={failedCount}
+          failedList={failedEquipmentList}
+          totalRacks={totalRacks}
+          totalRooms={totalRooms}
+          firingAlerts={firingAlerts}
+        />
+
+        {/* Status Breakdown Card */}
+        <Card>
+          <h3 className="mb-3 text-sm font-semibold text-gray-400 uppercase tracking-wider">
+            Status Breakdown
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {statusBreakdown.map((s) => (
+              <div
+                key={s.status}
+                className="flex items-center gap-2 rounded-lg border border-gray-800/60 bg-gray-800/20 px-3 py-2 transition-colors hover:bg-gray-800/40"
+              >
+                <Badge
+                  variant={
+                    s.status === "ACTIVE"
+                      ? "active"
+                      : s.status === "FAILED"
+                        ? "critical"
+                        : s.status === "MAINTENANCE" || s.status === "REPAIR"
+                          ? "maintenance"
+                          : "info"
+                  }
+                >
+                  {s.status}
+                </Badge>
+                <span className="font-mono text-sm font-semibold text-gray-300">
+                  {s._count}
                 </span>
-              )}
-            </div>
-            {recentAlerts.length === 0 ? (
-              <p className="text-sm text-gray-500">No active alerts</p>
-            ) : (
-              <div className="space-y-2">
-                {recentAlerts.map((alert) => (
-                  <div
-                    key={alert.id}
-                    className={`rounded-r-lg border-l-2 p-3 ${
-                      alert.severity === "CRITICAL"
-                        ? "border-l-red-500 bg-red-500/5"
-                        : alert.severity === "WARNING"
-                          ? "border-l-amber-500 bg-amber-500/5"
-                          : "border-l-blue-500 bg-blue-500/5"
-                    }`}
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <Card>
+              <h2 className="mb-4 text-base font-semibold">Quick Links</h2>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  {
+                    href: "/servers",
+                    title: "Servers",
+                    desc: "Server monitoring & Digital Twin",
+                  },
+                  {
+                    href: "/infrastructure",
+                    title: "Infrastructure",
+                    desc: "Equipment management",
+                  },
+                  {
+                    href: "/alerts",
+                    title: "Alerts",
+                    desc: "Alert management & history",
+                  },
+                  {
+                    href: "/settings/discovery",
+                    title: "Discovery",
+                    desc: "Prometheus target sync",
+                  },
+                ].map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="group rounded-xl border border-gray-700/50 p-4 transition-all duration-200 hover:border-blue-500/40 hover:bg-blue-600/5 hover:shadow-lg hover:shadow-blue-600/5"
                   >
-                    <div className="flex items-start gap-2">
-                      <span
-                        className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${
-                          alert.severity === "CRITICAL"
-                            ? "bg-red-500"
-                            : alert.severity === "WARNING"
-                              ? "bg-amber-500"
-                              : "bg-blue-500"
-                        }`}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-200">
-                          {alert.summary}
-                        </p>
-                        <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-                          <span>{alert.source || "-"}</span>
-                          <span>-</span>
-                          <span>
-                            {new Date(alert.firedAt).toLocaleString("ko-KR")}
-                          </span>
+                    <p className="font-medium text-gray-200 group-hover:text-blue-300 transition-colors">
+                      {link.title}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">{link.desc}</p>
+                  </Link>
+                ))}
+              </div>
+            </Card>
+          </div>
+
+          {/* Recent Alerts Feed */}
+          <div>
+            <Card>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-base font-semibold">Active Alerts</h2>
+                {firingAlerts > 0 && (
+                  <span className="rounded-full bg-red-500/15 px-2.5 py-0.5 text-xs font-medium text-red-400 animate-glow-pulse">
+                    {firingAlerts} active
+                  </span>
+                )}
+              </div>
+              {recentAlerts.length === 0 ? (
+                <div className="rounded-lg bg-green-500/5 border border-green-500/10 px-4 py-6 text-center">
+                  <p className="text-sm text-green-400 font-medium">All clear</p>
+                  <p className="text-xs text-gray-500 mt-1">No active alerts</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {recentAlerts.map((alert) => (
+                    <div
+                      key={alert.id}
+                      className={`rounded-lg border-l-2 p-3 transition-colors hover:bg-gray-800/30 ${
+                        alert.severity === "CRITICAL"
+                          ? "border-l-red-500 bg-red-500/5"
+                          : alert.severity === "WARNING"
+                            ? "border-l-amber-500 bg-amber-500/5"
+                            : "border-l-blue-500 bg-blue-500/5"
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <span
+                          className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${
+                            alert.severity === "CRITICAL"
+                              ? "bg-red-500 animate-pulse"
+                              : alert.severity === "WARNING"
+                                ? "bg-amber-500"
+                                : "bg-blue-500"
+                          }`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-200">
+                            {alert.summary}
+                          </p>
+                          <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                            <span>{alert.source || "-"}</span>
+                            <span className="text-gray-700">·</span>
+                            <span>
+                              {new Date(alert.firedAt).toLocaleString("ko-KR")}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

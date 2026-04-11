@@ -4,6 +4,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Bell, LogOut, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -24,7 +25,6 @@ export function Header() {
   const [alertCount, setAlertCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch firing alerts for bell dropdown
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -47,7 +47,6 @@ export function Header() {
     };
   }, []);
 
-  // Close dropdown on outside click
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (
@@ -71,7 +70,7 @@ export function Header() {
   }
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-gray-800 bg-gray-900 px-6">
+    <header className="flex h-16 items-center justify-between border-b border-gray-800/80 bg-gray-900/95 px-6 backdrop-blur-sm">
       {/* Search */}
       <form onSubmit={handleSubmit} className="relative w-96">
         <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
@@ -79,99 +78,125 @@ export function Header() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="서버 호스트명 / IP 검색..."
-          className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 pl-10 text-sm text-gray-200 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          placeholder="Search servers by hostname or IP..."
+          className="w-full rounded-lg border border-gray-700/60 bg-gray-800/60 px-4 py-2 pl-10 text-sm text-gray-200 placeholder-gray-500 backdrop-blur-sm focus:border-blue-500/60 focus:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         />
       </form>
 
       {/* Right side */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {/* Alert bell */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setBellOpen((v) => !v)}
-            className="relative rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-gray-200"
-            aria-label="알림"
+            className="relative rounded-lg p-2 text-gray-400 transition-all duration-200 hover:bg-gray-800/80 hover:text-gray-200"
+            aria-label="Alerts"
           >
             <Bell className="h-5 w-5" />
             {alertCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-lg shadow-red-500/30"
+              >
                 {alertCount > 99 ? "99+" : alertCount}
-              </span>
+              </motion.span>
             )}
           </button>
 
-          {bellOpen && (
-            <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-lg border border-gray-700 bg-gray-900 shadow-xl">
-              <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
-                <p className="text-sm font-semibold text-gray-100">알림</p>
-                <span className="text-xs text-gray-500">
-                  {alertCount} firing
-                </span>
-              </div>
-              <div className="max-h-80 overflow-y-auto">
-                {alerts.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-gray-500">
-                    활성 알림이 없습니다.
-                  </p>
-                ) : (
-                  alerts.map((a) => (
-                    <Link
-                      key={a.id}
-                      href="/alerts"
-                      onClick={() => setBellOpen(false)}
-                      className="block border-b border-gray-800 px-4 py-3 last:border-0 hover:bg-gray-800"
-                    >
-                      <div className="flex items-start gap-2">
-                        <span
-                          className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${
-                            a.severity === "CRITICAL"
-                              ? "bg-red-500"
-                              : a.severity === "WARNING"
-                                ? "bg-amber-500"
-                                : "bg-blue-500"
-                          }`}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm text-gray-200">
-                            {a.summary}
-                          </p>
-                          <p className="mt-0.5 text-xs text-gray-500">
-                            {a.source || "-"} ·{" "}
-                            {new Date(a.firedAt).toLocaleTimeString("ko-KR")}
-                          </p>
-                        </div>
-                      </div>
-                    </Link>
-                  ))
-                )}
-              </div>
-              <Link
-                href="/alerts"
-                onClick={() => setBellOpen(false)}
-                className="block border-t border-gray-800 px-4 py-2 text-center text-xs text-blue-400 hover:bg-gray-800"
+          <AnimatePresence>
+            {bellOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-xl border border-gray-700/60 bg-gray-900/95 shadow-2xl shadow-black/40 backdrop-blur-md"
               >
-                모든 알림 보기 →
-              </Link>
-            </div>
-          )}
+                <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
+                  <p className="text-sm font-semibold text-gray-100">Alerts</p>
+                  <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[11px] font-medium text-red-400">
+                    {alertCount} firing
+                  </span>
+                </div>
+                <div className="max-h-80 overflow-y-auto scrollbar-thin">
+                  {alerts.length === 0 ? (
+                    <p className="px-4 py-8 text-center text-sm text-gray-500">
+                      No active alerts
+                    </p>
+                  ) : (
+                    alerts.map((a, i) => (
+                      <motion.div
+                        key={a.id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.03 }}
+                      >
+                        <Link
+                          href="/alerts"
+                          onClick={() => setBellOpen(false)}
+                          className="block border-b border-gray-800/60 px-4 py-3 last:border-0 hover:bg-gray-800/50 transition-colors"
+                        >
+                          <div className="flex items-start gap-2.5">
+                            <span
+                              className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${
+                                a.severity === "CRITICAL"
+                                  ? "bg-red-500 shadow-sm shadow-red-500/50"
+                                  : a.severity === "WARNING"
+                                    ? "bg-amber-500 shadow-sm shadow-amber-500/50"
+                                    : "bg-blue-500 shadow-sm shadow-blue-500/50"
+                              }`}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm text-gray-200">
+                                {a.summary}
+                              </p>
+                              <p className="mt-0.5 text-xs text-gray-500">
+                                {a.source || "-"} ·{" "}
+                                {new Date(a.firedAt).toLocaleTimeString("ko-KR")}
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
+                      </motion.div>
+                    ))
+                  )}
+                </div>
+                <Link
+                  href="/alerts"
+                  onClick={() => setBellOpen(false)}
+                  className="block border-t border-gray-800 px-4 py-2.5 text-center text-xs font-medium text-blue-400 hover:bg-gray-800/50 transition-colors"
+                >
+                  View all alerts
+                </Link>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
+
+        {/* Separator */}
+        <div className="h-6 w-px bg-gray-800" />
 
         {/* User info */}
         {session?.user && (
           <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-xs font-bold text-blue-300 border border-blue-500/20">
+              {(session.user.name || session.user.email || "U")
+                .charAt(0)
+                .toUpperCase()}
+            </div>
             <div className="text-right">
-              <p className="text-sm font-medium text-gray-200">
+              <p className="text-sm font-medium text-gray-200 leading-tight">
                 {session.user.name || session.user.email}
               </p>
-              <Badge variant="info" className="text-[10px]">
+              <Badge variant="info" className="text-[10px] mt-0.5">
                 {(session.user as { role?: string }).role || "VIEWER"}
               </Badge>
             </div>
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className="rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-gray-200"
-              title="로그아웃"
+              className="rounded-lg p-2 text-gray-500 hover:bg-gray-800/80 hover:text-gray-300 transition-all duration-200"
+              title="Logout"
             >
               <LogOut className="h-4 w-4" />
             </button>

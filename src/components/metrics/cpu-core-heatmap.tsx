@@ -66,23 +66,23 @@ export function CpuCoreHeatmap({ instance }: { instance: string }) {
 
   if (loading) {
     return (
-      <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-        <h3 className="text-sm font-medium text-gray-300 mb-3">
+      <div className="rounded-xl border border-gray-800/80 bg-gray-900/80 p-4 backdrop-blur-sm">
+        <h3 className="text-sm font-semibold text-gray-300 mb-3">
           CPU Core Heatmap
         </h3>
-        <div className="animate-pulse h-24 bg-gray-800 rounded" />
+        <div className="animate-pulse h-24 bg-gray-800/60 rounded-lg" />
       </div>
     );
   }
 
   if (error || cores.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-        <h3 className="text-sm font-medium text-gray-300 mb-3">
+      <div className="rounded-xl border border-gray-800/80 bg-gray-900/80 p-4 backdrop-blur-sm">
+        <h3 className="text-sm font-semibold text-gray-300 mb-3">
           CPU Core Heatmap
         </h3>
         <p className="text-sm text-gray-500">
-          코어별 CPU 데이터를 가져올 수 없습니다.
+          Per-core CPU data unavailable
         </p>
       </div>
     );
@@ -92,12 +92,12 @@ export function CpuCoreHeatmap({ instance }: { instance: string }) {
     cores.reduce((sum, c) => sum + c.usage, 0) / cores.length;
 
   return (
-    <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
+    <div className="rounded-xl border border-gray-800/80 bg-gray-900/80 p-4 backdrop-blur-sm transition-all duration-200 hover:border-gray-700/60">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-300">
+        <h3 className="text-sm font-semibold text-gray-300">
           CPU Core Heatmap
-          <span className="ml-2 text-xs text-gray-500">
-            {cores.length} cores — avg {avgUsage.toFixed(1)}%
+          <span className="ml-2 rounded-md bg-gray-800/60 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+            {cores.length} cores · avg {avgUsage.toFixed(1)}%
           </span>
         </h3>
         <div className="flex items-center gap-2">

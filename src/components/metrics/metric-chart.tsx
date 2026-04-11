@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { ChartSkeleton } from "@/components/ui/skeleton";
 
 interface Series {
   label: string;
@@ -46,6 +47,62 @@ interface PromResponse {
   };
 }
 
+function CustomTooltip({
+  active,
+  payload,
+  label,
+  formatY,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string }>;
+  label?: number;
+  formatY: (v: number) => string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-gray-700/60 bg-gray-900/95 px-3 py-2.5 shadow-xl backdrop-blur-sm">
+      <p className="mb-1.5 text-[11px] font-medium text-gray-400">
+        {label ? new Date(label).toLocaleString("ko-KR") : ""}
+      </p>
+      <div className="space-y-1">
+        {payload.map((entry) => (
+          <div key={entry.name} className="flex items-center gap-2">
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-xs text-gray-400">{entry.name}</span>
+            <span className="ml-auto text-xs font-semibold text-gray-100">
+              {formatY(entry.value)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CustomLegend({
+  payload,
+}: {
+  payload?: Array<{ value: string; color: string }>;
+}) {
+  if (!payload || payload.length <= 1) return null;
+  return (
+    <div className="flex items-center justify-center gap-4 pt-2">
+      {payload.map((entry) => (
+        <div key={entry.value} className="flex items-center gap-1.5">
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-[11px] text-gray-400">{entry.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function MetricChart({
   title,
   unit,
@@ -76,18 +133,16 @@ export function MetricChart({
 
         if (cancelled) return;
 
-        // Check for errors
         const errs = results.filter(
           (r) => !r.data || r.status !== "success"
         );
         if (errs.length === results.length) {
-          setError("Prometheus 데이터를 가져올 수 없습니다.");
+          setError("Prometheus data unavailable");
           setData([]);
           setLoading(false);
           return;
         }
 
-        // Merge series by timestamp
         const timeMap = new Map<number, ChartPoint>();
         results.forEach((resp, idx) => {
           const label = series[idx].label;
@@ -110,7 +165,7 @@ export function MetricChart({
         setError(null);
       } catch {
         if (!cancelled) {
-          setError("Prometheus 연결 실패");
+          setError("Connection failed");
           setData([]);
         }
       } finally {
@@ -134,30 +189,29 @@ export function MetricChart({
 
   const formatY = formatValue || ((v: number) => v.toFixed(1));
 
+  if (loading && data.length === 0) {
+    return <ChartSkeleton height={height} />;
+  }
+
   return (
-    <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-gray-300">{title}</h3>
-        <span className="text-xs text-gray-500">{unit}</span>
+    <div className="rounded-xl border border-gray-800/80 bg-gray-900/80 p-4 backdrop-blur-sm transition-all duration-200 hover:border-gray-700/60">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-gray-300">{title}</h3>
+        <span className="rounded-md bg-gray-800/60 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+          {unit}
+        </span>
       </div>
 
-      {loading && data.length === 0 && (
-        <div
-          className="flex items-center justify-center text-sm text-gray-500"
-          style={{ height }}
-        >
-          Loading...
-        </div>
-      )}
-
-      {error && data.length === 0 && !loading && (
+      {error && data.length === 0 && (
         <div
           className="flex flex-col items-center justify-center text-sm text-gray-500"
           style={{ height }}
         >
-          <p className="text-red-400">⚠ {error}</p>
-          <p className="mt-1 text-xs">
-            Prometheus가 접근 가능한지 확인하세요.
+          <div className="rounded-lg bg-red-500/10 p-3 mb-2">
+            <p className="text-xs text-red-400 font-medium">{error}</p>
+          </div>
+          <p className="text-[11px] text-gray-600">
+            Check Prometheus connectivity
           </p>
         </div>
       )}
@@ -165,33 +219,44 @@ export function MetricChart({
       {data.length > 0 && (
         <ResponsiveContainer width="100%" height={height}>
           <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+            <defs>
+              {series.map((s) => (
+                <linearGradient
+                  key={`grad-${s.label}`}
+                  id={`grad-${s.label.replace(/\s+/g, "_")}`}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop offset="0%" stopColor={s.color} stopOpacity={0.15} />
+                  <stop offset="100%" stopColor={s.color} stopOpacity={0} />
+                </linearGradient>
+              ))}
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" strokeOpacity={0.5} />
             <XAxis
               dataKey="time"
               tickFormatter={formatTick}
-              stroke="#6b7280"
-              fontSize={11}
+              stroke="#374151"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
             />
             <YAxis
               domain={yDomain}
               tickFormatter={formatY}
-              stroke="#6b7280"
-              fontSize={11}
-              width={50}
+              stroke="#374151"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              width={45}
             />
             <Tooltip
-              contentStyle={{
-                backgroundColor: "#111827",
-                border: "1px solid #374151",
-                borderRadius: "6px",
-                fontSize: "12px",
-              }}
-              labelFormatter={(v) => new Date(v as number).toLocaleString("ko-KR")}
-              formatter={(value: number) => [formatY(value), ""]}
+              content={<CustomTooltip formatY={formatY} />}
+              cursor={{ stroke: "#4b5563", strokeWidth: 1, strokeDasharray: "4 4" }}
             />
-            {series.length > 1 && (
-              <Legend wrapperStyle={{ fontSize: "11px" }} />
-            )}
+            <Legend content={<CustomLegend />} />
             {series.map((s) => (
               <Line
                 key={s.label}
@@ -200,7 +265,15 @@ export function MetricChart({
                 stroke={s.color}
                 strokeWidth={2}
                 dot={false}
-                isAnimationActive={false}
+                activeDot={{
+                  r: 4,
+                  fill: s.color,
+                  stroke: "#111827",
+                  strokeWidth: 2,
+                }}
+                isAnimationActive={true}
+                animationDuration={600}
+                animationEasing="ease-out"
               />
             ))}
           </LineChart>

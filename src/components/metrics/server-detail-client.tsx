@@ -34,25 +34,25 @@ export function ServerDetailClient({ instance }: { instance: string }) {
   return (
     <div className="space-y-6">
       {/* Time range selector */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-400">Range:</span>
-        <div className="flex gap-1">
+      <div className="flex items-center gap-3">
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Range</span>
+        <div className="flex rounded-lg border border-gray-800/80 bg-gray-800/40 p-0.5">
           {DURATIONS.map((d) => (
             <button
               key={d.label}
               onClick={() => setDuration(d)}
-              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
                 duration.label === d.label
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                  ? "bg-blue-600 text-white shadow-sm shadow-blue-600/30"
+                  : "text-gray-400 hover:text-gray-200"
               }`}
             >
               {d.label}
             </button>
           ))}
         </div>
-        <span className="ml-auto text-xs text-gray-500">
-          instance: <span className="font-mono">{instance}</span>
+        <span className="ml-auto rounded-md bg-gray-800/60 px-2 py-1 text-[11px] text-gray-500">
+          <span className="font-mono">{instance}</span>
         </span>
       </div>
 
@@ -402,11 +402,14 @@ export function ServerDetailClient({ instance }: { instance: string }) {
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <div className="flex items-center gap-3 pt-2">
-      <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-        {title}
-      </h3>
-      <div className="flex-1 h-px bg-gray-800" />
+    <div className="flex items-center gap-3 pt-4">
+      <div className="flex items-center gap-2">
+        <div className="h-4 w-1 rounded-full bg-blue-500/60" />
+        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+          {title}
+        </h3>
+      </div>
+      <div className="flex-1 h-px bg-gradient-to-r from-gray-800 to-transparent" />
     </div>
   );
 }

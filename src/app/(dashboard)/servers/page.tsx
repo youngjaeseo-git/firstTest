@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import { ServerPageClient } from "@/components/twin/server-page-client";
+import { PageTransition } from "@/components/ui/page-transition";
 
 export default async function ServersPage() {
   const rooms = await prisma.room.findMany({
@@ -44,11 +45,13 @@ export default async function ServersPage() {
   );
 
   return (
-    <Suspense fallback={<div className="text-gray-500">Loading...</div>}>
-      <ServerPageClient
-        rooms={JSON.parse(JSON.stringify(rooms))}
-        servers={JSON.parse(JSON.stringify(servers))}
-      />
-    </Suspense>
+    <PageTransition>
+      <Suspense fallback={<div className="text-gray-500">Loading...</div>}>
+        <ServerPageClient
+          rooms={JSON.parse(JSON.stringify(rooms))}
+          servers={JSON.parse(JSON.stringify(servers))}
+        />
+      </Suspense>
+    </PageTransition>
   );
 }
