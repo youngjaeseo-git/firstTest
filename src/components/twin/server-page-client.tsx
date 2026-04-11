@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { List, Building2, Search } from "lucide-react";
+import { List, Building2, Search, GitCompareArrows } from "lucide-react";
 
 interface ServerPageClientProps {
   rooms: Array<{
@@ -90,7 +90,14 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
             {query && ` / ${servers.length}`}대 서버
           </p>
         </div>
-        <div className="flex rounded-lg border border-gray-700 bg-gray-800 p-1">
+        <div className="flex items-center gap-3">
+          <Link href="/servers/compare">
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <GitCompareArrows className="h-4 w-4" />
+              서버 비교
+            </Button>
+          </Link>
+          <div className="flex rounded-lg border border-gray-700 bg-gray-800 p-1">
           <button
             onClick={() => { setView("list"); setSelectedRoom(null); setSelectedRack(null); }}
             className={cn("flex items-center gap-2 rounded-md px-3 py-1.5 text-sm", view === "list" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-200")}
@@ -103,6 +110,7 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
           >
             <Building2 className="h-4 w-4" /> Twin
           </button>
+          </div>
         </div>
       </div>
 

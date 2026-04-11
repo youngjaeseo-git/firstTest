@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MetricChart } from "./metric-chart";
+import { CpuCoreHeatmap } from "./cpu-core-heatmap";
 import { queries } from "@/lib/prometheus";
 
 const DURATIONS = [
@@ -113,6 +114,9 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           formatValue={(v) => `${v.toFixed(0)}`}
         />
       </div>
+
+      {/* CPU Core Heatmap - full width */}
+      <CpuCoreHeatmap instance={instance} />
 
       {/* ── Section 2: Memory ── */}
       <SectionHeader title="Memory" />
