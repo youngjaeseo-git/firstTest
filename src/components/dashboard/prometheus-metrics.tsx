@@ -50,26 +50,35 @@ export function PrometheusMetrics() {
     error: null,
   });
   useEffect(() => {
-    let cancelled = false;
-    async function fetchMetrics() {
-      try {
-        const res = await fetch("/api/metrics/dashboard");
-        if (!res.ok) throw new Error("fetch failed");
-        const json = await res.json();
-        if (!cancelled) {
-          setData({ ...json, error: null });
-        }
-      } catch {
-        if (!cancelled) {
-          setData((prev) => ({ ...prev, error: "Connection failed" }));
-        }
-      }
+    // Prefer SSE streaming for real-time updates; fall back to one-shot fetch
+    // if EventSource is unavailable or the stream errors out.
+    if (typeof EventSource === "undefined") {
+      fetch("/api/metrics/dashboard")
+        .then((res) => res.json())
+        .then((json) => setData({ ...json, error: null }))
+        .catch(() =>
+          setData((prev) => ({ ...prev, error: "Connection failed" })),
+        );
+      return;
     }
-    fetchMetrics();
-    const id = setInterval(fetchMetrics, 15000);
+
+    const source = new EventSource("/api/metrics/dashboard/stream");
+
+    source.onmessage = (event) => {
+      try {
+        const json = JSON.parse(event.data);
+        setData({ ...json, error: json.error ?? null });
+      } catch {
+        // Ignore malformed payloads
+      }
+    };
+
+    source.onerror = () => {
+      setData((prev) => ({ ...prev, error: "Connection failed" }));
+    };
+
     return () => {
-      cancelled = true;
-      clearInterval(id);
+      source.close();
     };
   }, []);
 
