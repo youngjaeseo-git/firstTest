@@ -43,3 +43,11 @@ export function canAcknowledgeAlert(role: Role): boolean {
 export function canManageUsers(role: Role): boolean {
   return role === "ADMIN";
 }
+
+/**
+ * Power control (Redfish reset, power on/off) is destructive — restrict
+ * to ADMIN and OPERATOR. VIEWERs can still see current power state.
+ */
+export function canControlPower(role: Role): boolean {
+  return role === "ADMIN" || role === "OPERATOR";
+}

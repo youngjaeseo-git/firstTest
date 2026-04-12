@@ -6,12 +6,15 @@ import { prisma } from "@/lib/db";
 import { ServerDetailClient } from "@/components/metrics/server-detail-client";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { PowerConsoleCard } from "@/components/equipment/power-console-card";
+import { getSessionUser, canControlPower } from "@/lib/rbac";
 
 export default async function ServerDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
+  const user = await getSessionUser();
   const equipment = await prisma.equipment.findUnique({
     where: { id: params.id },
     include: {
@@ -99,6 +102,14 @@ export default async function ServerDetailPage({
             ))}
           </div>
         </div>
+
+        {/* Power & Console */}
+        <PowerConsoleCard
+          equipmentId={equipment.id}
+          bmcHost={equipment.bmcIpAddress}
+          hostname={equipment.hostname}
+          canControl={!!user && canControlPower(user.role)}
+        />
 
         {/* Metric charts */}
         {instance ? (

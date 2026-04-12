@@ -360,10 +360,12 @@ model MaintenanceWindow {
 model AuditLog {
   id          String   @id @default(cuid())
   userId      String
-  action      String   // "CREATE", "UPDATE", "DELETE", "STATUS_CHANGE"
+  action      String   // "CREATE", "UPDATE", "DELETE", "STATUS_CHANGE", "POWER_ACTION"
   entityType  String   // "Equipment", "Rack", "Room", etc.
   entityId    String
-  changes     Json?    // { field: { old: x, new: y } }
+  changes     Json?    // { field: { old: x, new: y } } or { detail: ... }
+  reason      String?  // Operator-supplied "why" — required for destructive ops
+  ticketRef   String?  // External ticket reference (Jira/ServiceNow key)
   createdAt   DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])

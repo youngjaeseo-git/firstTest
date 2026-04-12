@@ -10,7 +10,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { getSessionUser } from "@/lib/rbac";
+import { getSessionUser, canControlPower } from "@/lib/rbac";
+import { PowerConsoleCard } from "@/components/equipment/power-console-card";
+import { EquipmentHistory } from "@/components/equipment/equipment-history";
 
 export default async function EquipmentDetailPage({
   params,
@@ -92,6 +94,16 @@ export default async function EquipmentDetailPage({
           </p>
         </Card>
       </div>
+
+      {/* Power & Console — only meaningful for SERVER type with BMC */}
+      {equipment.type === "SERVER" && (
+        <PowerConsoleCard
+          equipmentId={equipment.id}
+          bmcHost={equipment.bmcIpAddress}
+          hostname={equipment.hostname}
+          canControl={!!user && canControlPower(user.role)}
+        />
+      )}
 
       {/* Collapsible sections */}
       <Accordion type="multiple" defaultValue={["basic", "cpu", "memory"]}>
@@ -196,6 +208,16 @@ export default async function EquipmentDetailPage({
                 </Link>
               </div>
             )}
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Change History */}
+        <AccordionItem value="history">
+          <AccordionTrigger>
+            <CardTitle>변경 이력</CardTitle>
+          </AccordionTrigger>
+          <AccordionContent>
+            <EquipmentHistory equipmentId={equipment.id} />
           </AccordionContent>
         </AccordionItem>
 
