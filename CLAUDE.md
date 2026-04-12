@@ -79,8 +79,15 @@ npm run build        # Production build
 npm run start        # Start production server
 
 # Testing
-npm run test         # Unit tests (Vitest)
-npm run test:e2e     # E2E tests (Playwright)
+npm run test          # Unit tests (Vitest, watch mode)
+npx vitest run        # Unit tests (one-shot, for CI)
+npm run test:e2e      # E2E tests (Playwright) - requires dev server running on :3001
+npx playwright test --list  # List all E2E tests without running
+npx playwright install      # Install browsers (first-time setup only)
+
+# 테스트 파일 위치:
+#   Vitest:     src/**/*.{test,spec}.{ts,tsx}  (컴포넌트/유틸/API 라우트 옆에 배치)
+#   Playwright: tests/e2e/**/*.spec.ts          (로그인/내비게이션 등 통합 플로우)
 
 # Code Quality
 npm run lint         # ESLint
