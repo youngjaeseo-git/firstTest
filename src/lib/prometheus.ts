@@ -10,13 +10,23 @@ import type { PrometheusQueryResult } from "@/types/metrics";
 const PROMETHEUS_URL =
   process.env.PROMETHEUS_URL || "http://10.144.38.100:30004";
 
+const FETCH_TIMEOUT_MS = 3000;
+
+function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() =>
+    clearTimeout(timer),
+  );
+}
+
 export async function instantQuery(
   query: string,
 ): Promise<PrometheusQueryResult> {
   const url = new URL("/api/v1/query", PROMETHEUS_URL);
   url.searchParams.set("query", query);
 
-  const res = await fetch(url.toString(), { next: { revalidate: 15 } });
+  const res = await fetchWithTimeout(url.toString(), { next: { revalidate: 15 } } as RequestInit);
   if (!res.ok) {
     throw new Error(`Prometheus query failed: ${res.statusText}`);
   }
@@ -35,7 +45,7 @@ export async function rangeQuery(
   url.searchParams.set("end", (end.getTime() / 1000).toString());
   url.searchParams.set("step", step);
 
-  const res = await fetch(url.toString(), { next: { revalidate: 15 } });
+  const res = await fetchWithTimeout(url.toString(), { next: { revalidate: 15 } } as RequestInit);
   if (!res.ok) {
     throw new Error(`Prometheus range query failed: ${res.statusText}`);
   }
@@ -78,7 +88,7 @@ export interface DiscoveredPrometheusTarget {
 export async function fetchTargets(): Promise<DiscoveredPrometheusTarget[]> {
   const url = new URL("/api/v1/targets", PROMETHEUS_URL);
 
-  const res = await fetch(url.toString(), { cache: "no-store" });
+  const res = await fetchWithTimeout(url.toString(), { cache: "no-store" });
   if (!res.ok) {
     throw new Error(`Prometheus targets fetch failed: ${res.statusText}`);
   }
