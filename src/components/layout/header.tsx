@@ -8,6 +8,7 @@ import { Bell, LogOut, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CommandPalette } from "@/components/command-palette/command-palette";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { PrometheusStatus } from "@/components/layout/prometheus-status";
 import { useT } from "@/lib/i18n/i18n-context";
 
 interface AlertItem {
@@ -85,6 +86,7 @@ export function Header() {
 
       {/* Right side */}
       <div className="flex items-center gap-3">
+        <PrometheusStatus />
         <LanguageSwitcher />
 
         {/* Separator */}
