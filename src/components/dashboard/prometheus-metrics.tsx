@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Cpu, Thermometer, Clock, Wifi, WifiOff, Zap, Database, Network } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface MetricData {
   avgCpu: number | null;
@@ -37,6 +38,7 @@ const cardVariants = {
 };
 
 export function PrometheusMetrics() {
+  const t = useT();
   const [data, setData] = useState<MetricData>({
     avgCpu: null,
     avgTemp: null,
@@ -90,9 +92,9 @@ export function PrometheusMetrics() {
             <WifiOff className="h-4 w-4" />
           </div>
           <div>
-            <p className="font-medium">Prometheus Unavailable</p>
+            <p className="font-medium">{t("dashboard.prometheus.unavailable")}</p>
             <p className="text-xs text-amber-400/70 mt-0.5">
-              Cannot fetch live metrics
+              {t("dashboard.prometheus.cannotFetch")}
             </p>
           </div>
         </div>
@@ -110,7 +112,7 @@ export function PrometheusMetrics() {
         <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">
           <Card className="border-cyan-500/30 bg-gradient-to-br from-cyan-600/10 via-cyan-600/5 to-transparent hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/5">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-400">Avg CPU Usage</p>
+              <p className="text-sm text-gray-400">{t("dashboard.avgCpu")}</p>
               <div className="rounded-xl bg-cyan-500/15 p-1.5">
                 <Cpu className="h-4 w-4 text-cyan-400" />
               </div>
@@ -141,7 +143,7 @@ export function PrometheusMetrics() {
         <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible">
           <Card className="border-green-500/30 bg-gradient-to-br from-green-600/10 via-green-600/5 to-transparent hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/5">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-400">Avg Memory</p>
+              <p className="text-sm text-gray-400">{t("dashboard.avgMemory")}</p>
               <div className="rounded-xl bg-green-500/15 p-1.5">
                 <Database className="h-4 w-4 text-green-400" />
               </div>
@@ -172,7 +174,7 @@ export function PrometheusMetrics() {
         <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible">
           <Card className="border-orange-500/30 bg-gradient-to-br from-orange-600/10 via-orange-600/5 to-transparent hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/5">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-400">Avg Temperature</p>
+              <p className="text-sm text-gray-400">{t("dashboard.avgTemperature")}</p>
               <div className="rounded-xl bg-orange-500/15 p-1.5">
                 <Thermometer className="h-4 w-4 text-orange-400" />
               </div>
@@ -181,7 +183,7 @@ export function PrometheusMetrics() {
               {data.avgTemp !== null ? `${data.avgTemp.toFixed(1)}` : "-"}
               <span className="text-lg text-gray-500">°C</span>
             </p>
-            <p className="mt-1 text-xs text-gray-500">All servers avg</p>
+            <p className="mt-1 text-xs text-gray-500">{t("dashboard.avgTemperature.sub")}</p>
           </Card>
         </motion.div>
 
@@ -189,7 +191,7 @@ export function PrometheusMetrics() {
         <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible">
           <Card className="border-yellow-500/30 bg-gradient-to-br from-yellow-600/10 via-yellow-600/5 to-transparent hover:border-yellow-500/50 hover:shadow-lg hover:shadow-yellow-500/5">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-400">Total Power</p>
+              <p className="text-sm text-gray-400">{t("dashboard.totalPower")}</p>
               <div className="rounded-xl bg-yellow-500/15 p-1.5">
                 <Zap className="h-4 w-4 text-yellow-400" />
               </div>
@@ -204,7 +206,7 @@ export function PrometheusMetrics() {
                 {data.totalPowerWatts !== null && data.totalPowerWatts >= 1000 ? " kW" : " W"}
               </span>
             </p>
-            <p className="mt-1 text-xs text-gray-500">All servers total</p>
+            <p className="mt-1 text-xs text-gray-500">{t("dashboard.totalPower.sub")}</p>
           </Card>
         </motion.div>
       </div>
@@ -221,7 +223,7 @@ export function PrometheusMetrics() {
             )}
           >
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-400">Prometheus Nodes</p>
+              <p className="text-sm text-gray-400">{t("dashboard.nodes")}</p>
               <div
                 className={cn(
                   "rounded-xl p-1.5",
@@ -238,15 +240,15 @@ export function PrometheusMetrics() {
             </div>
             <p className="mt-2 text-2xl font-bold text-green-400">
               {data.nodesUp}
-              <span className="text-lg text-gray-500"> up</span>
+              <span className="text-lg text-gray-500"> {t("dashboard.nodes.up")}</span>
             </p>
             {data.nodesDown > 0 && (
               <p className="mt-1 text-xs text-red-400 font-medium">
-                {data.nodesDown} nodes down
+                {data.nodesDown} {t("dashboard.nodes.down")}
               </p>
             )}
             {data.nodesDown === 0 && (
-              <p className="mt-1 text-xs text-gray-500">All nodes healthy</p>
+              <p className="mt-1 text-xs text-gray-500">{t("dashboard.nodes.healthy")}</p>
             )}
           </Card>
         </motion.div>
@@ -255,16 +257,16 @@ export function PrometheusMetrics() {
         <motion.div custom={5} variants={cardVariants} initial="hidden" animate="visible">
           <Card className="border-indigo-500/30 bg-gradient-to-br from-indigo-600/10 via-indigo-600/5 to-transparent hover:border-indigo-500/50">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-400">Avg Uptime</p>
+              <p className="text-sm text-gray-400">{t("dashboard.avgUptime")}</p>
               <div className="rounded-xl bg-indigo-500/15 p-1.5">
                 <Clock className="h-4 w-4 text-indigo-400" />
               </div>
             </div>
             <p className="mt-2 text-2xl font-bold text-gray-100">
               {uptimeDays !== null ? uptimeDays : "-"}
-              <span className="text-lg text-gray-500"> days</span>
+              <span className="text-lg text-gray-500"> {t("dashboard.avgUptime.days")}</span>
             </p>
-            <p className="mt-1 text-xs text-gray-500">Average server uptime</p>
+            <p className="mt-1 text-xs text-gray-500">{t("dashboard.avgUptime.sub")}</p>
           </Card>
         </motion.div>
 
@@ -272,7 +274,7 @@ export function PrometheusMetrics() {
         <motion.div custom={6} variants={cardVariants} initial="hidden" animate="visible">
           <Card className="border-sky-500/30 bg-gradient-to-br from-sky-600/10 via-sky-600/5 to-transparent hover:border-sky-500/50">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-400">Network Inbound</p>
+              <p className="text-sm text-gray-400">{t("dashboard.networkIn")}</p>
               <div className="rounded-xl bg-sky-500/15 p-1.5">
                 <Network className="h-4 w-4 text-sky-400" />
               </div>
@@ -283,7 +285,7 @@ export function PrometheusMetrics() {
                 : "-"}
             </p>
             <p className="mt-1 text-xs text-gray-500">
-              TX: {data.totalNetworkTxBps !== null ? formatBytes(data.totalNetworkTxBps) : "-"}
+              {t("dashboard.networkIn.tx")}: {data.totalNetworkTxBps !== null ? formatBytes(data.totalNetworkTxBps) : "-"}
             </p>
           </Card>
         </motion.div>

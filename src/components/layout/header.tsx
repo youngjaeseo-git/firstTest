@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Bell, LogOut, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CommandPalette } from "@/components/command-palette/command-palette";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface AlertItem {
   id: string;
@@ -18,6 +20,7 @@ interface AlertItem {
 
 export function Header() {
   const { data: session } = useSession();
+  const t = useT();
   const [bellOpen, setBellOpen] = useState(false);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [alertCount, setAlertCount] = useState(0);
@@ -73,7 +76,7 @@ export function Header() {
         className="group flex w-96 items-center gap-3 rounded-lg border border-gray-700/60 bg-gray-800/60 px-4 py-2 text-sm text-gray-500 backdrop-blur-sm transition-all hover:border-gray-600 hover:bg-gray-800 hover:text-gray-400"
       >
         <Search className="h-4 w-4 text-gray-500" />
-        <span className="flex-1 text-left">Search servers, racks, alerts...</span>
+        <span className="flex-1 text-left">{t("header.searchPlaceholder")}</span>
         <kbd className="hidden rounded-md border border-gray-700 bg-gray-800/80 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 sm:inline-block">
           ⌘K
         </kbd>
@@ -82,6 +85,11 @@ export function Header() {
 
       {/* Right side */}
       <div className="flex items-center gap-3">
+        <LanguageSwitcher />
+
+        {/* Separator */}
+        <div className="h-6 w-px bg-gray-800" />
+
         {/* Alert bell */}
         <div className="relative" ref={dropdownRef}>
           <button
@@ -111,15 +119,15 @@ export function Header() {
                 className="absolute right-0 top-full z-[100] mt-2 w-80 overflow-hidden rounded-xl border border-gray-700/60 bg-gray-900 shadow-2xl shadow-black/40"
               >
                 <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
-                  <p className="text-sm font-semibold text-gray-100">Alerts</p>
+                  <p className="text-sm font-semibold text-gray-100">{t("header.alerts")}</p>
                   <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[11px] font-medium text-red-400">
-                    {alertCount} firing
+                    {alertCount} {t("header.alerts.firing")}
                   </span>
                 </div>
                 <div className="max-h-80 overflow-y-auto scrollbar-thin">
                   {alerts.length === 0 ? (
                     <p className="px-4 py-8 text-center text-sm text-gray-500">
-                      No active alerts
+                      {t("header.alerts.none")}
                     </p>
                   ) : (
                     alerts.map((a, i) => (
@@ -164,7 +172,7 @@ export function Header() {
                   onClick={() => setBellOpen(false)}
                   className="block border-t border-gray-800 px-4 py-2.5 text-center text-xs font-medium text-blue-400 hover:bg-gray-800/50 transition-colors"
                 >
-                  View all alerts
+                  {t("header.alerts.viewAll")}
                 </Link>
               </motion.div>
             )}
@@ -193,7 +201,7 @@ export function Header() {
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
               className="rounded-lg p-2 text-gray-500 hover:bg-gray-800/80 hover:text-gray-300 transition-all duration-200"
-              title="Logout"
+              title={t("header.logout")}
             >
               <LogOut className="h-4 w-4" />
             </button>

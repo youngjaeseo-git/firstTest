@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/i18n-context";
 import {
   LayoutDashboard,
   Server,
@@ -16,17 +17,18 @@ import {
 } from "lucide-react";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Servers", href: "/servers", icon: Server },
-  { name: "Infrastructure", href: "/infrastructure", icon: Building2 },
-  { name: "Racks", href: "/racks", icon: HardDrive },
-  { name: "Alerts", href: "/alerts", icon: Bell },
-  { name: "Capacity", href: "/capacity", icon: BarChart3 },
-  { name: "Reports", href: "/reports", icon: FileText },
+  { key: "nav.dashboard", href: "/", icon: LayoutDashboard },
+  { key: "nav.servers", href: "/servers", icon: Server },
+  { key: "nav.infrastructure", href: "/infrastructure", icon: Building2 },
+  { key: "nav.racks", href: "/racks", icon: HardDrive },
+  { key: "nav.alerts", href: "/alerts", icon: Bell },
+  { key: "nav.capacity", href: "/capacity", icon: BarChart3 },
+  { key: "nav.reports", href: "/reports", icon: FileText },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const t = useT();
 
   return (
     <aside className="flex w-64 flex-col border-r border-gray-800/80 bg-gray-900/95 backdrop-blur-sm">
@@ -53,7 +55,7 @@ export function Sidebar() {
               : pathname.startsWith(item.href);
           return (
             <Link
-              key={item.name}
+              key={item.key}
               href={item.href}
               className={cn(
                 "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
@@ -77,7 +79,7 @@ export function Sidebar() {
                     : "text-gray-500 group-hover:text-gray-300 group-hover:scale-110",
                 )}
               />
-              <span className="relative">{item.name}</span>
+              <span className="relative">{t(item.key)}</span>
             </Link>
           );
         })}
@@ -100,7 +102,7 @@ export function Sidebar() {
               "group-hover:rotate-90",
             )}
           />
-          Settings
+          {t("nav.settings")}
         </Link>
       </div>
     </aside>
