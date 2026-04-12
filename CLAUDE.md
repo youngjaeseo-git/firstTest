@@ -54,9 +54,27 @@
 
 ## Commands
 
+### Quick Start (권장)
+
+```bash
+./dev.sh   # git pull → npm install → Docker DB 확인 → 개발 서버 시작 (http://localhost:3001)
+```
+
+`dev.sh`는 코드 수정 후 테스트할 때 한 번에 실행하기 위한 스크립트다.
+수행 단계:
+1. `git pull origin <current-branch>`로 최신 코드 동기화
+2. `npm install`로 새 패키지 반영
+3. Docker 데몬 확인 + PostgreSQL 컨테이너 healthy 체크 (필요 시 자동 시작)
+4. `npm run dev -- -p 3001`로 개발 서버 실행
+
+수동으로 각 단계를 실행할 때만 아래 개별 명령들을 사용한다.
+
+### Manual Commands
+
 ```bash
 # Development
 npm run dev          # Start dev server (localhost:3000)
+npm run dev -- -p 3001  # 포트 지정해서 시작 (로컬 테스트 기본값)
 npm run build        # Production build
 npm run start        # Start production server
 
