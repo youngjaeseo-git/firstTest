@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Cpu, Thermometer, Clock, Wifi, WifiOff, Zap, Database, Network } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CardSkeleton } from "@/components/ui/skeleton";
 
 interface MetricData {
   avgCpu: number | null;
@@ -50,8 +49,6 @@ export function PrometheusMetrics() {
     totalNetworkTxBps: null,
     error: null,
   });
-  const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     let cancelled = false;
     async function fetchMetrics() {
@@ -61,12 +58,10 @@ export function PrometheusMetrics() {
         const json = await res.json();
         if (!cancelled) {
           setData({ ...json, error: null });
-          setLoading(false);
         }
       } catch {
         if (!cancelled) {
           setData((prev) => ({ ...prev, error: "Connection failed" }));
-          setLoading(false);
         }
       }
     }
@@ -77,16 +72,6 @@ export function PrometheusMetrics() {
       clearInterval(id);
     };
   }, []);
-
-  if (loading) {
-    return (
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <CardSkeleton key={i} />
-        ))}
-      </div>
-    );
-  }
 
   if (data.error && data.avgCpu === null) {
     return (

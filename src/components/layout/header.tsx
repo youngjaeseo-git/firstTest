@@ -61,7 +61,7 @@ export function Header() {
   }, [bellOpen]);
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-gray-800/80 bg-gray-900/95 px-6 backdrop-blur-sm">
+    <header className="relative z-40 flex h-16 items-center justify-between border-b border-gray-800/80 bg-gray-900/95 px-6 backdrop-blur-sm">
       {/* Command Palette Trigger */}
       <button
         onClick={() => {
@@ -108,7 +108,7 @@ export function Header() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -4, scale: 0.98 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-xl border border-gray-700/60 bg-gray-900/95 shadow-2xl shadow-black/40 backdrop-blur-md"
+                className="absolute right-0 top-full z-[100] mt-2 w-80 overflow-hidden rounded-xl border border-gray-700/60 bg-gray-900 shadow-2xl shadow-black/40"
               >
                 <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
                   <p className="text-sm font-semibold text-gray-100">Alerts</p>
