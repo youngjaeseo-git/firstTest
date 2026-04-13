@@ -119,6 +119,50 @@ CLAUDE.md에 HIGH PRIORITY로 표기되어 있지만 현재 상태 확인 필요
 
 ---
 
+## 8. Multi-Prometheus 지원 (Room별) — 2026-04-13 발견
+
+### 현실
+- CLAUDE.md 상 "Prometheus URL: http://10.144.38.100:30004" 하나로 명시되어 있었으나
+  실제로는 **이 주소가 Grafana**이며, 내부적으로 2개의 Prometheus 데이터소스를 엮고 있음
+- **Lab1 (Room A)**: `http://prometheus-sevice.monitoring.svc:8080`
+  — K8s 내부 DNS. 외부 서버(DCIM 배포 대상)에서 **직접 접근 불가**
+- **Lab3 (Room B)**: `http://10.144.131.100:30003`
+  — NodePort. 외부에서 직접 접근 가능 ✅
+
+### 현재 DCIM 코드의 가정
+- `.env`의 `PROMETHEUS_URL` 하나만 읽고, 모든 룸이 같은 Prometheus를 공유한다고 가정
+- `src/lib/prometheus.ts`에 URL이 단일 상수로 하드코딩된 경로 존재
+
+### 단기 대응 (적용됨 예정)
+- [ ] `.env`의 `PROMETHEUS_URL`을 Lab3 주소로 설정해 일단 end-to-end 동작 확인
+- [ ] CLAUDE.md의 Confirmed Decisions에서 Prometheus URL을 Lab3 실제 값으로 정정
+
+### 장기 해결책 (선택 필요)
+**옵션 A — Room마다 Prometheus URL 저장 (정석)**
+- Prisma `Room` 모델에 `prometheusUrl String?` 컬럼 추가
+- `src/lib/prometheus.ts`를 `getPrometheusClient(room)` 형태로 리팩터링
+- 장점: DataCenter → Room → Rack 구조와 자연스럽게 맞음
+- 단점: 마이그레이션 + API 라우트 전반 수정 필요
+
+**옵션 B — Grafana Datasource Proxy API 경유**
+- DCIM이 Prometheus를 직접 호출하지 않고,
+  `http://<grafana>/api/datasources/proxy/{id}/api/v1/...` 경로로 우회
+- 장점: 단일 엔드포인트(Grafana)로 Lab1/Lab3 모두 접근 가능. 특히 Lab1의
+  K8s 내부 Prometheus도 이 방식이면 닿음
+- 필요: Grafana API 키 발급, `lib/prometheus.ts` 수정
+- 단점: Grafana에 장애 나면 DCIM 메트릭도 같이 죽음
+
+**옵션 C — 인프라팀에 Lab1 Prometheus 외부 노출 요청**
+- NodePort/Ingress 하나 열면 Lab3와 같은 방식으로 해결
+- 네트워크팀 협조 필요, 일정 불확실
+
+### 결정 필요 항목
+- [ ] Lab1 Prometheus를 외부에 노출할 수 있는지 인프라팀 확인 (옵션 C 가능 여부)
+- [ ] 옵션 A vs B 중 어느 방향으로 갈지 결정
+- [ ] 선택된 방향에 맞는 스키마/코드 변경 작업 일정
+
+---
+
 ## 최근 완료 (참고용 — 2026-04-11 ~ 2026-04-12)
 
 - `ded04f9` 글로벌 커맨드 팔레트(⌘K) + Twin 뷰 브레드크럼
