@@ -2,13 +2,13 @@
  * Prometheus HTTP API client
  *
  * Queries Prometheus for server metrics and auto-discovery.
- * Prometheus URL: http://10.144.38.100:30004
+ * Prometheus URL: http://10.100.175.248:8080 (K8s ClusterIP)
  */
 
 import type { PrometheusQueryResult } from "@/types/metrics";
 
 const PROMETHEUS_URL =
-  process.env.PROMETHEUS_URL || "http://10.144.38.100:30004";
+  process.env.PROMETHEUS_URL || "http://10.100.175.248:8080";
 
 const FETCH_TIMEOUT_MS = 3000;
 
@@ -160,7 +160,7 @@ export const queries = {
   nodeUp: (instance: string) => `up{instance="${instance}"}`,
 
   // All servers up status
-  allNodesUp: () => `up{job=~"node.*"}`,
+  allNodesUp: () => `up{job!~"kube-state-metrics|kubernetes-apiservers|kubernetes-cadvisor|kubernetes-sevice-endpoints"}`,
 
   // ---- Phase 1 additions ----
 
