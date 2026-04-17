@@ -43,16 +43,14 @@ export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
       totalRxResult,
       totalTxResult,
     ] = await Promise.allSettled([
-      instantQuery(
-        'avg(100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100))',
-      ),
-      instantQuery("avg(node_hwmon_temp_celsius)"),
+      instantQuery('avg(CStateResidency)'),
+      instantQuery('avg({job="temperature"})'),
       instantQuery(queries.allNodesUp()),
-      instantQuery("avg(node_time_seconds - node_boot_time_seconds)"),
-      instantQuery(queries.fleetTotalPower()),
-      instantQuery(queries.fleetAvgMemory()),
-      instantQuery(queries.fleetTotalNetworkRx()),
-      instantQuery(queries.fleetTotalNetworkTx()),
+      instantQuery('avg(Clock_Unhalted_Ref)'),
+      instantQuery('sum(Package_Joules_Consumed)'),
+      instantQuery('avg(Local_Memory_Bandwidth + Remote_Memory_Bandwidth)'),
+      instantQuery('sum(Incoming_Data_Traffic_On_Link_0)'),
+      instantQuery('sum(Outgoing_Data_And_Non_Data_Traffic_On_Link_0)'),
     ]);
 
     const extractScalar = (r: typeof cpuResult): number | null => {
