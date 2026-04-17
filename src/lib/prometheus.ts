@@ -236,13 +236,13 @@ export const queries = {
     `node_filefd_allocated{instance="${instance}"} / node_filefd_maximum{instance="${instance}"} * 100`,
 
   // ---- Dashboard fleet-wide aggregations ----
-  fleetTotalPower: () => `sum(Package_Joules_Consumed)`,
+  fleetTotalPower: () => `sum(rate(Package_Joules_Consumed[5m]))`,
   fleetAvgMemory: () =>
-    `avg(Local_Memory_Bandwidth + Remote_Memory_Bandwidth)`,
+    `sum(container_memory_working_set_bytes{id="/"}) / sum(machine_memory_bytes) * 100`,
   fleetTotalNetworkRx: () =>
-    `sum(Incoming_Data_Traffic_On_Link_0)`,
+    `sum(rate(container_network_receive_bytes_total{interface!~"veth.*|lo|cni.*|docker.*|br-.*"}[5m]))`,
   fleetTotalNetworkTx: () =>
-    `sum(Outgoing_Data_And_Non_Data_Traffic_On_Link_0)`,
+    `sum(rate(container_network_transmit_bytes_total{interface!~"veth.*|lo|cni.*|docker.*|br-.*"}[5m]))`,
   fleetTopCpu: () =>
-    `topk(5, CStateResidency)`,
+    `topk(5, sum by(instance)(rate(container_cpu_usage_seconds_total{id="/"}[5m])) / on(instance) group_left() machine_cpu_cores * 100)`,
 };

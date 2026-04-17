@@ -43,14 +43,18 @@ export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
       totalRxResult,
       totalTxResult,
     ] = await Promise.allSettled([
-      instantQuery('avg(CStateResidency)'),
-      instantQuery('avg({job="temperature"})'),
+      instantQuery(
+        'sum(rate(container_cpu_usage_seconds_total{id="/"}[5m])) / sum(machine_cpu_cores) * 100',
+      ),
+      instantQuery('avg(Package_Joules_Consumed{type="thermal"} or vector(0))'),
       instantQuery(queries.allNodesUp()),
-      instantQuery('avg(Clock_Unhalted_Ref)'),
-      instantQuery('sum(Package_Joules_Consumed)'),
-      instantQuery('avg(Local_Memory_Bandwidth + Remote_Memory_Bandwidth)'),
-      instantQuery('sum(Incoming_Data_Traffic_On_Link_0)'),
-      instantQuery('sum(Outgoing_Data_And_Non_Data_Traffic_On_Link_0)'),
+      instantQuery('sum(time() - container_start_time_seconds{id="/"}) / count(container_start_time_seconds{id="/"})'),
+      instantQuery('sum(rate(Package_Joules_Consumed[5m]))'),
+      instantQuery(
+        'sum(container_memory_working_set_bytes{id="/"}) / sum(machine_memory_bytes) * 100',
+      ),
+      instantQuery('sum(rate(container_network_receive_bytes_total{interface!~"veth.*|lo|cni.*|docker.*|br-.*"}[5m]))'),
+      instantQuery('sum(rate(container_network_transmit_bytes_total{interface!~"veth.*|lo|cni.*|docker.*|br-.*"}[5m]))'),
     ]);
 
     const extractScalar = (r: typeof cpuResult): number | null => {
