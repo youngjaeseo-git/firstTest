@@ -36,7 +36,7 @@ export async function POST() {
           data: {
             instance: target.instance,
             job: target.job,
-            hostname: target.labels.hostname || target.labels.instance || target.instance,
+            hostname: target.labels.hostname || target.labels.nodename || null,
             labels: target.labels,
             health: target.health,
             lastSeen: new Date(),
