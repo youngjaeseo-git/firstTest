@@ -46,8 +46,8 @@ interface ServerPageClientProps {
     manufacturer: string | null;
     cpuManufacturer: string | null;
     cpuModel: string | null;
-    roomName: string;
-    rackName: string;
+    roomName: string | null;
+    rackName: string | null;
     rackPosition: number | null;
     totalMemoryGB: number | null;
   }>;
@@ -197,9 +197,9 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
                           "-"
                         )}
                       </td>
-                      <td className="px-4 py-3">{s.roomName}</td>
+                      <td className="px-4 py-3">{s.roomName || "-"}</td>
                       <td className="px-4 py-3">
-                        {s.rackName} / U{s.rackPosition}
+                        {s.rackName || "미배치"}{s.rackPosition != null ? ` / U${s.rackPosition}` : ""}
                       </td>
                     </tr>
                   ))}

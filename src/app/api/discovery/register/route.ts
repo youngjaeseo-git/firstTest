@@ -64,7 +64,7 @@ export async function POST(req: Request) {
       ...(cpuCores ? {
         cpus: {
           create: {
-            socketId: "CPU0",
+            socketIndex: 0,
             cores: cpuCores,
             threads: cpuCores,
             manufacturer: "Auto-detected",

@@ -29,6 +29,7 @@ export default function DiscoveryPage() {
   const [lastSync, setLastSync] = useState<SyncResult | null>(null);
   const [error, setError] = useState("");
   const [registering, setRegistering] = useState<string | null>(null);
+  const [unregistering, setUnregistering] = useState<string | null>(null);
   const [filterJob, setFilterJob] = useState<string>("all");
   const [filterHealth, setFilterHealth] = useState<string>("all");
   const [filterLinked, setFilterLinked] = useState<string>("all");
@@ -95,6 +96,31 @@ export default function DiscoveryPage() {
       setError("등록 중 오류 발생");
     }
     setRegistering(null);
+  }
+
+  async function handleUnregister(targetId: string) {
+    if (!confirm("등록된 장비를 삭제하고 연결을 해제합니다. 계속하시겠습니까?")) return;
+    setUnregistering(targetId);
+    try {
+      const res = await fetch("/api/discovery/unregister", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetId }),
+      });
+      if (res.ok) {
+        setTargets((prev) =>
+          prev.map((t) =>
+            t.id === targetId ? { ...t, equipmentId: null, equipmentHostname: null } : t,
+          ),
+        );
+      } else {
+        const data = await res.json();
+        setError(data.error || "해제 실패");
+      }
+    } catch {
+      setError("해제 중 오류 발생");
+    }
+    setUnregistering(null);
   }
 
   const jobs = Array.from(new Set(targets.map((t) => t.job))).sort();
@@ -258,7 +284,13 @@ export default function DiscoveryPage() {
                     </td>
                     <td className="px-3 py-2">
                       {t.equipmentId ? (
-                        <Badge variant="active">Registered</Badge>
+                        <button
+                          onClick={() => handleUnregister(t.id)}
+                          disabled={unregistering === t.id}
+                          className="rounded bg-red-600/80 px-2 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                        >
+                          {unregistering === t.id ? "..." : "Unregister"}
+                        </button>
                       ) : (
                         <button
                           onClick={() => handleRegister(t.id)}

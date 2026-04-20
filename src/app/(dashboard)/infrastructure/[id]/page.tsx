@@ -13,6 +13,7 @@ import {
 import { getSessionUser, canControlPower } from "@/lib/rbac";
 import { PowerConsoleCard } from "@/components/equipment/power-console-card";
 import { EquipmentHistory } from "@/components/equipment/equipment-history";
+import { ServerDetailClient } from "@/components/metrics/server-detail-client";
 
 export default async function EquipmentDetailPage({
   params,
@@ -27,6 +28,7 @@ export default async function EquipmentDetailPage({
       cpus: { orderBy: { socketIndex: "asc" } },
       memories: { orderBy: { slotIndex: "asc" } },
       networkPorts: true,
+      prometheusTarget: true,
     },
   });
 
@@ -104,6 +106,23 @@ export default async function EquipmentDetailPage({
           canControl={!!user && canControlPower(user.role)}
         />
       )}
+
+      {/* Prometheus Metrics */}
+      {(() => {
+        const instance =
+          equipment.prometheusTarget?.instance ||
+          equipment.prometheusInstance ||
+          null;
+        return instance ? (
+          <ServerDetailClient instance={instance} />
+        ) : (
+          <Card>
+            <p className="text-sm text-gray-500">
+              Prometheus 연결 정보가 없습니다. Discovery에서 타겟을 등록하면 메트릭이 표시됩니다.
+            </p>
+          </Card>
+        );
+      })()}
 
       {/* Collapsible sections */}
       <Accordion type="multiple" defaultValue={["basic", "cpu", "memory"]}>
