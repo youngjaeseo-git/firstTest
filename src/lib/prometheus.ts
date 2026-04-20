@@ -109,115 +109,128 @@ export async function fetchTargets(): Promise<DiscoveredPrometheusTarget[]> {
 // Common PromQL Queries
 // ============================================
 
+function ip(instance: string): string {
+  return instance.split(":")[0];
+}
+
+function m(instance: string): string {
+  return `instance=~"${ip(instance)}:.*"`;
+}
+
 export const queries = {
   cpuUsage: (instance: string) =>
-    `sum(rate(container_cpu_usage_seconds_total{instance="${instance}",id="/"}[5m])) / scalar(machine_cpu_cores{instance="${instance}"}) * 100`,
+    `sum(rate(container_cpu_usage_seconds_total{${m(instance)},id="/"}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
 
   cpuPerCore: (instance: string) =>
-    `rate(container_cpu_usage_seconds_total{instance="${instance}",id="/"}[5m]) * 100`,
+    `rate(container_cpu_usage_seconds_total{${m(instance)},id="/"}[5m]) * 100`,
 
   memoryUsage: (instance: string) =>
-    `container_memory_working_set_bytes{instance="${instance}",id="/"} / machine_memory_bytes{instance="${instance}"} * 100`,
+    `container_memory_working_set_bytes{${m(instance)},id="/"} / on() group_left() max(machine_memory_bytes{${m(instance)}}) * 100`,
 
   memoryTotal: (instance: string) =>
-    `machine_memory_bytes{instance="${instance}"}`,
+    `max(machine_memory_bytes{${m(instance)}})`,
 
   memoryAvailable: (instance: string) =>
-    `machine_memory_bytes{instance="${instance}"} - container_memory_working_set_bytes{instance="${instance}",id="/"}`,
+    `max(machine_memory_bytes{${m(instance)}}) - container_memory_working_set_bytes{${m(instance)},id="/"}`,
 
   swapUsage: (instance: string) =>
-    `container_memory_swap{instance="${instance}",id="/"}`,
+    `container_memory_swap{${m(instance)},id="/"}`,
 
   diskUsage: (instance: string) =>
-    `container_fs_usage_bytes{instance="${instance}",id="/"} / container_fs_limit_bytes{instance="${instance}",id="/"} * 100`,
+    `container_fs_usage_bytes{${m(instance)},id="/"} / container_fs_limit_bytes{${m(instance)},id="/"} * 100`,
 
   diskIORead: (instance: string) =>
-    `rate(container_fs_reads_bytes_total{instance="${instance}",id="/"}[5m])`,
+    `rate(container_fs_reads_bytes_total{${m(instance)},id="/"}[5m])`,
 
   diskIOWrite: (instance: string) =>
-    `rate(container_fs_writes_bytes_total{instance="${instance}",id="/"}[5m])`,
+    `rate(container_fs_writes_bytes_total{${m(instance)},id="/"}[5m])`,
 
   networkRx: (instance: string) =>
-    `rate(container_network_receive_bytes_total{instance="${instance}",interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
+    `rate(container_network_receive_bytes_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
 
   networkTx: (instance: string) =>
-    `rate(container_network_transmit_bytes_total{instance="${instance}",interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
+    `rate(container_network_transmit_bytes_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
 
   temperature: (instance: string) =>
-    `{job="temperature",instance="${instance}"}`,
+    `{job="temperature",${m(instance)}}`,
 
   uptime: (instance: string) =>
-    `time() - container_start_time_seconds{instance="${instance}",id="/"}`,
+    `time() - container_start_time_seconds{${m(instance)},id="/"}`,
 
   powerWatts: (instance: string) =>
-    `rate(Package_Joules_Consumed{instance="${instance}"}[5m])`,
+    `rate(Package_Joules_Consumed{${m(instance)}}[5m])`,
 
   fanSpeed: (instance: string) =>
-    `{job="temperature",instance="${instance}",type="fan"}`,
+    `{job="temperature",${m(instance)},type="fan"}`,
 
-  nodeUp: (instance: string) => `up{instance="${instance}"}`,
+  nodeUp: (instance: string) => `up{${m(instance)}}`,
 
   allNodesUp: () => `up{job!~"kube-state-metrics|kubernetes-apiservers|kubernetes-cadvisor|kubernetes-sevice-endpoints"}`,
 
-  loadAvg1: (instance: string) => `machine_cpu_cores{instance="${instance}"}`,
-  loadAvg5: (instance: string) => `machine_cpu_cores{instance="${instance}"}`,
-  loadAvg15: (instance: string) => `machine_cpu_cores{instance="${instance}"}`,
+  loadAvg1: (instance: string) =>
+    `sum(rate(container_cpu_usage_seconds_total{${m(instance)},id="/"}[1m]))`,
+  loadAvg5: (instance: string) =>
+    `sum(rate(container_cpu_usage_seconds_total{${m(instance)},id="/"}[5m]))`,
+  loadAvg15: (instance: string) =>
+    `sum(rate(container_cpu_usage_seconds_total{${m(instance)},id="/"}[15m]))`,
 
   normalizedLoad: (instance: string) =>
-    `sum(rate(container_cpu_usage_seconds_total{instance="${instance}",id="/"}[5m])) / scalar(machine_cpu_cores{instance="${instance}"})`,
+    `sum(rate(container_cpu_usage_seconds_total{${m(instance)},id="/"}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}}))`,
 
   cpuModeUser: (instance: string) =>
-    `rate(container_cpu_user_seconds_total{instance="${instance}",id="/"}[5m]) / scalar(machine_cpu_cores{instance="${instance}"}) * 100`,
+    `rate(container_cpu_user_seconds_total{${m(instance)},id="/"}[5m]) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
   cpuModeSystem: (instance: string) =>
-    `rate(container_cpu_system_seconds_total{instance="${instance}",id="/"}[5m]) / scalar(machine_cpu_cores{instance="${instance}"}) * 100`,
+    `rate(container_cpu_system_seconds_total{${m(instance)},id="/"}[5m]) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
   cpuModeIowait: (instance: string) =>
-    `rate(container_cpu_usage_seconds_total{instance="${instance}",id="/"}[5m]) * 0`,
+    `rate(container_cpu_cfs_throttled_seconds_total{${m(instance)},id="/"}[5m])`,
   cpuModeSteal: (instance: string) =>
-    `rate(container_cpu_usage_seconds_total{instance="${instance}",id="/"}[5m]) * 0`,
+    `rate(container_cpu_usage_seconds_total{${m(instance)},id="/"}[5m]) * 0`,
 
   memoryUsedBytes: (instance: string) =>
-    `container_memory_working_set_bytes{instance="${instance}",id="/"}`,
+    `container_memory_working_set_bytes{${m(instance)},id="/"}`,
   memoryCached: (instance: string) =>
-    `container_memory_cache{instance="${instance}",id="/"}`,
+    `container_memory_cache{${m(instance)},id="/"}`,
 
   diskReadIOPS: (instance: string) =>
-    `rate(container_fs_reads_total{instance="${instance}",id="/"}[5m])`,
+    `rate(container_fs_reads_total{${m(instance)},id="/"}[5m])`,
   diskWriteIOPS: (instance: string) =>
-    `rate(container_fs_writes_total{instance="${instance}",id="/"}[5m])`,
+    `rate(container_fs_writes_total{${m(instance)},id="/"}[5m])`,
 
   diskReadLatency: (instance: string) =>
-    `rate(container_fs_read_seconds_total{instance="${instance}",id="/"}[5m]) * 1000`,
+    `rate(container_fs_read_seconds_total{${m(instance)},id="/"}[5m]) * 1000`,
   diskWriteLatency: (instance: string) =>
-    `rate(container_fs_write_seconds_total{instance="${instance}",id="/"}[5m]) * 1000`,
+    `rate(container_fs_write_seconds_total{${m(instance)},id="/"}[5m]) * 1000`,
 
   diskIOQueue: (instance: string) =>
-    `container_fs_io_current{instance="${instance}",id="/"}`,
+    `container_fs_io_current{${m(instance)},id="/"}`,
 
   networkRxErrors: (instance: string) =>
-    `rate(container_network_receive_errors_total{instance="${instance}",interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
+    `rate(container_network_receive_errors_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
   networkTxErrors: (instance: string) =>
-    `rate(container_network_transmit_errors_total{instance="${instance}",interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
+    `rate(container_network_transmit_errors_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
   networkRxDrops: (instance: string) =>
-    `rate(container_network_receive_packets_dropped_total{instance="${instance}",interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
+    `rate(container_network_receive_packets_dropped_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
   networkTxDrops: (instance: string) =>
-    `rate(container_network_transmit_packets_dropped_total{instance="${instance}",interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
+    `rate(container_network_transmit_packets_dropped_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
 
   tcpEstablished: (instance: string) =>
-    `container_network_tcp_usage_total{instance="${instance}",tcp_state="established"}`,
+    `container_network_tcp_usage_total{${m(instance)},tcp_state="established"}`,
   tcpRetransmits: (instance: string) =>
-    `container_network_tcp_usage_total{instance="${instance}",tcp_state="close_wait"}`,
+    `container_network_tcp_usage_total{${m(instance)},tcp_state="close_wait"}`,
 
   inletTemp: (instance: string) =>
-    `{job="temperature",instance="${instance}",type=~"inlet|ambient"}`,
+    `{job="temperature",${m(instance)},type=~"inlet|ambient"}`,
   exhaustTemp: (instance: string) =>
-    `{job="temperature",instance="${instance}",type=~"exhaust|outlet"}`,
+    `{job="temperature",${m(instance)},type=~"exhaust|outlet"}`,
   cpuSocketTemp: (instance: string) =>
-    `{job="temperature",instance="${instance}",type=~"cpu|processor"}`,
+    `{job="temperature",${m(instance)},type=~"cpu|processor"}`,
 
-  procsRunning: (instance: string) => `machine_cpu_cores{instance="${instance}"}`,
-  procsBlocked: (instance: string) => `machine_cpu_cores{instance="${instance}"} * 0`,
+  procsRunning: (instance: string) =>
+    `max(machine_cpu_cores{${m(instance)}})`,
+  procsBlocked: (instance: string) =>
+    `max(machine_cpu_cores{${m(instance)}}) * 0`,
   fileDescriptorUsage: (instance: string) =>
-    `container_file_descriptors{instance="${instance}",id="/"} / process_open_fds{instance="${instance}"} * 100`,
+    `container_file_descriptors{${m(instance)},id="/"} / process_open_fds{${m(instance)}} * 100`,
 
   // ---- Dashboard fleet-wide aggregations ----
   fleetTotalPower: () => `sum(rate(Package_Joules_Consumed[5m]))`,

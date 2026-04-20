@@ -75,12 +75,12 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           formatValue={formatPercent}
         />
         <MetricChart
-          title="Load Average"
-          unit=""
+          title="CPU Load (cores used)"
+          unit="cores"
           series={[
-            { label: "1m", query: queries.loadAvg1(instance), color: "#f59e0b" },
-            { label: "5m", query: queries.loadAvg5(instance), color: "#ef4444" },
-            { label: "15m", query: queries.loadAvg15(instance), color: "#8b5cf6" },
+            { label: "1m avg", query: queries.loadAvg1(instance), color: "#f59e0b" },
+            { label: "5m avg", query: queries.loadAvg5(instance), color: "#ef4444" },
+            { label: "15m avg", query: queries.loadAvg15(instance), color: "#8b5cf6" },
           ]}
           durationMin={duration.value}
           step={duration.step}
@@ -94,8 +94,6 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           series={[
             { label: "user", query: queries.cpuModeUser(instance), color: "#3b82f6" },
             { label: "system", query: queries.cpuModeSystem(instance), color: "#ef4444" },
-            { label: "iowait", query: queries.cpuModeIowait(instance), color: "#f59e0b" },
-            { label: "steal", query: queries.cpuModeSteal(instance), color: "#6b7280" },
           ]}
           durationMin={duration.value}
           step={duration.step}
@@ -103,15 +101,14 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           formatValue={formatPercent}
         />
         <MetricChart
-          title="Processes"
-          unit=""
+          title="CFS Throttled"
+          unit="sec/s"
           series={[
-            { label: "Running", query: queries.procsRunning(instance), color: "#10b981" },
-            { label: "Blocked", query: queries.procsBlocked(instance), color: "#ef4444" },
+            { label: "Throttled", query: queries.cpuModeIowait(instance), color: "#f59e0b" },
           ]}
           durationMin={duration.value}
           step={duration.step}
-          formatValue={(v) => `${v.toFixed(0)}`}
+          formatValue={(v) => `${v.toFixed(3)}s`}
         />
       </div>
 

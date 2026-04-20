@@ -39,9 +39,10 @@ export async function POST(req: Request) {
   let totalMemoryGB: number | null = null;
   let cpuCores: number | null = null;
   try {
+    const ipPattern = `instance=~"${instanceHost}:.*"`;
     const [memResult, cpuResult] = await Promise.allSettled([
-      instantQuery(`machine_memory_bytes{instance="${target.instance}"}`),
-      instantQuery(`machine_cpu_cores{instance="${target.instance}"}`),
+      instantQuery(`max(machine_memory_bytes{${ipPattern}})`),
+      instantQuery(`max(machine_cpu_cores{${ipPattern}})`),
     ]);
     if (memResult.status === "fulfilled" && memResult.value.data.result.length > 0) {
       const bytes = parseFloat(memResult.value.data.result[0].value[1]);
