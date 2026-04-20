@@ -114,7 +114,7 @@ function ip(instance: string): string {
 }
 
 function m(instance: string): string {
-  return `instance=~"${ip(instance)}:.*"`;
+  return `instance=~"${ip(instance)}(:.*)?"`;
 }
 
 export const queries = {

@@ -32,23 +32,30 @@ export async function POST(req: Request) {
 
   const instanceHost = target.instance.split(":")[0];
   const labels = (target.labels || {}) as Record<string, string>;
+  const isIp = /^\d+\.\d+\.\d+\.\d+$/.test(instanceHost);
 
   const hostname = labels.hostname || labels.nodename || instanceHost;
-  const ipAddress = /^\d+\.\d+\.\d+\.\d+$/.test(instanceHost) ? instanceHost : null;
+  const ipAddress = isIp ? instanceHost : null;
 
   let totalMemoryGB: number | null = null;
   let cpuCores: number | null = null;
   try {
-    const ipPattern = `instance=~"${instanceHost}:.*"`;
+    const ipPattern = `instance=~"${instanceHost}(:.*)?"`;
     const [memResult, cpuResult] = await Promise.allSettled([
       instantQuery(`max(machine_memory_bytes{${ipPattern}})`),
       instantQuery(`max(machine_cpu_cores{${ipPattern}})`),
     ]);
-    if (memResult.status === "fulfilled" && memResult.value.data.result.length > 0) {
+    if (
+      memResult.status === "fulfilled" &&
+      memResult.value.data?.result?.[0]?.value?.[1]
+    ) {
       const bytes = parseFloat(memResult.value.data.result[0].value[1]);
       totalMemoryGB = Math.round(bytes / (1024 * 1024 * 1024));
     }
-    if (cpuResult.status === "fulfilled" && cpuResult.value.data.result.length > 0) {
+    if (
+      cpuResult.status === "fulfilled" &&
+      cpuResult.value.data?.result?.[0]?.value?.[1]
+    ) {
       cpuCores = parseInt(cpuResult.value.data.result[0].value[1], 10);
     }
   } catch {}
@@ -56,23 +63,25 @@ export async function POST(req: Request) {
   const equipment = await prisma.equipment.create({
     data: {
       hostname,
-      ipAddress: ipAddress || instanceHost,
+      ipAddress,
       type: "SERVER",
       status: target.health === "up" ? "ACTIVE" : "INSTALLED",
       totalMemoryGB,
       prometheusInstance: target.instance,
       prometheusTarget: { connect: { id: target.id } },
-      ...(cpuCores ? {
-        cpus: {
-          create: {
-            socketIndex: 0,
-            cores: cpuCores,
-            threads: cpuCores,
-            manufacturer: "Auto-detected",
-            model: `${cpuCores} cores`,
-          },
-        },
-      } : {}),
+      ...(cpuCores
+        ? {
+            cpus: {
+              create: {
+                socketIndex: 0,
+                cores: cpuCores,
+                threads: cpuCores,
+                manufacturer: "Auto-detected",
+                model: `${cpuCores} cores`,
+              },
+            },
+          }
+        : {}),
     },
   });
 
