@@ -32,6 +32,9 @@ export default function DiscoveryPage() {
   const [filterJob, setFilterJob] = useState<string>("all");
   const [filterHealth, setFilterHealth] = useState<string>("all");
   const [filterLinked, setFilterLinked] = useState<string>("all");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 50;
 
   useEffect(() => {
     loadTargets();
@@ -101,8 +104,12 @@ export default function DiscoveryPage() {
     if (filterHealth !== "all" && t.health !== filterHealth) return false;
     if (filterLinked === "linked" && !t.equipmentId) return false;
     if (filterLinked === "unlinked" && t.equipmentId) return false;
+    if (search && !t.instance.toLowerCase().includes(search.toLowerCase()) && !(t.hostname || "").toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -168,7 +175,7 @@ export default function DiscoveryPage() {
             </p>
             <select
               value={filterJob}
-              onChange={(e) => setFilterJob(e.target.value)}
+              onChange={(e) => { setFilterJob(e.target.value); setPage(0); }}
               className="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-300"
             >
               <option value="all">All Jobs</option>
@@ -178,7 +185,7 @@ export default function DiscoveryPage() {
             </select>
             <select
               value={filterHealth}
-              onChange={(e) => setFilterHealth(e.target.value)}
+              onChange={(e) => { setFilterHealth(e.target.value); setPage(0); }}
               className="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-300"
             >
               <option value="all">All Health</option>
@@ -187,13 +194,20 @@ export default function DiscoveryPage() {
             </select>
             <select
               value={filterLinked}
-              onChange={(e) => setFilterLinked(e.target.value)}
+              onChange={(e) => { setFilterLinked(e.target.value); setPage(0); }}
               className="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-300"
             >
               <option value="all">All</option>
               <option value="linked">Linked</option>
               <option value="unlinked">Not Linked</option>
             </select>
+            <input
+              type="text"
+              placeholder="IP 또는 호스트명 검색..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+              className="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-300 w-48"
+            />
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -208,7 +222,7 @@ export default function DiscoveryPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800">
-                {filtered.slice(0, 100).map((t) => (
+                {paged.map((t) => (
                   <tr key={t.id}>
                     <td className="px-3 py-2 font-mono text-xs">
                       {t.instance}
@@ -259,10 +273,26 @@ export default function DiscoveryPage() {
                 ))}
               </tbody>
             </table>
-            {filtered.length > 100 && (
-              <p className="mt-2 text-center text-xs text-gray-500">
-                Showing first 100 of {filtered.length} targets. Use filters to narrow down.
-              </p>
+            {totalPages > 1 && (
+              <div className="mt-3 flex items-center justify-center gap-3">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="rounded bg-gray-700 px-3 py-1 text-xs text-gray-300 hover:bg-gray-600 disabled:opacity-40"
+                >
+                  ← Prev
+                </button>
+                <span className="text-xs text-gray-400">
+                  {page + 1} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  className="rounded bg-gray-700 px-3 py-1 text-xs text-gray-300 hover:bg-gray-600 disabled:opacity-40"
+                >
+                  Next →
+                </button>
+              </div>
             )}
           </div>
         </Card>
