@@ -12,8 +12,8 @@ export async function POST() {
 
   try {
     const targets = await fetchTargets();
-    let newCount = 0;
-    let updatedCount = 0;
+    let created = 0;
+    let updated = 0;
 
     for (const target of targets) {
       const existing = await prisma.prometheusTarget.findUnique({
@@ -30,28 +30,45 @@ export async function POST() {
             lastSeen: new Date(),
           },
         });
-        updatedCount++;
+        updated++;
       } else {
         await prisma.prometheusTarget.create({
           data: {
             instance: target.instance,
             job: target.job,
-            hostname: target.labels.__name__ || target.labels.instance,
+            hostname: target.labels.hostname || target.labels.instance || target.instance,
             labels: target.labels,
             health: target.health,
             lastSeen: new Date(),
           },
         });
-        newCount++;
+        created++;
       }
     }
 
+    const allTargets = await prisma.prometheusTarget.findMany({
+      orderBy: [{ health: "asc" }, { instance: "asc" }],
+      include: { equipment: { select: { id: true, hostname: true } } },
+    });
+
     return NextResponse.json({
-      discovered: targets.length,
-      newTargets: newCount,
-      updated: updatedCount,
+      synced: targets.length,
+      created,
+      updated,
+      targets: allTargets.map((t) => ({
+        id: t.id,
+        instance: t.instance,
+        job: t.job,
+        hostname: t.hostname,
+        health: t.health,
+        lastSeen: t.lastSeen.toISOString(),
+        equipmentId: t.equipmentId,
+        equipmentHostname: t.equipment?.hostname || null,
+        labels: t.labels,
+      })),
     });
   } catch (error) {
+    console.error("Discovery sync error:", error);
     return NextResponse.json(
       { error: "Failed to fetch Prometheus targets" },
       { status: 502 },
