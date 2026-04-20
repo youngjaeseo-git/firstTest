@@ -74,7 +74,17 @@
 - `GET /api/discovery/targets` 엔드포인트 생성
 - `POST /api/discovery/register` 엔드포인트 생성
 - Discovery sync API 응답 포맷 수정 (프론트엔드와 필드명 일치)
-- 전체 변경사항 커밋 및 push 완료 (`3d18477`)
+- IP/호스트명 검색 + 50개 단위 페이지네이션 추가
+- Unregister 버튼 + API 추가 (장비 삭제 및 타겟 연결 해제)
+- socketIndex 버그 수정 (CPU 등록 시 DB 에러 해결)
+- 서버 목록에서 미배치 서버(rackId=null) 표시 ("미배치")
+- Infrastructure 상세 페이지에 Prometheus 메트릭 차트 추가
+- **IP 기반 매칭으로 전체 PromQL 쿼리 개선** (cross-job instance 불일치 해결)
+  - 동일 서버가 job별로 다른 포트를 가져도 IP로 매칭
+  - Load Average → 실제 CPU 사용률 (1m/5m/15m rate) 표시
+  - 가짜 Processes 차트 제거, CFS Throttled로 대체
+  - CPU Mode에서 iowait/steal 플레이스홀더 제거
+- 장비 등록 시 Prometheus에서 CPU 코어수/메모리 자동 감지
 
 ---
 
@@ -82,14 +92,12 @@
 
 ### 우선순위 높음
 - [ ] 시드(가짜) 데이터 삭제 실행 — `POST /api/admin/cleanup-seed` 호출
-- [ ] 실제 서버 2~3대 등록 테스트 — Discovery 페이지에서 Register
-- [ ] 개별 서버 상세 메트릭 검증 — 등록 후 서버 상세 페이지 차트 확인
+- [ ] 서버 등록 후 메트릭 표시 검증 — CPU, Memory, Disk, Network 차트 확인
 - [ ] 대시보드 fleet 메트릭 값 검증 — cAdvisor 쿼리 실제 데이터 확인
-- [ ] 최신 코드 리눅스 서버 반영 — PC에서 git pull → NFS → 서버에서 재시작
 
 ### 우선순위 중간
 - [ ] 온도 데이터 연동 — 외부 SQL DB 연결 구현 (Grafana의 PDU monitoring 데이터소스)
-- [ ] CLAUDE.md의 Prometheus URL 수정 (`10.144.38.100:30004` → 실제 값)
+- [ ] CLAUDE.md의 Prometheus URL 수정
 - [ ] 서버 상세 페이지에서 실시간 메트릭 WebSocket 연동 확인
 
 ### 우선순위 낮음
