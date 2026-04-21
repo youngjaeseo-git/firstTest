@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>DCIM System Architecture</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    display: flex;
+    justify-content: center;
+    padding: 30px;
+  }
+  .page {
+    width: 1100px;
+    background: #1e293b;
+    border-radius: 16px;
+    padding: 40px;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+  }
+  h1 {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 36px;
+  }
+
+  /* Section titles */
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #64748b;
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+
+  /* Main layout */
+  .architecture {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Row */
+  .row {
+    display: flex;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  /* Cards */
+  .card {
+    border-radius: 12px;
+    padding: 20px;
+    flex: 1;
+    position: relative;
+    border: 1px solid #334155;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title .icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .card-desc {
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.6;
+  }
+  .tech-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    margin: 2px 2px;
+  }
+
+  /* Color themes */
+  .blue { background: #1e3a5f; border-color: #2563eb40; }
+  .blue .icon { background: #2563eb30; color: #60a5fa; }
+  .blue .tech-badge { background: #2563eb25; color: #93c5fd; }
+
+  .green { background: #1a3a2a; border-color: #16a34a40; }
+  .green .icon { background: #16a34a30; color: #4ade80; }
+  .green .tech-badge { background: #16a34a25; color: #86efac; }
+
+  .purple { background: #2d1f4e; border-color: #7c3aed40; }
+  .purple .icon { background: #7c3aed30; color: #a78bfa; }
+  .purple .tech-badge { background: #7c3aed25; color: #c4b5fd; }
+
+  .orange { background: #3b2410; border-color: #ea580c40; }
+  .orange .icon { background: #ea580c30; color: #fb923c; }
+  .orange .tech-badge { background: #ea580c25; color: #fdba74; }
+
+  .cyan { background: #0f2f3a; border-color: #0891b240; }
+  .cyan .icon { background: #0891b230; color: #22d3ee; }
+  .cyan .tech-badge { background: #0891b225; color: #67e8f9; }
+
+  .gray { background: #1e293b; border-color: #47556940; }
+  .gray .icon { background: #47556930; color: #94a3b8; }
+  .gray .tech-badge { background: #47556925; color: #cbd5e1; }
+
+  /* Flow arrows */
+  .flow-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 8px 0;
+  }
+  .arrow-down {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #475569;
+  }
+  .arrow-down .line {
+    width: 2px;
+    height: 16px;
+    background: linear-gradient(to bottom, #475569, #334155);
+  }
+  .arrow-down .head {
+    font-size: 10px;
+  }
+  .flow-label {
+    font-size: 10px;
+    color: #64748b;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Data flow diagram */
+  .flow-diagram {
+    background: #0f172a;
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 8px;
+  }
+  .flow-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 6px 0;
+  }
+  .flow-box {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    min-width: 140px;
+  }
+  .flow-box.user { background: #1e3a5f; color: #93c5fd; border: 1px solid #2563eb50; }
+  .flow-box.app { background: #2d1f4e; color: #c4b5fd; border: 1px solid #7c3aed50; }
+  .flow-box.db { background: #1a3a2a; color: #86efac; border: 1px solid #16a34a50; }
+  .flow-box.prom { background: #3b2410; color: #fdba74; border: 1px solid #ea580c50; }
+  .flow-arrow {
+    color: #475569;
+    font-size: 18px;
+    font-weight: 300;
+  }
+  .flow-arrow-label {
+    font-size: 9px;
+    color: #64748b;
+    text-align: center;
+  }
+  .flow-arrow-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #334155;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #475569;
+  }
+
+  /* Wide card */
+  .wide { flex: 2; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>DCIM Management System</h1>
+  <p class="subtitle">Data Center Infrastructure Management &mdash; Technical Architecture</p>
+
+  <div class="architecture">
+
+    <!-- Layer 1: Frontend -->
+    <div class="section-title">Frontend (Client)</div>
+    <div class="row">
+      <div class="card blue">
+        <div class="card-title">
+          <div class="icon">UI</div>
+          Web Application
+        </div>
+        <div class="card-desc">
+          <span class="tech-badge">Next.js 14</span>
+          <span class="tech-badge">React</span>
+          <span class="tech-badge">TypeScript</span>
+          <span class="tech-badge">Tailwind CSS</span>
+          <br><br>
+          App Router / Server Components / Client Components<br>
+          Dashboard, Server Monitoring, Digital Twin, Infrastructure 관리
+        </div>
+      </div>
+      <div class="card blue">
+        <div class="card-title">
+          <div class="icon">Lib</div>
+          UI Libraries
+        </div>
+        <div class="card-desc">
+          <span class="tech-badge">Recharts</span>
+          <span class="tech-badge">Radix UI</span>
+          <span class="tech-badge">D3.js</span>
+          <span class="tech-badge">Zustand</span>
+          <br><br>
+          차트/그래프 시각화, 접기/펼치기 UI 패턴,<br>
+          랙 다이어그램 SVG, 전역 상태 관리
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="flow-section">
+      <div class="arrow-down"><div class="line"></div><div class="head">&#9660;</div></div>
+      <span class="flow-label">API Routes (REST)</span>
+      <div class="arrow-down"><div class="line"></div><div class="head">&#9660;</div></div>
+    </div>
+
+    <!-- Layer 2: Backend -->
+    <div class="section-title">Backend (Server)</div>
+    <div class="row">
+      <div class="card purple">
+        <div class="card-title">
+          <div class="icon">API</div>
+          Next.js API Routes
+        </div>
+        <div class="card-desc">
+          <span class="tech-badge">Next.js API</span>
+          <span class="tech-badge">NextAuth.js</span>
+          <span class="tech-badge">JWT</span>
+          <br><br>
+          장비 CRUD, 메트릭 프록시, Discovery 동기화,<br>
+          사용자 인증 (ID/PW + JWT 토큰)
+        </div>
+      </div>
+      <div class="card purple">
+        <div class="card-title">
+          <div class="icon">ORM</div>
+          Data Access Layer
+        </div>
+        <div class="card-desc">
+          <span class="tech-badge">Prisma ORM</span>
+          <span class="tech-badge">Prometheus Client</span>
+          <br><br>
+          PostgreSQL 쿼리 (장비/사용자/이력),<br>
+          Prometheus HTTP API 호출 (메트릭 조회)
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="flow-section">
+      <div class="arrow-down"><div class="line"></div><div class="head">&#9660;</div></div>
+      <span class="flow-label">Data Sources</span>
+      <div class="arrow-down"><div class="line"></div><div class="head">&#9660;</div></div>
+    </div>
+
+    <!-- Layer 3: Data -->
+    <div class="section-title">Data Layer</div>
+    <div class="row">
+      <div class="card green">
+        <div class="card-title">
+          <div class="icon">DB</div>
+          PostgreSQL 16
+        </div>
+        <div class="card-desc">
+          <span class="tech-badge">Docker Container</span>
+          <span class="tech-badge">Port 5433</span>
+          <br><br>
+          <b>저장 데이터:</b><br>
+          &#8226; 장비 정보 (hostname, IP, 위치, 스펙)<br>
+          &#8226; 사용자 계정 / 권한 (RBAC)<br>
+          &#8226; 알림 이력 / 변경 이력<br>
+          &#8226; Discovery 타겟 목록
+        </div>
+      </div>
+      <div class="card orange">
+        <div class="card-title">
+          <div class="icon">TS</div>
+          Prometheus
+        </div>
+        <div class="card-desc">
+          <span class="tech-badge">K8s ClusterIP</span>
+          <span class="tech-badge">NodePort 30003</span>
+          <br><br>
+          <b>시계열 메트릭:</b><br>
+          &#8226; CPU / Memory / Disk / Network (cAdvisor)<br>
+          &#8226; 전력 소비 (Intel PCM)<br>
+          &#8226; 서버 UP/DOWN 상태<br>
+          &#8226; Auto-Discovery 타겟
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="flow-section">
+      <div class="arrow-down"><div class="line"></div><div class="head">&#9660;</div></div>
+      <span class="flow-label">Monitored Infrastructure</span>
+      <div class="arrow-down"><div class="line"></div><div class="head">&#9660;</div></div>
+    </div>
+
+    <!-- Layer 4: Infrastructure -->
+    <div class="section-title">Monitored Servers (K8s Cluster)</div>
+    <div class="row">
+      <div class="card cyan">
+        <div class="card-title">
+          <div class="icon">K8s</div>
+          Kubernetes Nodes
+        </div>
+        <div class="card-desc">
+          <span class="tech-badge">cAdvisor</span>
+          <span class="tech-badge">kubelet</span>
+          <span class="tech-badge">Intel PCM</span>
+          <br><br>
+          물리 서버 ~170대 (UP), 4개 scrape job:<br>
+          kubernetes-nodes, server-info, temperature, AE-SMC-SRF-PCM
+        </div>
+      </div>
+      <div class="card gray">
+        <div class="card-title">
+          <div class="icon">HW</div>
+          BMC / IPMI (예정)
+        </div>
+        <div class="card-desc">
+          <span class="tech-badge">Redfish API</span>
+          <span class="tech-badge">iDRAC / iLO</span>
+          <br><br>
+          하드웨어 전원 제어, 온도/팬/전원 상태,<br>
+          SEL 이벤트 로그 (Phase 4-5 예정)
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Flow -->
+    <div class="section-title" style="margin-top: 16px;">Data Flow</div>
+    <div class="flow-diagram">
+      <div class="flow-row">
+        <div class="flow-box user">Browser<br><span style="font-size:10px;opacity:0.7">사용자</span></div>
+        <div class="flow-arrow-group">
+          <span class="flow-arrow">&#8594;</span>
+          <span class="flow-arrow-label">HTTP</span>
+        </div>
+        <div class="flow-box app">Next.js App<br><span style="font-size:10px;opacity:0.7">:3000</span></div>
+        <div class="flow-arrow-group">
+          <span class="flow-arrow">&#8594;</span>
+          <span class="flow-arrow-label">Prisma</span>
+        </div>
+        <div class="flow-box db">PostgreSQL<br><span style="font-size:10px;opacity:0.7">장비/사용자 데이터</span></div>
+      </div>
+      <div class="flow-row" style="margin-top: 8px;">
+        <div class="flow-box user" style="opacity:0">_</div>
+        <div class="flow-arrow-group" style="opacity:0">_</div>
+        <div class="flow-box app">Next.js App<br><span style="font-size:10px;opacity:0.7">:3000</span></div>
+        <div class="flow-arrow-group">
+          <span class="flow-arrow">&#8594;</span>
+          <span class="flow-arrow-label">PromQL</span>
+        </div>
+        <div class="flow-box prom">Prometheus<br><span style="font-size:10px;opacity:0.7">CPU/메모리/전력 메트릭</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>DCIM Management System &mdash; SK Telecom Server Lab</span>
+    <span>2026-04-21 | Next.js 14 + PostgreSQL + Prometheus</span>
+  </div>
+</div>
+</body>
+</html>
