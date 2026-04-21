@@ -28,9 +28,9 @@ export default async function ServerDetailPage({
   if (!equipment) notFound();
 
   const instance =
-    equipment.prometheusTarget?.instance ||
     equipment.prometheusInstance ||
-    (equipment.ipAddress ? `${equipment.ipAddress}:9100` : null);
+    equipment.prometheusTarget?.instance ||
+    (equipment.ipAddress ? `${equipment.ipAddress}:10250` : null);
 
   const totalMemoryGb =
     equipment.totalMemoryGB ||

@@ -110,8 +110,8 @@ export default async function EquipmentDetailPage({
       {/* Prometheus Metrics */}
       {(() => {
         const instance =
-          equipment.prometheusTarget?.instance ||
           equipment.prometheusInstance ||
+          equipment.prometheusTarget?.instance ||
           null;
         return instance ? (
           <ServerDetailClient instance={instance} />
