@@ -30,35 +30,48 @@ export async function POST(req: Request) {
     );
   }
 
-  const instanceHost = target.instance.split(":")[0];
-  const labels = (target.labels || {}) as Record<string, string>;
+  const instance = target.instance;
+  const instanceHost = instance.split(":")[0];
+  const labels = (target.labels ?? {}) as Record<string, string>;
   const isIp = /^\d+\.\d+\.\d+\.\d+$/.test(instanceHost);
 
-  const hostname = labels.hostname || labels.nodename || instanceHost;
+  const hostname = labels.hostname || labels.nodename || instanceHost || instance;
   const ipAddress = isIp ? instanceHost : null;
+
+  console.log("[Register]", {
+    targetId,
+    instance,
+    instanceHost,
+    isIp,
+    hostname,
+    ipAddress,
+    labelsKeys: Object.keys(labels),
+  });
 
   let totalMemoryGB: number | null = null;
   let cpuCores: number | null = null;
+  const ipPattern = `instance=~"${instanceHost}(:.*)?"`;
+
   try {
-    const ipPattern = `instance=~"${instanceHost}(:.*)?"`;
-    const [memResult, cpuResult] = await Promise.allSettled([
-      instantQuery(`max(machine_memory_bytes{${ipPattern}})`),
-      instantQuery(`max(machine_cpu_cores{${ipPattern}})`),
-    ]);
-    if (
-      memResult.status === "fulfilled" &&
-      memResult.value.data?.result?.[0]?.value?.[1]
-    ) {
-      const bytes = parseFloat(memResult.value.data.result[0].value[1]);
+    const memResult = await instantQuery(`max(machine_memory_bytes{${ipPattern}})`);
+    if (memResult.data?.result?.[0]?.value?.[1]) {
+      const bytes = parseFloat(memResult.data.result[0].value[1]);
       totalMemoryGB = Math.round(bytes / (1024 * 1024 * 1024));
     }
-    if (
-      cpuResult.status === "fulfilled" &&
-      cpuResult.value.data?.result?.[0]?.value?.[1]
-    ) {
-      cpuCores = parseInt(cpuResult.value.data.result[0].value[1], 10);
+    console.log("[Register] memory query result:", totalMemoryGB, "GB");
+  } catch (e) {
+    console.error("[Register] memory query failed:", e);
+  }
+
+  try {
+    const cpuResult = await instantQuery(`max(machine_cpu_cores{${ipPattern}})`);
+    if (cpuResult.data?.result?.[0]?.value?.[1]) {
+      cpuCores = parseInt(cpuResult.data.result[0].value[1], 10);
     }
-  } catch {}
+    console.log("[Register] cpu query result:", cpuCores, "cores");
+  } catch (e) {
+    console.error("[Register] cpu query failed:", e);
+  }
 
   const equipment = await prisma.equipment.create({
     data: {
@@ -67,7 +80,7 @@ export async function POST(req: Request) {
       type: "SERVER",
       status: target.health === "up" ? "ACTIVE" : "INSTALLED",
       totalMemoryGB,
-      prometheusInstance: target.instance,
+      prometheusInstance: instance,
       prometheusTarget: { connect: { id: target.id } },
       ...(cpuCores
         ? {
@@ -83,6 +96,14 @@ export async function POST(req: Request) {
           }
         : {}),
     },
+  });
+
+  console.log("[Register] created equipment:", {
+    id: equipment.id,
+    hostname: equipment.hostname,
+    ipAddress: equipment.ipAddress,
+    totalMemoryGB: equipment.totalMemoryGB,
+    prometheusInstance: equipment.prometheusInstance,
   });
 
   return NextResponse.json({ equipment });

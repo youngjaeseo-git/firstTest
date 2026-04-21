@@ -201,7 +201,7 @@ export function Header() {
               </Badge>
             </div>
             <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={() => signOut({ callbackUrl: "/login", redirect: true })}
               className="rounded-lg p-2 text-gray-500 hover:bg-gray-800/80 hover:text-gray-300 transition-all duration-200"
               title={t("header.logout")}
             >
