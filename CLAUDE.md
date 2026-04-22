@@ -94,6 +94,12 @@
 - `container_cpu_usage_seconds_total` → 호스트네임 (kubernetes-cadvisor job)
 - `Package_Joules_Consumed` → IP:port (QRA-SMC-DDR5-Dell) 또는 호스트네임 (AE-SMC_* PCM)
 
+**서버별 메트릭 가용성 (2026-04-22 확인):**
+- 서버마다 소속된 job이 다르며, job에 따라 사용 가능한 메트릭이 다름
+- 예시: `s131x13ae013` → kubernetes-cadvisor + kubernetes-nodes + PCM + server-info (4 job, 풀 메트릭)
+- 예시: `s222hax14ae005` → AE-SMC_GNRAP_PCM만 (전력만, CPU/메모리/네트워크 없음)
+- **TODO**: 전체 서버별 메트릭 가용성 조사 → 서버 유형별 표시 가능 차트 정의 필요
+
 ## Key Features
 
 1. **Dashboard**: 전체 인프라 상태 요약 (서버 수, 알림, PUE, 온도 분포)

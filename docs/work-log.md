@@ -88,16 +88,30 @@
 
 ---
 
+## 2026-04-22 (화)
+### 완료
+- Data-First Development Rule 확립 — `check/` 폴더에 확인 스크립트 작성 후 실제 데이터 확인 → 코드 작성 순서
+- Prometheus 실제 라벨 구조 확인 완료 (instance=호스트네임, job별 메트릭 차이)
+- 서버별 메트릭 가용성 차이 확인:
+  - cadvisor 서버 (s131x13ae013): 4개 job, CPU 144코어 / 메모리 2015GB 확인
+  - PCM 전용 서버 (s222hax14ae005): 전력만, CPU/메모리 메트릭 없음
+- Register 라우트 정리: 불필요한 IP 변환 로직 제거, 호스트네임 직접 쿼리
+- CLAUDE.md 정리: Commands/Directory 등 `docs/cmd_usage.md`로 분리
+- Cross-origin 경고 해결 (next.config.js allowedDevOrigins 추가)
+
+---
+
 ## TODO (해야 할 일)
 
 ### 우선순위 높음
+- [ ] cadvisor 서버(s131x13ae013 등)로 Register 테스트 → 메트릭 표시 검증
 - [ ] 시드(가짜) 데이터 삭제 실행 — `POST /api/admin/cleanup-seed` 호출
-- [ ] 서버 등록 후 메트릭 표시 검증 — CPU, Memory, Disk, Network 차트 확인
 - [ ] 대시보드 fleet 메트릭 값 검증 — cAdvisor 쿼리 실제 데이터 확인
+- [ ] **서버별 메트릭 가용성 전수 조사** — 전체 305타겟 중 서버 유형별(cadvisor/PCM/server-info) 어떤 메트릭이 존재하는지 확인하고, 유형별로 표시 가능한 차트 정의. 모든 서버에서 데이터 일관성과 통일성 확보
 
 ### 우선순위 중간
+- [ ] 메트릭 없는 서버의 상세 페이지 처리 — 데이터 없는 차트는 "이 서버에서 지원하지 않는 메트릭입니다" 등 안내 표시
 - [ ] 온도 데이터 연동 — 외부 SQL DB 연결 구현 (Grafana의 PDU monitoring 데이터소스)
-- [ ] CLAUDE.md의 Prometheus URL 수정
 - [ ] 서버 상세 페이지에서 실시간 메트릭 WebSocket 연동 확인
 
 ### 우선순위 낮음
