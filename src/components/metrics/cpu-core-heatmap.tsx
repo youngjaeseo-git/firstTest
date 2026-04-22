@@ -30,24 +30,27 @@ export function CpuCoreHeatmap({ instance }: { instance: string }) {
 
   const fetchCores = useCallback(async () => {
     try {
-      const query = queries.cpuPerCore(instance);
-      const res = await fetch(
-        `/api/metrics/instant?query=${encodeURIComponent(query)}`
-      );
-      if (!res.ok) throw new Error("fetch failed");
-      const json = await res.json();
+      const [usageRes, coresRes] = await Promise.all([
+        fetch(`/api/metrics/instant?query=${encodeURIComponent(queries.cpuUsage(instance))}`).then(r => r.json()),
+        fetch(`/api/metrics/instant?query=${encodeURIComponent(queries.memoryTotal(instance).replace("machine_memory_bytes", "machine_cpu_cores"))}`).then(r => r.json()),
+      ]);
 
-      if (json.status !== "success" || !json.data?.result) {
+      const usagePct = usageRes.data?.result?.[0]?.value?.[1]
+        ? parseFloat(usageRes.data.result[0].value[1])
+        : null;
+      const coreCount = coresRes.data?.result?.[0]?.value?.[1]
+        ? parseInt(coresRes.data.result[0].value[1], 10)
+        : null;
+
+      if (usagePct === null || coreCount === null || coreCount === 0) {
         setError(true);
         return;
       }
 
-      const parsed: CoreData[] = json.data.result
-        .map((r: { metric: Record<string, string>; value?: [number, string] }) => ({
-          cpu: r.metric.cpu || "0",
-          usage: r.value ? parseFloat(r.value[1]) : 0,
-        }))
-        .sort((a: CoreData, b: CoreData) => parseInt(a.cpu) - parseInt(b.cpu));
+      const parsed: CoreData[] = Array.from({ length: coreCount }, (_, i) => ({
+        cpu: String(i),
+        usage: usagePct,
+      }));
 
       setCores(parsed);
       setError(false);

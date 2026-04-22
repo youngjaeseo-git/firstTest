@@ -122,34 +122,34 @@ export const queries = {
     `sum(rate(container_cpu_usage_seconds_total{${m(instance)},id="/"}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
 
   cpuPerCore: (instance: string) =>
-    `rate(container_cpu_usage_seconds_total{${m(instance)},id="/"}[5m]) * 100`,
+    `sum(rate(container_cpu_usage_seconds_total{${m(instance)},id="/"}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
 
   memoryUsage: (instance: string) =>
-    `container_memory_working_set_bytes{${m(instance)},id="/"} / on() group_left() max(machine_memory_bytes{${m(instance)}}) * 100`,
+    `sum(container_memory_working_set_bytes{${m(instance)},id="/"}) / sum(machine_memory_bytes{${m(instance)}}) * 100`,
 
   memoryTotal: (instance: string) =>
     `max(machine_memory_bytes{${m(instance)}})`,
 
   memoryAvailable: (instance: string) =>
-    `max(machine_memory_bytes{${m(instance)}}) - container_memory_working_set_bytes{${m(instance)},id="/"}`,
+    `max(machine_memory_bytes{${m(instance)}}) - sum(container_memory_working_set_bytes{${m(instance)},id="/"})`,
 
   swapUsage: (instance: string) =>
     `container_memory_swap{${m(instance)},id="/"}`,
 
   diskUsage: (instance: string) =>
-    `container_fs_usage_bytes{${m(instance)},id="/"} / container_fs_limit_bytes{${m(instance)},id="/"} * 100`,
+    `sum(container_fs_usage_bytes{${m(instance)},id="/"}) / sum(container_fs_limit_bytes{${m(instance)},id="/"}) * 100`,
 
   diskIORead: (instance: string) =>
-    `rate(container_fs_reads_bytes_total{${m(instance)},id="/"}[5m])`,
+    `sum(rate(container_fs_reads_bytes_total{${m(instance)},id="/"}[5m]))`,
 
   diskIOWrite: (instance: string) =>
-    `rate(container_fs_writes_bytes_total{${m(instance)},id="/"}[5m])`,
+    `sum(rate(container_fs_writes_bytes_total{${m(instance)},id="/"}[5m]))`,
 
   networkRx: (instance: string) =>
-    `rate(container_network_receive_bytes_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
+    `sum(rate(container_network_receive_bytes_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*"}[5m]))`,
 
   networkTx: (instance: string) =>
-    `rate(container_network_transmit_bytes_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
+    `sum(rate(container_network_transmit_bytes_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*"}[5m]))`,
 
   temperature: (instance: string) =>
     `{job="temperature",${m(instance)}}`,
@@ -178,45 +178,45 @@ export const queries = {
     `sum(rate(container_cpu_usage_seconds_total{${m(instance)},id="/"}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}}))`,
 
   cpuModeUser: (instance: string) =>
-    `rate(container_cpu_user_seconds_total{${m(instance)},id="/"}[5m]) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
+    `sum(rate(container_cpu_user_seconds_total{${m(instance)},id="/"}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
   cpuModeSystem: (instance: string) =>
-    `rate(container_cpu_system_seconds_total{${m(instance)},id="/"}[5m]) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
+    `sum(rate(container_cpu_system_seconds_total{${m(instance)},id="/"}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
   cpuModeIowait: (instance: string) =>
-    `rate(container_cpu_cfs_throttled_seconds_total{${m(instance)},id="/"}[5m])`,
+    `sum(rate(container_cpu_cfs_throttled_seconds_total{${m(instance)},id="/"}[5m]))`,
   cpuModeSteal: (instance: string) =>
-    `rate(container_cpu_usage_seconds_total{${m(instance)},id="/"}[5m]) * 0`,
+    `sum(rate(container_cpu_usage_seconds_total{${m(instance)},id="/"}[5m])) * 0`,
 
   memoryUsedBytes: (instance: string) =>
-    `container_memory_working_set_bytes{${m(instance)},id="/"}`,
+    `sum(container_memory_working_set_bytes{${m(instance)},id="/"})`,
   memoryCached: (instance: string) =>
-    `container_memory_cache{${m(instance)},id="/"}`,
+    `sum(container_memory_cache{${m(instance)},id="/"})`,
 
   diskReadIOPS: (instance: string) =>
-    `rate(container_fs_reads_total{${m(instance)},id="/"}[5m])`,
+    `sum(rate(container_fs_reads_total{${m(instance)},id="/"}[5m]))`,
   diskWriteIOPS: (instance: string) =>
-    `rate(container_fs_writes_total{${m(instance)},id="/"}[5m])`,
+    `sum(rate(container_fs_writes_total{${m(instance)},id="/"}[5m]))`,
 
   diskReadLatency: (instance: string) =>
-    `rate(container_fs_read_seconds_total{${m(instance)},id="/"}[5m]) * 1000`,
+    `sum(rate(container_fs_read_seconds_total{${m(instance)},id="/"}[5m])) * 1000`,
   diskWriteLatency: (instance: string) =>
-    `rate(container_fs_write_seconds_total{${m(instance)},id="/"}[5m]) * 1000`,
+    `sum(rate(container_fs_write_seconds_total{${m(instance)},id="/"}[5m])) * 1000`,
 
   diskIOQueue: (instance: string) =>
-    `container_fs_io_current{${m(instance)},id="/"}`,
+    `sum(container_fs_io_current{${m(instance)},id="/"})`,
 
   networkRxErrors: (instance: string) =>
-    `rate(container_network_receive_errors_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
+    `sum(rate(container_network_receive_errors_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*"}[5m]))`,
   networkTxErrors: (instance: string) =>
-    `rate(container_network_transmit_errors_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
+    `sum(rate(container_network_transmit_errors_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*"}[5m]))`,
   networkRxDrops: (instance: string) =>
-    `rate(container_network_receive_packets_dropped_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
+    `sum(rate(container_network_receive_packets_dropped_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*"}[5m]))`,
   networkTxDrops: (instance: string) =>
-    `rate(container_network_transmit_packets_dropped_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*"}[5m])`,
+    `sum(rate(container_network_transmit_packets_dropped_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*"}[5m]))`,
 
   tcpEstablished: (instance: string) =>
-    `container_network_tcp_usage_total{${m(instance)},tcp_state="established"}`,
+    `sum(container_network_tcp_usage_total{${m(instance)},tcp_state="established"})`,
   tcpRetransmits: (instance: string) =>
-    `container_network_tcp_usage_total{${m(instance)},tcp_state="close_wait"}`,
+    `sum(container_network_tcp_usage_total{${m(instance)},tcp_state="close_wait"})`,
 
   inletTemp: (instance: string) =>
     `{job="temperature",${m(instance)},type=~"inlet|ambient"}`,

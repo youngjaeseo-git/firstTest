@@ -73,12 +73,24 @@ export async function POST(req: Request) {
     console.error("[Register] cpu query FAILED:", e);
   }
 
+  let isUp = target.health === "up";
+  if (!isUp) {
+    try {
+      const upResult = await instantQuery(`up{instance="${instanceHost}"}`);
+      if (upResult.data?.result) {
+        isUp = upResult.data.result.some(
+          (r: { value?: [number, string] }) => r.value?.[1] === "1",
+        );
+      }
+    } catch {}
+  }
+
   const equipment = await prisma.equipment.create({
     data: {
       hostname,
       ipAddress,
       type: "SERVER",
-      status: target.health === "up" ? "ACTIVE" : "INSTALLED",
+      status: isUp ? "ACTIVE" : "INSTALLED",
       totalMemoryGB,
       prometheusInstance: instance,
       prometheusTarget: { connect: { id: target.id } },
