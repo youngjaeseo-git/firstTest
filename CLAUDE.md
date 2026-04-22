@@ -52,11 +52,47 @@
 3. **결과 분석 후 구현**: 실제 응답 데이터의 라벨, 필드명, 값 형식을 확인한 뒤에만 코드 작성
 4. **검증 범위 명시**: TypeScript/빌드 통과는 문법 검증일 뿐, 실제 데이터 연동 동작은 별도 확인 필요 → 사용자에게 명확히 전달
 
+### 스크립트 작성 원칙
+- 사용자가 결과를 **수동 타이핑**해야 하므로, 출력량을 최소화한다
+- 중복 데이터 제거: 라벨 구조 확인은 1개 샘플이면 충분, 전체 목록 출력 금지
+- 의미 있는 필드만 추출: `boot_id`, `machine_id`, `system_uuid` 등 식별값은 생략 가능
+- 개수/존재 여부만 확인할 수 있으면 상세 데이터는 출력하지 않는다
+
 ### 적용 대상
 - Prometheus 메트릭 쿼리 (라벨 구조, instance 형식)
 - BMC/Redfish API 응답 구조
 - Kubernetes API 호출
 - 기타 외부 데이터 소스 연동
+
+### 확인된 Prometheus 환경 (2026-04-22 기준)
+
+**Instance 형식:**
+- 대부분의 job은 **호스트네임**을 instance로 사용 (예: `s131x13ae010`)
+- `QRA-SMC-DDR5-Dell` 등 일부 job만 **IP:port** 사용 (예: `110.80.103.100:9200`)
+
+**서버 다양성:**
+- CPU: Intel (SRF, SPR, GNR, EMR), AMD (Turin), ARM (Ampere) 등 혼재
+- 제조사: SMC(Supermicro), Dell 등 혼재
+- 조직: 자체 서버 외에 다른 조직 서버도 포함 (정확한 정보 없을 수 있음)
+- 워크로드 라벨: `stress: "stress"` = stressapptest 메모리 에러 검증용
+
+**주요 Job 목록 (305 타겟):**
+- `kubernetes-cadvisor` (up:18, down:23) — container_cpu_*, machine_memory_bytes
+- `kubernetes-nodes` (up:18, down:23) — 노드 정보
+- `QRA-SMC-DDR5-Dell` (up:136) — Package_Joules_Consumed (IP:port)
+- `QRA-SMC-DDR5-PCM` (up:49, down:1) — PCM 전력
+- `QRA-SMC-EMR-PCM` (down:40) — EMR 서버 PCM
+- `AE-SMC_GNRAP_PCM` (up:6, down:3) — GNR-AP PCM
+- `AE-SMC_GNRSP_PCM` (up:5, down:10) — GNR-SP PCM
+- `PCM` (up:10, down:31) — 기타 PCM
+- `server-info` (down:41) — 서버 기본 정보 (모두 down)
+- `temperature` (down:1)
+- `kube-state-metrics` (up:1), `kubernetes-apiservers` (up:1), `kubernetes-service-endpoints` (up:4)
+
+**메트릭별 instance 형식:**
+- `machine_memory_bytes` → 호스트네임 (kubernetes-cadvisor job)
+- `container_cpu_usage_seconds_total` → 호스트네임 (kubernetes-cadvisor job)
+- `Package_Joules_Consumed` → IP:port (QRA-SMC-DDR5-Dell) 또는 호스트네임 (AE-SMC_* PCM)
 
 ## Key Features
 
