@@ -5,7 +5,7 @@
 # 사용법: GRAFANA_URL을 실제 Grafana 주소로 변경 후 실행
 # bash check/20260423-grafana-queries.sh > grafana-queries-result.txt 2>&1
 
-GRAFANA_URL="${GRAFANA_URL:-http://10.144.38.100:3000}"
+GRAFANA_URL="${GRAFANA_URL:-http://10.144.38.100:30004}"
 
 echo "=== Grafana 대시보드 쿼리 추출 ==="
 echo "Grafana URL: $GRAFANA_URL"

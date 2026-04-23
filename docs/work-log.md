@@ -103,19 +103,29 @@
 
 ## TODO (해야 할 일)
 
+### 진행 중 — Lab-1 서버 메트릭 완성 (최우선)
+> 클러스터1(Lab-1, 10.144.38.100)의 cAdvisor 서버부터 모든 차트가 정상 표시되도록 완성한다.
+> 완료 후 Lab-3(10.144.131.100) 서버로 확장.
+
+- [ ] **1단계: 기존 Grafana 쿼리 확인** — `check/20260423-grafana-queries.sh` 실행하여 운영 중인 대시보드의 실제 PromQL 추출. 동작하는 쿼리를 그대로 따라가기
+- [ ] **2단계: cAdvisor 메트릭 개별 검증** — `check/20260423-cadvisor-each-metric.sh` 실행하여 s131x13ae013 서버에서 각 메트릭 존재 여부 확인 (CPU/Memory/Disk/Network 각각)
+- [ ] **3단계: 확인된 메트릭 기반 쿼리 수정** — 실제 데이터가 있는 메트릭만 차트 표시, 없는 메트릭은 안내 메시지
+- [ ] **4단계: Lab-3 서버 확장** — 클러스터2(Lab-3, 10.144.131.100) 서버 메트릭 확인 및 지원
+
+### 인프라 구조 (확인됨)
+- **Cluster 1 (Lab-1)**: 10.144.38.100 — K8s master, Grafana(30004) + Prometheus
+- **Cluster 2 (Lab-3)**: 10.144.131.100 — K8s master-lab3, k8s-monitoring(prometheus) → Cluster 1으로 메트릭 전송
+
 ### 우선순위 높음
-- [ ] cadvisor 서버(s131x13ae013 등)로 Register 테스트 → 메트릭 표시 검증
 - [ ] 시드(가짜) 데이터 삭제 실행 — `POST /api/admin/cleanup-seed` 호출
 - [ ] 대시보드 fleet 메트릭 값 검증 — cAdvisor 쿼리 실제 데이터 확인
-- [ ] **서버별 메트릭 가용성 전수 조사** — 전체 305타겟 중 서버 유형별(cadvisor/PCM/server-info) 어떤 메트릭이 존재하는지 확인하고, 유형별로 표시 가능한 차트 정의. 모든 서버에서 데이터 일관성과 통일성 확보
 
 ### 우선순위 중간
-- [ ] 메트릭 없는 서버의 상세 페이지 처리 — 데이터 없는 차트는 "이 서버에서 지원하지 않는 메트릭입니다" 등 안내 표시
-- [ ] 온도 데이터 연동 — 외부 SQL DB 연결 구현 (Grafana의 PDU monitoring 데이터소스)
-- [ ] 서버 상세 페이지에서 실시간 메트릭 WebSocket 연동 확인
+- [ ] 메트릭 없는 서버의 상세 페이지 처리 — "이 서버에서 지원하지 않는 메트릭입니다" 안내
+- [ ] 온도 데이터 연동 — 외부 SQL DB 연결 (Grafana PDU monitoring 데이터소스)
+- [ ] 서버 상세 페이지 실시간 WebSocket 메트릭
 
 ### 우선순위 낮음
-- [ ] 멀티 Prometheus 지원 (Lab1/Lab3 등 여러 클러스터)
-- [ ] 장비 등록 시 Rack/U position 자동 할당 로직
-- [ ] PDF 리포트 내보내기 기능
-- [ ] E2E 테스트 시나리오 작성 (Discovery → Register → Monitor 플로우)
+- [ ] 장비 등록 시 Rack/U position 자동 할당
+- [ ] PDF 리포트 내보내기
+- [ ] E2E 테스트 (Discovery → Register → Monitor 플로우)
