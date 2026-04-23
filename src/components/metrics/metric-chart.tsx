@@ -138,7 +138,6 @@ export function MetricChart({
         );
         if (errs.length === results.length) {
           setError("Prometheus data unavailable");
-          setData([]);
           setLoading(false);
           return;
         }
@@ -166,7 +165,6 @@ export function MetricChart({
       } catch {
         if (!cancelled) {
           setError("Connection failed");
-          setData([]);
         }
       } finally {
         if (!cancelled) setLoading(false);

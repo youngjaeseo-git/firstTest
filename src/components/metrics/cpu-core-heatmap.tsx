@@ -116,7 +116,7 @@ export function CpuCoreHeatmap({ instance }: { instance: string }) {
       <div
         className="grid gap-1"
         style={{
-          gridTemplateColumns: `repeat(${Math.min(Math.ceil(Math.sqrt(cores.length) * 1.5), 16)}, 1fr)`,
+          gridTemplateColumns: `repeat(${Math.min(Math.ceil(Math.sqrt(cores.length) * 1.5), 32)}, 1fr)`,
         }}
       >
         {cores.map((core, i) => {

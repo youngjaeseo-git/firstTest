@@ -10,7 +10,7 @@ import type { PrometheusQueryResult } from "@/types/metrics";
 const PROMETHEUS_URL =
   process.env.PROMETHEUS_URL || "http://10.100.175.248:8080";
 
-const FETCH_TIMEOUT_MS = 3000;
+const FETCH_TIMEOUT_MS = 10000;
 
 function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
   const controller = new AbortController();
