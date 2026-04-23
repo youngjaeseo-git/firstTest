@@ -6,6 +6,7 @@
 # bash check/20260423-grafana-queries.sh > grafana-queries-result.txt 2>&1
 
 GRAFANA_URL="${GRAFANA_URL:-http://10.144.38.100:30004}"
+# Prometheus는 별도 포트: http://10.144.38.100:30003
 
 echo "=== Grafana 대시보드 쿼리 추출 ==="
 echo "Grafana URL: $GRAFANA_URL"

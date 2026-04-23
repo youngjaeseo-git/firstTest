@@ -9,12 +9,32 @@
 
 ## Confirmed Decisions
 
-- **Prometheus URL**: `http://10.144.38.100:30004`
 - **인증 방식**: 자체 인증 (NextAuth.js CredentialsProvider + JWT)
 - **배포 환경**: Docker (docker-compose: Next.js app + PostgreSQL)
 - **서버 탐지**: Prometheus auto-discovery (`/api/v1/targets`)
 - **DC 구조**: 1개 DataCenter + 2개 Room (DataCenter → Room → Rack → Equipment)
 - **메모리 입력**: 수동 입력 (장비 등록/수정 시 DIMM 슬롯 정보 직접 입력)
+
+## Infrastructure (인프라 주소 정리)
+
+### Cluster 1 — Lab-1 (10.144.38.100)
+- **역할**: K8s master node, 모든 모니터링 데이터 수집 중심
+- **Grafana**: `http://10.144.38.100:30004` (대시보드 예: `/d/nDyQuG9Hk/ae-d-c-server-status`)
+- **Prometheus**: K8s Service `prometheus-service` (namespace: monitoring)
+  - ClusterIP: `http://10.100.175.248:8080` (클러스터 내부 — 앱 코드 + check 스크립트 모두 이 주소 사용)
+  - NodePort: `8080:30003/TCP` (외부 접근용이나 `/api/v1/status/build` 404 확인됨, 추가 검증 필요)
+- **DCIM 앱**: `http://10.144.38.100:3000` (Next.js + PostgreSQL)
+
+### Cluster 2 — Lab-3 (10.144.131.100)
+- **역할**: K8s master-lab3 node
+- **Prometheus**: k8s-monitoring → Cluster 1으로 메트릭 federation/전송
+- **작업 순서**: Lab-1 서버 메트릭 완성 후 Lab-3 확장 (TODO)
+
+### 앱 코드에서의 Prometheus 접속
+- `src/lib/prometheus.ts`의 `PROMETHEUS_URL` 환경변수
+- Docker 내부: ClusterIP `http://10.100.175.248:8080` 사용
+- check 스크립트: NodePort `http://10.144.38.100:30003` 사용
+- **중요**: 두 URL은 같은 Prometheus 서비스를 가리킴. 접근 경로만 다름
 
 ## Tech Stack
 

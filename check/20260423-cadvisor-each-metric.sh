@@ -4,7 +4,7 @@
 #
 # 사용법: bash check/20260423-cadvisor-each-metric.sh > cadvisor-result.txt 2>&1
 
-PROM="${PROMETHEUS_URL:-http://10.144.38.100:30004}"
+PROM="${PROMETHEUS_URL:-http://10.100.175.248:8080}"
 INST="s131x13ae013"
 
 echo "=== cAdvisor 메트릭 개별 확인 ($INST) ==="
