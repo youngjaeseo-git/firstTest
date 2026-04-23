@@ -86,6 +86,11 @@
 
 ### 확인된 Prometheus 환경 (2026-04-22 기준)
 
+**cAdvisor 쿼리 규칙 (K8s 환경):**
+- `id="/"` 사용 금지 — K8s cAdvisor에서 root cgroup이 존재하지 않음
+- `container!=""` 사용 — 실제 컨테이너만 선택, cgroup 계층 중복 방지
+- `machine_*` 메트릭은 `container` 라벨 없음, 필터 불필요
+
 **Instance 형식:**
 - 대부분의 job은 **호스트네임**을 instance로 사용 (예: `s131x13ae010`)
 - `QRA-SMC-DDR5-Dell` 등 일부 job만 **IP:port** 사용 (예: `110.80.103.100:9200`)
