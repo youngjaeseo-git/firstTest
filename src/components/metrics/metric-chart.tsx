@@ -269,15 +269,14 @@ export function MetricChart({
                 stroke={s.color}
                 strokeWidth={2}
                 dot={false}
+                connectNulls={true}
+                isAnimationActive={false}
                 activeDot={{
                   r: 4,
                   fill: s.color,
                   stroke: "#111827",
                   strokeWidth: 2,
                 }}
-                isAnimationActive={true}
-                animationDuration={600}
-                animationEasing="ease-out"
               />
             ))}
           </LineChart>
@@ -285,10 +284,10 @@ export function MetricChart({
       )}
 
       {/* DEBUG: remove after fixing */}
-      <div className="mt-1 text-[9px] font-mono text-gray-600">
-        [pts={data.length} err={error || "none"} load={String(loading)}
-        {data.length > 0 && data[0] ? ` keys=${Object.keys(data[0]).join(",")}` : ""}
-        {data.length > 0 && data[0] ? ` sample=${JSON.stringify(data[0]).slice(0, 80)}` : ""}]
+      <div className="mt-1 px-2 py-1 bg-yellow-900/50 rounded text-[10px] font-mono text-yellow-300">
+        DEBUG: pts={data.length} | err={error || "none"} | load={String(loading)}
+        {data.length > 0 && data[0] ? ` | keys=${Object.keys(data[0]).join(",")}` : ""}
+        {data.length > 0 && data[Math.floor(data.length/2)] ? ` | mid=${JSON.stringify(data[Math.floor(data.length/2)]).slice(0, 100)}` : ""}
       </div>
     </div>
   );
