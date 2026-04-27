@@ -86,6 +86,13 @@
 
 ### 확인된 Prometheus 환경 (2026-04-22 기준)
 
+**메트릭 소스 (2026-04-28 확인):**
+- **node_exporter 없음** — 서버에 cAdvisor + PCM만 존재, bare-metal 메트릭 없음
+- **cAdvisor**: CPU, Memory, Disk, Network (컨테이너 레벨 합산, 서버 전체가 아님)
+- **Intel PCM**: Power (Package_Joules_Consumed)
+- **Grafana 기존 쿼리**: `sum(rate(container_cpu_usage_seconds_total{id="/"}[1m])) by(instance)` — `id="/"` 사용
+- **DCIM 앱 쿼리**: `container!=""` 사용 — `id="/"`가 없는 서버에서도 동작하므로 Grafana보다 커버리지 넓음
+
 **cAdvisor 쿼리 규칙 (K8s 환경):**
 - `id="/"` 사용 금지 — K8s cAdvisor에서 root cgroup이 존재하지 않음
 - `container!=""` 사용 — 실제 컨테이너만 선택, cgroup 계층 중복 방지
