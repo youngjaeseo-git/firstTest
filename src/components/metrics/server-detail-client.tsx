@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MetricChart } from "./metric-chart";
 import { CpuCoreHeatmap } from "./cpu-core-heatmap";
+import { NodeOverviewCard } from "./node-overview-card";
 import { queries } from "@/lib/prometheus";
 
 const DURATIONS = [
@@ -55,6 +56,9 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           <span className="font-mono">{instance}</span>
         </span>
       </div>
+
+      {/* Node Resources (kube-state-metrics) */}
+      <NodeOverviewCard instance={instance} />
 
       {/* ── Section 1: CPU ── */}
       <SectionHeader title="CPU" />
@@ -222,12 +226,12 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           formatValue={formatMs}
         />
         <MetricChart
-          title="Disk Usage"
+          title="Disk Usage (Host)"
           unit="%"
           series={[
             {
               label: "Usage",
-              query: queries.diskUsage(instance),
+              query: queries.hostDiskUsage(instance),
               color: "#f97316",
             },
           ]}

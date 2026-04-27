@@ -237,6 +237,28 @@ export const queries = {
   fileDescriptorUsage: (instance: string) =>
     `sum(container_file_descriptors{${cm(instance)}}) / sum(process_open_fds{${m(instance)}}) * 100`,
 
+  // ---- kube-state-metrics: node-level capacity ----
+  nodeCapacityCpu: (instance: string) =>
+    `kube_node_status_capacity{resource="cpu",node=~"${ip(instance)}.*"}`,
+  nodeCapacityMemory: (instance: string) =>
+    `kube_node_status_capacity{resource="memory",node=~"${ip(instance)}.*"}`,
+  nodeCapacityDisk: (instance: string) =>
+    `kube_node_status_capacity{resource="ephemeral_storage",node=~"${ip(instance)}.*"}`,
+  nodeAllocatableCpu: (instance: string) =>
+    `kube_node_status_allocatable{resource="cpu",node=~"${ip(instance)}.*"}`,
+  nodeAllocatableMemory: (instance: string) =>
+    `kube_node_status_allocatable{resource="memory",node=~"${ip(instance)}.*"}`,
+  kubeletRunningPods: (instance: string) =>
+    `kubelet_running_pods{instance=~"${ip(instance)}(:.*)?"}`,
+
+  // ---- Host-level disk (device-filtered for real block devices) ----
+  hostDiskUsage: (instance: string) =>
+    `sum(container_fs_usage_bytes{${m(instance)},device=~"/dev/.*"}) / sum(container_fs_limit_bytes{${m(instance)},device=~"/dev/.*"}) * 100`,
+  hostDiskUsedBytes: (instance: string) =>
+    `sum(container_fs_usage_bytes{${m(instance)},device=~"/dev/.*"})`,
+  hostDiskTotalBytes: (instance: string) =>
+    `sum(container_fs_limit_bytes{${m(instance)},device=~"/dev/.*"})`,
+
   // ---- Dashboard fleet-wide aggregations ----
   fleetTotalPower: () => `sum(rate(Package_Joules_Consumed[5m]))`,
   fleetAvgMemory: () =>
