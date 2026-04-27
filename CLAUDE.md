@@ -91,6 +91,12 @@
 - `container!=""` 사용 — 실제 컨테이너만 선택, cgroup 계층 중복 방지
 - `machine_*` 메트릭은 `container` 라벨 없음, 필터 불필요
 
+**확인된 라벨 구조 (2026-04-27 s121x13ae013):**
+- `container_cpu_usage_seconds_total`: container=`POD`, id=`/kubepod.slice/...` (count=21)
+- `container` 라벨 값: `POD` (pause container), 또는 실제 컨테이너 이름
+- `id` 라벨 값: `/kubepods.slice/kubepods-besteffort.slice/...` (root cgroup `/` 없음)
+- labels: `__name__`, `container`, `cpu`, `group`, `id`, `image`, `instance`, `job`, `namespace`, `pod`, `stress` 등
+
 **Instance 형식:**
 - 대부분의 job은 **호스트네임**을 instance로 사용 (예: `s131x13ae010`)
 - `QRA-SMC-DDR5-Dell` 등 일부 job만 **IP:port** 사용 (예: `110.80.103.100:9200`)
