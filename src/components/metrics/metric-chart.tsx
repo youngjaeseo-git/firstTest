@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   LineChart,
   Line,
@@ -118,6 +118,11 @@ export function MetricChart({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const seriesKey = useMemo(
+    () => series.map((s) => s.query).join("|"),
+    [series],
+  );
+
   useEffect(() => {
     let cancelled = false;
 
@@ -146,14 +151,14 @@ export function MetricChart({
         results.forEach((resp, idx) => {
           const label = series[idx].label;
           if (!resp.data?.result) return;
-          const firstMetric = resp.data.result[0];
-          if (!firstMetric) return;
-          firstMetric.values?.forEach(([ts, val]) => {
-            const t = ts * 1000;
-            if (!timeMap.has(t)) {
-              timeMap.set(t, { time: t });
-            }
-            timeMap.get(t)![label] = parseFloat(val);
+          resp.data.result.forEach((metric) => {
+            metric.values?.forEach(([ts, val]) => {
+              const t = ts * 1000;
+              if (!timeMap.has(t)) {
+                timeMap.set(t, { time: t });
+              }
+              timeMap.get(t)![label] = parseFloat(val);
+            });
           });
         });
 
@@ -177,7 +182,8 @@ export function MetricChart({
       cancelled = true;
       clearInterval(interval);
     };
-  }, [durationMin, step, refreshSec, series]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [durationMin, step, refreshSec, seriesKey]);
 
   const formatTick = (v: number) =>
     new Date(v).toLocaleTimeString("ko-KR", {
