@@ -283,6 +283,13 @@ export function MetricChart({
           </LineChart>
         </ResponsiveContainer>
       )}
+
+      {/* DEBUG: remove after fixing */}
+      <div className="mt-1 text-[9px] font-mono text-gray-600">
+        [pts={data.length} err={error || "none"} load={String(loading)}
+        {data.length > 0 && data[0] ? ` keys=${Object.keys(data[0]).join(",")}` : ""}
+        {data.length > 0 && data[0] ? ` sample=${JSON.stringify(data[0]).slice(0, 80)}` : ""}]
+      </div>
     </div>
   );
 }
