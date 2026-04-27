@@ -123,6 +123,13 @@ export function MetricChart({
     [series],
   );
 
+  const stepSec = useMemo(() => {
+    const match = step.match(/^(\d+)([sm])$/);
+    if (!match) return 30;
+    const val = parseInt(match[1]);
+    return match[2] === "m" ? val * 60 : val;
+  }, [step]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -153,7 +160,7 @@ export function MetricChart({
           if (!resp.data?.result) return;
           resp.data.result.forEach((metric) => {
             metric.values?.forEach(([ts, val]) => {
-              const t = ts * 1000;
+              const t = Math.round(ts / stepSec) * stepSec * 1000;
               if (!timeMap.has(t)) {
                 timeMap.set(t, { time: t });
               }
