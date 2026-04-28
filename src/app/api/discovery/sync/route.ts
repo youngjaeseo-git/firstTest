@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { fetchTargets } from "@/lib/prometheus";
+import { fetchTargets, type DiscoveredPrometheusTarget } from "@/lib/prometheus";
 
 export async function POST() {
   const session = await getServerSession(authOptions);
@@ -15,32 +15,49 @@ export async function POST() {
     let created = 0;
     let updated = 0;
 
+    const instanceMap = new Map<string, DiscoveredPrometheusTarget[]>();
     for (const target of targets) {
+      const arr = instanceMap.get(target.instance) || [];
+      arr.push(target);
+      instanceMap.set(target.instance, arr);
+    }
+
+    for (const [instance, instanceTargets] of Array.from(instanceMap)) {
+      const upTargets = instanceTargets.filter(
+        (t: DiscoveredPrometheusTarget) => t.health === "up"
+      );
+      const health = upTargets.length > 0 ? "up" : "down";
+      const best =
+        upTargets.find((t: DiscoveredPrometheusTarget) => t.job === "kubernetes-cadvisor") ||
+        upTargets[0] ||
+        instanceTargets.find((t: DiscoveredPrometheusTarget) => t.job === "kubernetes-cadvisor") ||
+        instanceTargets[0];
+
+      const jobs = instanceTargets.map((t: DiscoveredPrometheusTarget) => t.job);
+      const uniqueJobs = Array.from(new Set(jobs)).sort();
+
       const existing = await prisma.prometheusTarget.findUnique({
-        where: { instance: target.instance },
+        where: { instance },
       });
+
+      const data = {
+        job: best.job,
+        hostname:
+          best.labels.hostname || best.labels.nodename || null,
+        labels: { ...best.labels, _allJobs: uniqueJobs },
+        health,
+        lastSeen: new Date(),
+      };
 
       if (existing) {
         await prisma.prometheusTarget.update({
-          where: { instance: target.instance },
-          data: {
-            job: target.job,
-            labels: target.labels,
-            health: target.health,
-            lastSeen: new Date(),
-          },
+          where: { instance },
+          data,
         });
         updated++;
       } else {
         await prisma.prometheusTarget.create({
-          data: {
-            instance: target.instance,
-            job: target.job,
-            hostname: target.labels.hostname || target.labels.nodename || null,
-            labels: target.labels,
-            health: target.health,
-            lastSeen: new Date(),
-          },
+          data: { instance, ...data },
         });
         created++;
       }

@@ -37,46 +37,66 @@ export async function POST(req: Request) {
 
   const hostname =
     labels.hostname || labels.nodename || instanceHost || instance;
-  const ipAddress = isIp ? instanceHost : null;
-  const matcher = `instance=~"${instanceHost}(:.*)?"`;
 
+  let ipAddress = isIp ? instanceHost : null;
+  let osImage: string | null = null;
+  let kernelVersion: string | null = null;
   let totalMemoryGB: number | null = null;
   let cpuCores: number | null = null;
 
-  const memQuery = `max(machine_memory_bytes{${matcher}})`;
-  const cpuQuery = `max(machine_cpu_cores{${matcher}})`;
+  const matcher = `instance=~"${instanceHost}(:.*)?"`;
 
-  console.log("[Register] target:", { instance, instanceHost, isIp, hostname });
-  console.log("[Register] memQuery:", memQuery);
-  console.log("[Register] cpuQuery:", cpuQuery);
+  // Query kube_node_info for IP and OS metadata
+  if (!isIp) {
+    try {
+      const nodeInfoResult = await instantQuery(
+        `kube_node_info{node=~"${instanceHost}.*"}`
+      );
+      const metric = nodeInfoResult.data?.result?.[0]?.metric as
+        | Record<string, string>
+        | undefined;
+      if (metric) {
+        ipAddress = metric.internal_ip || null;
+        osImage = metric.os_image || null;
+        kernelVersion = metric.kernel_version || null;
+      }
+    } catch (e) {
+      console.error("[Register] kube_node_info query failed:", e);
+    }
+  }
 
+  // Memory from cAdvisor
   try {
-    const memResult = await instantQuery(memQuery);
-    console.log("[Register] memResult status:", memResult.status, "resultCount:", memResult.data?.result?.length ?? 0);
+    const memResult = await instantQuery(
+      `max(machine_memory_bytes{${matcher}})`
+    );
     if (memResult.data?.result?.[0]?.value?.[1]) {
       const bytes = parseFloat(memResult.data.result[0].value[1]);
       totalMemoryGB = Math.round(bytes / (1024 * 1024 * 1024));
     }
-    console.log("[Register] memory:", totalMemoryGB, "GB");
   } catch (e) {
-    console.error("[Register] memory query FAILED:", e);
+    console.error("[Register] memory query failed:", e);
   }
 
+  // CPU cores from cAdvisor
   try {
-    const cpuResult = await instantQuery(cpuQuery);
-    console.log("[Register] cpuResult status:", cpuResult.status, "resultCount:", cpuResult.data?.result?.length ?? 0);
+    const cpuResult = await instantQuery(
+      `max(machine_cpu_cores{${matcher}})`
+    );
     if (cpuResult.data?.result?.[0]?.value?.[1]) {
       cpuCores = parseInt(cpuResult.data.result[0].value[1], 10);
     }
-    console.log("[Register] cpu:", cpuCores, "cores");
   } catch (e) {
-    console.error("[Register] cpu query FAILED:", e);
+    console.error("[Register] cpu query failed:", e);
   }
 
+  // Determine health: check if ANY up metric exists
   let isUp = target.health === "up";
   if (!isUp) {
     try {
-      const upResult = await instantQuery(`up{instance="${instanceHost}"}`);
+      const upResult = await instantQuery(
+        `up{${matcher}}`
+      );
       if (upResult.data?.result) {
         isUp = upResult.data.result.some(
           (r: { value?: [number, string] }) => r.value?.[1] === "1",
@@ -92,6 +112,9 @@ export async function POST(req: Request) {
       type: "SERVER",
       status: isUp ? "ACTIVE" : "INSTALLED",
       totalMemoryGB,
+      osType: osImage ? "Linux" : null,
+      osVersion: osImage || null,
+      biosVersion: kernelVersion ? `kernel ${kernelVersion}` : null,
       prometheusInstance: instance,
       prometheusTarget: { connect: { id: target.id } },
       ...(cpuCores
@@ -102,7 +125,7 @@ export async function POST(req: Request) {
                 cores: cpuCores,
                 threads: cpuCores,
                 manufacturer: "Auto-detected",
-                model: `${cpuCores} cores`,
+                model: `${cpuCores} cores (total)`,
               },
             },
           }
@@ -114,8 +137,8 @@ export async function POST(req: Request) {
     id: equipment.id,
     hostname: equipment.hostname,
     ipAddress: equipment.ipAddress,
+    osVersion: equipment.osVersion,
     totalMemoryGB: equipment.totalMemoryGB,
-    prometheusInstance: equipment.prometheusInstance,
     cpuCores,
   });
 

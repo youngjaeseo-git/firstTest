@@ -70,31 +70,43 @@ export default async function EquipmentDetailPage({
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card>
-          <p className="text-sm text-gray-400">Type</p>
-          <p className="mt-1 text-lg font-semibold">{equipment.type}</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-gray-400">IP Address</p>
-          <p className="mt-1 font-mono text-lg font-semibold">
-            {equipment.ipAddress || "-"}
-          </p>
-        </Card>
-        <Card>
-          <p className="text-sm text-gray-400">Location</p>
-          <p className="mt-1 text-lg font-semibold">
-            {equipment.rack
-              ? `${equipment.rack.room.name} / ${equipment.rack.name} / U${equipment.rackPosition}`
-              : "미배치"}
-          </p>
-        </Card>
-        <Card>
-          <p className="text-sm text-gray-400">Total Memory</p>
-          <p className="mt-1 text-lg font-semibold">
-            {totalMemoryGb > 0 ? `${totalMemoryGb} GB` : "-"}
-          </p>
-        </Card>
+      <div className="rounded-xl border border-gray-800/80 bg-gray-900/80 p-5 backdrop-blur-sm">
+        <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4 lg:grid-cols-6">
+          {[
+            { label: "IP Address", value: equipment.ipAddress || "-", mono: true },
+            { label: "Status", value: equipment.status },
+            { label: "Model", value: equipment.model || equipment.manufacturer || "-" },
+            {
+              label: "Location",
+              value: equipment.rack
+                ? `${equipment.rack.room.name} / ${equipment.rack.name}${equipment.rackPosition ? ` / U${equipment.rackPosition}` : ""}`
+                : "미배치",
+            },
+            {
+              label: "CPUs",
+              value:
+                equipment.cpus.length > 0
+                  ? `${equipment.cpus.length}x ${equipment.cpus[0].model || "Unknown"}`
+                  : "-",
+            },
+            {
+              label: "Memory",
+              value:
+                (equipment.totalMemoryGB || totalMemoryGb) > 0
+                  ? `${equipment.totalMemoryGB || totalMemoryGb} GB`
+                  : "-",
+            },
+          ].map((item) => (
+            <div key={item.label}>
+              <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+                {item.label}
+              </p>
+              <p className={`mt-1 text-gray-200 ${"mono" in item && item.mono ? "font-mono" : ""}`}>
+                {item.value}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Power & Console — only meaningful for SERVER type with BMC */}
