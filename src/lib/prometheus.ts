@@ -250,6 +250,8 @@ export const queries = {
     `kube_node_status_allocatable{resource="memory",node=~"${ip(instance)}.*"}`,
   kubeletRunningPods: (instance: string) =>
     `kubelet_running_pods{instance=~"${ip(instance)}(:.*)?"}`,
+  nodePodList: (instance: string) =>
+    `kube_pod_info{node=~"${ip(instance)}.*"}`,
 
   // ---- Host-level disk (device-filtered for real block devices) ----
   hostDiskUsage: (instance: string) =>
