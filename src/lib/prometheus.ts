@@ -127,7 +127,7 @@ export const queries = {
     `sum(rate(container_cpu_usage_seconds_total{${cm(instance)}}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
 
   cpuPerCore: (instance: string) =>
-    `sum(rate(container_cpu_usage_seconds_total{${cm(instance)}}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
+    `sum by(cpu)(rate(container_cpu_usage_seconds_total{${cm(instance)}}[5m])) * 100`,
 
   memoryUsage: (instance: string) =>
     `sum(container_memory_working_set_bytes{${cm(instance)}}) / sum(machine_memory_bytes{${m(instance)}}) * 100`,
