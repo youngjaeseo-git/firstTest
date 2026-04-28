@@ -46,8 +46,22 @@ export async function POST(req: Request) {
 
   const matcher = `instance=~"${instanceHost}(:.*)?"`;
 
-  // Query kube_node_info for IP and OS metadata
+  // Query kube-state-metrics for IP and OS metadata
   if (!isIp) {
+    try {
+      const addrResult = await instantQuery(
+        `kube_node_status_addresses{node=~"${instanceHost}.*",type="InternalIP"}`
+      );
+      const addrMetric = addrResult.data?.result?.[0]?.metric as
+        | Record<string, string>
+        | undefined;
+      if (addrMetric?.address) {
+        ipAddress = addrMetric.address;
+      }
+    } catch (e) {
+      console.error("[Register] kube_node_status_addresses query failed:", e);
+    }
+
     try {
       const nodeInfoResult = await instantQuery(
         `kube_node_info{node=~"${instanceHost}.*"}`
@@ -56,7 +70,6 @@ export async function POST(req: Request) {
         | Record<string, string>
         | undefined;
       if (metric) {
-        ipAddress = metric.internal_ip || null;
         osImage = metric.os_image || null;
         kernelVersion = metric.kernel_version || null;
       }

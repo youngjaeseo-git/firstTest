@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { ServerDetailClient } from "@/components/metrics/server-detail-client";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { StatusBadge } from "@/components/ui/badge";
 import { PowerConsoleCard } from "@/components/equipment/power-console-card";
 import { getSessionUser, canControlPower } from "@/lib/rbac";
 
@@ -74,32 +75,36 @@ export default async function ServerDetailPage({
         {/* Summary info bar */}
         <div className="rounded-xl border border-gray-800/80 bg-gray-900/80 p-5 backdrop-blur-sm">
           <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4 lg:grid-cols-6">
-            {[
-              { label: "IP Address", value: equipment.ipAddress || "-", mono: true },
-              { label: "Status", value: equipment.status },
-              { label: "Model", value: equipment.model || "-" },
-              {
-                label: "Location",
-                value: `${equipment.rack?.room?.name || "-"} / ${equipment.rack?.name || "-"}${equipment.rackPosition ? ` / U${equipment.rackPosition}` : ""}`,
-              },
-              {
-                label: "CPUs",
-                value:
-                  equipment.cpus.length > 0
-                    ? `${equipment.cpus.length}x ${equipment.cpus[0].model || "Unknown"}`
-                    : "-",
-              },
-              { label: "Memory", value: `${totalMemoryGb} GB` },
-            ].map((item) => (
-              <div key={item.label}>
-                <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
-                  {item.label}
-                </p>
-                <p className={`mt-1 text-gray-200 ${item.mono ? "font-mono" : ""}`}>
-                  {item.value}
-                </p>
-              </div>
-            ))}
+            <div>
+              <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">IP Address</p>
+              <p className="mt-1 font-mono text-gray-200">{equipment.ipAddress || "-"}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Status</p>
+              <div className="mt-1"><StatusBadge status={equipment.status} /></div>
+            </div>
+            <div>
+              <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Model</p>
+              <p className="mt-1 text-gray-200">{equipment.model || "-"}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Location</p>
+              <p className="mt-1 text-gray-200">
+                {`${equipment.rack?.room?.name || "-"} / ${equipment.rack?.name || "-"}${equipment.rackPosition ? ` / U${equipment.rackPosition}` : ""}`}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">CPUs</p>
+              <p className="mt-1 text-gray-200">
+                {equipment.cpus.length > 0
+                  ? `${equipment.cpus.length}x ${equipment.cpus[0].model || "Unknown"}`
+                  : "-"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Memory</p>
+              <p className="mt-1 text-gray-200">{totalMemoryGb} GB</p>
+            </div>
           </div>
         </div>
 
