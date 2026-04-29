@@ -161,10 +161,10 @@ export const queries = {
     `sum(rate(container_fs_writes_bytes_total{${cm(instance)}}[5m]))`,
 
   networkRx: (instance: string) =>
-    `sum(rate(container_network_receive_bytes_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*"}[5m]))`,
+    `sum(rate(container_network_receive_bytes_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
 
   networkTx: (instance: string) =>
-    `sum(rate(container_network_transmit_bytes_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*"}[5m]))`,
+    `sum(rate(container_network_transmit_bytes_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
 
   temperature: (instance: string) =>
     `{job="temperature",${m(instance)}}`,
@@ -174,6 +174,9 @@ export const queries = {
 
   powerWatts: (instance: string) =>
     `rate(Package_Joules_Consumed{${m(instance)}}[5m])`,
+
+  powerDramWatts: (instance: string) =>
+    `rate(DRAM_Joules_Consumed{${m(instance)}}[5m])`,
 
   fanSpeed: (instance: string) =>
     `{job="temperature",${m(instance)},type="fan"}`,
@@ -220,13 +223,13 @@ export const queries = {
     `sum(container_fs_io_current{${cm(instance)}})`,
 
   networkRxErrors: (instance: string) =>
-    `sum(rate(container_network_receive_errors_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*"}[5m]))`,
+    `sum(rate(container_network_receive_errors_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
   networkTxErrors: (instance: string) =>
-    `sum(rate(container_network_transmit_errors_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*"}[5m]))`,
+    `sum(rate(container_network_transmit_errors_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
   networkRxDrops: (instance: string) =>
-    `sum(rate(container_network_receive_packets_dropped_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*"}[5m]))`,
+    `sum(rate(container_network_receive_packets_dropped_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
   networkTxDrops: (instance: string) =>
-    `sum(rate(container_network_transmit_packets_dropped_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*"}[5m]))`,
+    `sum(rate(container_network_transmit_packets_dropped_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
 
   tcpEstablished: (instance: string) =>
     `sum(container_network_tcp_usage_total{${m(instance)},tcp_state="established"})`,
@@ -265,11 +268,11 @@ export const queries = {
 
   // ---- Host-level disk (device-filtered for real block devices) ----
   hostDiskUsage: (instance: string) =>
-    `sum(container_fs_usage_bytes{${m(instance)},device=~"/dev/.*"}) / sum(container_fs_limit_bytes{${m(instance)},device=~"/dev/.*"}) * 100`,
+    `sum(container_fs_usage_bytes{${m(instance)},device=~"/dev/mapper/.*|/dev/md.*|/dev/sd.*|/dev/nvme.*"}) / sum(container_fs_limit_bytes{${m(instance)},device=~"/dev/mapper/.*|/dev/md.*|/dev/sd.*|/dev/nvme.*"}) * 100`,
   hostDiskUsedBytes: (instance: string) =>
-    `sum(container_fs_usage_bytes{${m(instance)},device=~"/dev/.*"})`,
+    `sum(container_fs_usage_bytes{${m(instance)},device=~"/dev/mapper/.*|/dev/md.*|/dev/sd.*|/dev/nvme.*"})`,
   hostDiskTotalBytes: (instance: string) =>
-    `sum(container_fs_limit_bytes{${m(instance)},device=~"/dev/.*"})`,
+    `sum(container_fs_limit_bytes{${m(instance)},device=~"/dev/mapper/.*|/dev/md.*|/dev/sd.*|/dev/nvme.*"})`,
 
   // ---- Dashboard fleet-wide aggregations ----
   fleetTotalPower: () => `sum(rate(Package_Joules_Consumed[5m]))`,

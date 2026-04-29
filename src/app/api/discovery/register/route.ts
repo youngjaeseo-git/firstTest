@@ -36,9 +36,12 @@ export async function POST(req: Request) {
   const isIp = /^\d+\.\d+\.\d+\.\d+$/.test(instanceHost);
 
   const hostname =
-    labels.hostname || labels.nodename || instanceHost || instance;
+    labels.kubernetes_io_hostname || labels.hostname || labels.nodename || instanceHost || instance;
+  const ipAddress = isIp ? instanceHost : (labels._ip || null);
+  const memoryType = labels.memorytype || null;
+  const owner = labels.owner || null;
+  const group = labels.group || null;
 
-  let ipAddress = isIp ? instanceHost : (labels._ip || null);
   let osImage: string | null = null;
   let kernelVersion: string | null = null;
   let totalMemoryGB: number | null = null;
@@ -46,7 +49,7 @@ export async function POST(req: Request) {
 
   const matcher = `instance=~"${instanceHost}(:.*)?"`;
 
-  // Query kube_node_info for OS metadata
+  // kube_node_info: OS, kernel
   if (!isIp) {
     try {
       const nodeInfoResult = await instantQuery(
@@ -59,43 +62,32 @@ export async function POST(req: Request) {
         osImage = metric.os_image || null;
         kernelVersion = metric.kernel_version || null;
       }
-    } catch (e) {
-      console.error("[Register] kube_node_info query failed:", e);
-    }
+    } catch {}
   }
 
-  // Memory from cAdvisor
+  // machine_memory_bytes
   try {
-    const memResult = await instantQuery(
-      `max(machine_memory_bytes{${matcher}})`
-    );
+    const memResult = await instantQuery(`max(machine_memory_bytes{${matcher}})`);
     if (memResult.data?.result?.[0]?.value?.[1]) {
-      const bytes = parseFloat(memResult.data.result[0].value[1]);
-      totalMemoryGB = Math.round(bytes / (1024 * 1024 * 1024));
+      totalMemoryGB = Math.round(
+        parseFloat(memResult.data.result[0].value[1]) / (1024 * 1024 * 1024)
+      );
     }
-  } catch (e) {
-    console.error("[Register] memory query failed:", e);
-  }
+  } catch {}
 
-  // CPU cores from cAdvisor
+  // machine_cpu_cores
   try {
-    const cpuResult = await instantQuery(
-      `max(machine_cpu_cores{${matcher}})`
-    );
+    const cpuResult = await instantQuery(`max(machine_cpu_cores{${matcher}})`);
     if (cpuResult.data?.result?.[0]?.value?.[1]) {
       cpuCores = parseInt(cpuResult.data.result[0].value[1], 10);
     }
-  } catch (e) {
-    console.error("[Register] cpu query failed:", e);
-  }
+  } catch {}
 
-  // Determine health: check if ANY up metric exists
+  // health
   let isUp = target.health === "up";
   if (!isUp) {
     try {
-      const upResult = await instantQuery(
-        `up{${matcher}}`
-      );
+      const upResult = await instantQuery(`up{${matcher}}`);
       if (upResult.data?.result) {
         isUp = upResult.data.result.some(
           (r: { value?: [number, string] }) => r.value?.[1] === "1",
@@ -103,6 +95,14 @@ export async function POST(req: Request) {
       }
     } catch {}
   }
+
+  const notes = [
+    owner ? `owner: ${owner}` : null,
+    group ? `group: ${group}` : null,
+    memoryType ? `memory: ${memoryType}` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   const equipment = await prisma.equipment.create({
     data: {
@@ -114,6 +114,7 @@ export async function POST(req: Request) {
       osType: osImage ? "Linux" : null,
       osVersion: osImage || null,
       biosVersion: kernelVersion ? `kernel ${kernelVersion}` : null,
+      notes: notes || null,
       prometheusInstance: instance,
       prometheusTarget: { connect: { id: target.id } },
       ...(cpuCores
@@ -130,15 +131,6 @@ export async function POST(req: Request) {
           }
         : {}),
     },
-  });
-
-  console.log("[Register] created:", {
-    id: equipment.id,
-    hostname: equipment.hostname,
-    ipAddress: equipment.ipAddress,
-    osVersion: equipment.osVersion,
-    totalMemoryGB: equipment.totalMemoryGB,
-    cpuCores,
   });
 
   return NextResponse.json({ equipment });

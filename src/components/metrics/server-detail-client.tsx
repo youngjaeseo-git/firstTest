@@ -373,9 +373,14 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           unit="Watts"
           series={[
             {
-              label: "Power",
+              label: "Package",
               query: queries.powerWatts(instance),
               color: "#fbbf24",
+            },
+            {
+              label: "DRAM",
+              query: queries.powerDramWatts(instance),
+              color: "#f97316",
             },
           ]}
           durationMin={duration.value}
