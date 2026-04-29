@@ -61,6 +61,7 @@ interface PrometheusTargetsResponse {
   data: {
     activeTargets: {
       labels: Record<string, string>;
+      discoveredLabels: Record<string, string>;
       scrapePool: string;
       scrapeUrl: string;
       globalUrl: string;
@@ -79,6 +80,7 @@ export interface DiscoveredPrometheusTarget {
   health: "up" | "down" | "unknown";
   lastScrape: string;
   scrapeUrl: string;
+  address: string | null;
 }
 
 /**
@@ -95,14 +97,19 @@ export async function fetchTargets(): Promise<DiscoveredPrometheusTarget[]> {
 
   const data: PrometheusTargetsResponse = await res.json();
 
-  return data.data.activeTargets.map((target) => ({
-    instance: target.labels.instance || target.scrapeUrl,
-    job: target.labels.job || target.scrapePool,
-    labels: target.labels,
-    health: target.health,
-    lastScrape: target.lastScrape,
-    scrapeUrl: target.scrapeUrl,
-  }));
+  return data.data.activeTargets.map((target) => {
+    const rawAddr = target.discoveredLabels?.__address__ || "";
+    const addrIp = rawAddr.split(":")[0] || null;
+    return {
+      instance: target.labels.instance || target.scrapeUrl,
+      job: target.labels.job || target.scrapePool,
+      labels: target.labels,
+      health: target.health,
+      lastScrape: target.lastScrape,
+      scrapeUrl: target.scrapeUrl,
+      address: addrIp,
+    };
+  });
 }
 
 // ============================================
@@ -127,7 +134,10 @@ export const queries = {
     `sum(rate(container_cpu_usage_seconds_total{${cm(instance)}}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
 
   cpuPerCore: (instance: string) =>
-    `sum by(cpu)(rate(container_cpu_usage_seconds_total{${cm(instance)}}[5m])) * 100`,
+    `sum by(cpu)(rate(container_cpu_usage_seconds_total{${cm(instance)},cpu!="total"}[5m])) * 100`,
+
+  cpuPerPod: (instance: string) =>
+    `sort_desc(sum by(pod, namespace)(rate(container_cpu_usage_seconds_total{${cm(instance)}}[5m])))`,
 
   memoryUsage: (instance: string) =>
     `sum(container_memory_working_set_bytes{${cm(instance)}}) / sum(machine_memory_bytes{${m(instance)}}) * 100`,

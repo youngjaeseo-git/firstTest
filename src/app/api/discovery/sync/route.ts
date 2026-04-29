@@ -40,11 +40,15 @@ export async function POST() {
         where: { instance },
       });
 
+      const detectedIp = instanceTargets.find(
+        (t: DiscoveredPrometheusTarget) => t.address && /^\d+\.\d+\.\d+\.\d+$/.test(t.address)
+      )?.address || null;
+
       const data = {
         job: best.job,
         hostname:
           best.labels.hostname || best.labels.nodename || null,
-        labels: { ...best.labels, _allJobs: uniqueJobs },
+        labels: { ...best.labels, _allJobs: uniqueJobs, ...(detectedIp ? { _ip: detectedIp } : {}) },
         health,
         lastSeen: new Date(),
       };
