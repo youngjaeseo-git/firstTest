@@ -101,6 +101,50 @@
 
 ---
 
+## 2026-04-23 ~ 04-27: 서버 상세 차트 디버깅
+
+### 근본 원인 2가지 발견 및 해결
+1. **PromQL 쿼리 문제 (04-27 해결)**
+   - K8s cAdvisor에서 `id="/"` (root cgroup)이 존재하지 않음 → 모든 쿼리가 빈 결과
+   - 해결: 전체 쿼리를 `container!=""` 필터로 교체 (30+ 쿼리)
+   - Grafana 기존 쿼리(`id="/"`)보다 커버리지 넓음
+
+2. **멀티 시리즈 차트 렌더링 문제 (04-28 해결)**
+   - 3개 시리즈 차트에서 각 API 호출의 ms 단위 시간차로 타임스탬프 불일치
+   - pts=363 (121×3)인데 각 포인트에 시리즈 1개만 존재 → Recharts 선 미표시
+   - 해결: `Math.round(ts / stepSec) * stepSec * 1000` 타임스탬프 정렬
+
+### 기타 해결
+- ChartSkeleton `Math.random()` → 결정적 수식으로 변경 (hydration 에러 해결)
+- useEffect `series` 의존성 → `seriesKey` 문자열로 안정화 (무한 재요청 방지)
+- 차트 애니메이션 비활성화 (`isAnimationActive={false}`) — 재렌더 시 선 사라짐 방지
+
+---
+
+## 2026-04-28 (월)
+### 완료
+- node_exporter 미존재 확인 — cAdvisor + PCM만 사용 가능
+- 대안 데이터 소스 탐색:
+  - kube-state-metrics: CPU/Memory/Disk 노드 용량 확인 (144cores, 2015GB, 70GB)
+  - kubelet: running pods 수
+  - cAdvisor device: `/dev/mapper/rhel-root` 호스트 디스크
+- **Node Resources 카드 신규 구현** — kube-state-metrics 기반 CPU/Memory/Disk 용량 + 사용률 게이지
+- **Pod 목록 표시** — `kube_pod_info`에서 Pod 이름/namespace 가져와 리스트로 표시
+- **디스크 쿼리 개선** — `device=~"/dev/.*"` 필터로 실제 블록 디바이스만 선택
+- 디스크 용량 fallback: kube-state-metrics → cAdvisor `container_fs_limit_bytes`
+
+---
+
+## 2026-04-29 (화)
+### 완료
+- **Discovery health 수정** — 동일 instance의 여러 job 중 하나라도 up이면 "up"으로 표시
+- **IP 자동 감지 시도** — `kube_node_status_addresses`, `kube_node_info` 조회했으나 해당 환경에서 IP 라벨 없음. 수동 입력 필요
+- **서버/인프라 페이지 통일** — 양쪽 상세 페이지 info bar를 동일 6개 항목으로 통일
+- **Status 색상 배지** — ACTIVE=초록, FAILED=빨강, MAINTENANCE=보라 등 `StatusBadge` 적용
+- **CPU Core Heatmap 완전 재작성** — 가짜 데이터(전체 평균 복사) → `sum by(cpu)` 코어별 실제 사용률 표시
+
+---
+
 ## TODO (해야 할 일)
 
 ### 진행 중 — Lab-1 서버 메트릭 완성 (최우선)

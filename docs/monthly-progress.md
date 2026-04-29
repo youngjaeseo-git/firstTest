@@ -47,17 +47,26 @@ Phase 5: 고도화 및 확장          (2026년 6월~)         📋 예정
 - 대시보드 fleet 쿼리 cAdvisor 변환
 - server-start.sh 편의 스크립트 작성
 
-#### 4주차 (4/18~4/20): 데이터 정합성 검증 (진행중)
+#### 4주차 (4/18~4/20): Prometheus Discovery 완성
 - Prometheus Discovery 기능 완성 (동기화/등록/해제/검색/페이지네이션)
 - IP 기반 PromQL 매칭으로 cross-job 메트릭 통합
 - 장비 등록 시 CPU/메모리 Prometheus 자동 감지
 - TypeScript 전체 타입 검증 통과 (에러 0개)
 - Next.js 프로덕션 빌드 성공 확인
 
-**4월 잔여 과제:**
-- 시드 데이터 삭제 실행
-- 실제 서버 등록 후 전체 메트릭 표시 검증
-- 대시보드 fleet 수치 검증
+#### 5주차 (4/22~4/29): 서버 메트릭 차트 디버깅 및 완성
+- **PromQL 근본 원인 해결**: K8s cAdvisor `id="/"` 미존재 → `container!=""` 필터로 전체 쿼리(30+) 교체
+- **차트 렌더링 근본 원인 해결**: 멀티시리즈 타임스탬프 불일치 → step 간격 정렬
+- **Data-First 개발 프로세스 확립**: `check/` 스크립트로 실제 데이터 확인 후 코드 작성 규칙 도입
+- **대안 데이터 소스 발굴 및 적용**:
+  - kube-state-metrics → Node Resources 카드 (CPU/Memory/Disk 용량 + 사용률 게이지)
+  - kubelet → Running Pods 수 + Pod 이름 목록
+  - cAdvisor device 필터 → 호스트 디스크 사용률 (`/dev/mapper/rhel-root`)
+- **CPU Core Heatmap 재작성**: 가짜 데이터(전체 평균 복사) → 코어별 실제 사용률 표시
+- **Discovery health 수정**: 동일 서버의 여러 job 중 하나라도 UP이면 UP으로 표시
+- **UI 통일**: 서버/인프라 상세 페이지 info bar 동일 6개 항목 + Status 색상 배지
+- 인프라 주소 영구 문서화 (CLAUDE.md), 트러블슈팅 이력 기록
+- node_exporter 미존재 확인 → cAdvisor + PCM 환경 명확히 문서화
 
 ---
 
@@ -162,16 +171,86 @@ Phase 5: 고도화 및 확장          (2026년 6월~)         📋 예정
 
 ---
 
-## 4. 현재 위치 (2026-04-20 기준)
+## 4. 현재 위치 (2026-04-29 기준)
 
 ```
 [✅ Phase 1] 설계 및 구현 ━━━━━━━━━━━━━━━━━━━━ 100%
 [✅ Phase 2] 사내 서버 배포 ━━━━━━━━━━━━━━━━━━━ 100%
-[🔄 Phase 3] 데이터 정합성 검증 ━━━━━━━━━━━━━━━ 70%
+[🔄 Phase 3] 데이터 정합성 검증 ━━━━━━━━━━━━━━━ 90%
    ├ Discovery/Registration ✅
-   ├ 메트릭 쿼리 변환 ✅
-   ├ 실제 데이터 표시 검증 🔄
+   ├ PromQL 쿼리 K8s 환경 대응 ✅
+   ├ 서버 메트릭 차트 표시 ✅ (CPU, Memory, Disk, Network, Power)
+   ├ Node Resources 카드 (kube-state-metrics) ✅
+   ├ CPU Core Heatmap (코어별 실제 사용률) ✅
+   ├ 서버/인프라 UI 통일 + Status 색상 ✅
+   ├ IP 주소 자동 감지 — Prometheus에서 불가, 수동 입력 필요
    └ 시드 데이터 정리 📋
 [📋 Phase 4] 운영 자동화 ━━━━━━━━━━━━━━━━━━━━━ 0%
 [📋 Phase 5] 고도화 ━━━━━━━━━━━━━━━━━━━━━━━━━━ 0%
 ```
+
+---
+
+## 5. 2026년 4월 실적 요약
+
+### 핵심 성과
+Grafana 기반 서버 모니터링을 대체하는 DCIM 웹 애플리케이션을 **설계 → 구현 → 사내 배포 → 실데이터 연동**까지 1개월 내 완료.
+
+### 정량 실적
+
+| 항목 | 수치 |
+|------|------|
+| 총 커밋 수 | 80+ |
+| 구현된 주요 페이지 | 12개 (Dashboard, Servers, Infrastructure, Discovery, Digital Twin, Reports 등) |
+| 구현된 API 엔드포인트 | 20+ (REST + SSE 스트림) |
+| Prometheus PromQL 쿼리 | 40+ (fleet + per-server) |
+| DB 모델 | 10개 (Equipment, Rack, Room, DataCenter, CPU, Memory, NetworkPort, PrometheusTarget 등) |
+| 메트릭 차트 종류 | 18개 (CPU 4종, Memory 2종, Disk 4종, Network 4종, Hardware 4종) |
+| 지원 서버 수 | 174대 (UP), 총 305 타겟 |
+| 문서 | 배포 가이드 3종, 아키텍처, 트러블슈팅, 작업 일지 |
+
+### 주요 기능
+
+**1. 인프라 관리**
+- DataCenter → Room → Rack → Equipment 4계층 물리 구조 관리
+- 장비 라이프사이클 (계획 → 설치 → 운영 → 유지보수 → 퇴역 → 폐기)
+- CSV 대량 등록, Digital Twin 3D 뷰, 랙 다이어그램
+
+**2. 서버 모니터링 (Prometheus 연동)**
+- CPU: 사용률, 코어별 부하, 모드별 분석, CFS Throttling, 코어 히트맵
+- Memory: 사용률, 절대값, 캐시/버퍼 분리
+- Disk: I/O 처리량, IOPS, 지연시간, 호스트 디스크 사용률
+- Network: 대역폭, 에러/드롭, TCP 연결 상태
+- Hardware: 전력 소비 (Intel PCM), 온도, 팬 속도
+- Node Resources: CPU/Memory/Disk 용량 게이지 (kube-state-metrics)
+
+**3. 자동화**
+- Prometheus 서버 자동 탐지 (Discovery) 및 장비 등록
+- 등록 시 CPU 코어/메모리 자동 감지
+- Health 상태 집계 (multi-job 환경 대응)
+
+**4. 기반 기술**
+- Next.js 14 + TypeScript + Tailwind CSS + Prisma + PostgreSQL
+- NextAuth.js 인증 (JWT), RBAC 권한 관리
+- 한국어/영어 다국어, 글로벌 검색 (⌘K)
+- Recharts 차트 라이브러리, D3.js 랙 다이어그램
+
+### 해결한 주요 기술 과제
+
+| 과제 | 해결 |
+|------|------|
+| K8s cAdvisor에서 `id="/"` 미존재 | `container!=""` 필터로 전체 쿼리 교체 |
+| 멀티시리즈 차트 타임스탬프 불일치 | step 간격 기반 정렬 알고리즘 적용 |
+| node_exporter 미존재 환경 | cAdvisor + kube-state-metrics + kubelet 조합으로 대체 |
+| cross-job instance 불일치 | IP/hostname 기반 regex 매칭으로 통합 |
+| Prisma 크로스 플랫폼 배포 | Mac(darwin-arm64) → Linux(debian-openssl) 바이너리 설정 |
+
+### 4월 미완료 → 5월 이월
+
+| 항목 | 상태 |
+|------|------|
+| Lab-3 서버 확장 | Lab-1 완성 후 진행 예정 |
+| 온도 데이터 연동 | 외부 SQL DB 연결 필요 |
+| 시드 데이터 삭제 | API 준비됨, 실행만 필요 |
+| IP 주소 자동 감지 | Prometheus에서 불가, 수동 입력 또는 BMC 연동 필요 |
+| 서버 CPU 소켓 정보 | cAdvisor에서 토폴로지 미제공, 수동 입력 필요 |

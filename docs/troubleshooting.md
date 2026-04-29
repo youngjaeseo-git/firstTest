@@ -20,7 +20,9 @@
 | 04-23 | ChartSkeleton `Math.random()` 제거 | hydration 에러 해결했지만 차트 문제와 무관 |
 | 04-23 | useEffect `series` 의존성 → `seriesKey` 안정화 | 효과 미확인 — 차트 여전히 빈 상태 |
 | 04-27 | `id="/"` → `container!=""` 변경 | **PromQL 쿼리는 해결** — check 스크립트에서 데이터 확인됨 |
-| 04-28 | 디버그 표시 추가하여 프론트엔드 원인 진단 중 | **진행 중** |
+| 04-28 | 디버그 표시 추가하여 프론트엔드 원인 진단 | pts=363 (121×3), 각 포인트에 시리즈 1개만 → **타임스탬프 불일치 확인** |
+| 04-28 | 타임스탬프 정렬 `Math.round(ts/stepSec)*stepSec*1000` | **해결** — 멀티시리즈 차트 정상 표시 |
+| 04-28 | 차트 애니메이션 비활성화 + connectNulls | **해결** — 재렌더 시 선 사라짐 방지 |
 
 ### 확인된 사실
 1. **K8s cAdvisor에서 `id="/"` 는 존재하지 않음** — root cgroup이 없는 환경. `container!=""` 사용해야 함
@@ -28,11 +30,9 @@
 3. **프론트엔드 렌더링에서 데이터가 차트로 변환되지 않음** — 원인 조사 중
 4. **check 스크립트의 Prometheus URL 혼동** — Grafana(30004)와 Prometheus(ClusterIP 10.100.175.248:8080) 구분 필요
 
-### 근본 원인 (확인 중)
-- PromQL 쿼리는 정상 (check 스크립트로 확인)
-- 브라우저 Network 탭에서 API 응답에 데이터 존재
-- 그런데 차트가 빈 카드로 표시 → **MetricChart 컴포넌트 데이터 파싱 또는 Recharts 렌더링 문제**
-- 디버그 표시로 각 차트의 `data.length`, `error`, `keys`를 확인하여 원인 특정 예정
+### 근본 원인 (해결됨)
+1. **PromQL**: K8s cAdvisor에서 `id="/"`가 존재하지 않음 → `container!=""` 으로 교체
+2. **차트 렌더링**: 멀티시리즈 차트에서 각 API 호출의 ms 단위 시간차로 타임스탬프 불일치. 3개 시리즈 × 121개 포인트 = 363개 포인트인데 각 포인트에 시리즈 1개만 존재 → Recharts가 선을 그릴 수 없음. `Math.round(ts / stepSec) * stepSec * 1000`으로 정렬하여 해결
 
 ### 교훈
 - **Data-First**: 코드 작성 전에 반드시 실제 데이터 확인 (check 스크립트)
