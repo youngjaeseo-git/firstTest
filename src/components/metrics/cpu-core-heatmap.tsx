@@ -213,8 +213,8 @@ function PodCpuView({ pods }: { pods: PodCpuData[] }) {
                     style={{ width: `${Math.max(fraction * 100, 1)}%` }}
                   />
                 </div>
-                <span className="w-16 text-right text-[11px] font-mono text-gray-300">
-                  {pod.cores.toFixed(2)} c
+                <span className="w-24 text-right text-[11px] font-mono text-gray-300">
+                  {pod.cores.toFixed(2)} cores
                 </span>
               </div>
             );
