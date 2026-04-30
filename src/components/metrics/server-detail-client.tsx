@@ -5,6 +5,7 @@ import { MetricChart } from "./metric-chart";
 import { CpuCoreHeatmap } from "./cpu-core-heatmap";
 import { NodeOverviewCard } from "./node-overview-card";
 import { queries } from "@/lib/prometheus";
+import { useT } from "@/lib/i18n/i18n-context";
 
 const DURATIONS = [
   { label: "15m", value: 15, step: "15s" },
@@ -35,12 +36,13 @@ const formatIOPS = (v: number) => `${v.toFixed(0)} IOPS`;
 
 export function ServerDetailClient({ instance }: { instance: string }) {
   const [duration, setDuration] = useState(DURATIONS[1]);
+  const t = useT();
 
   return (
     <div className="space-y-6">
       {/* Time range selector */}
       <div className="flex items-center gap-3">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Range</span>
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t("server.range")}</span>
         <div className="flex rounded-lg border border-gray-800/80 bg-gray-800/40 p-0.5">
           {DURATIONS.map((d) => (
             <button
@@ -65,10 +67,10 @@ export function ServerDetailClient({ instance }: { instance: string }) {
       <NodeOverviewCard instance={instance} />
 
       {/* ── Section 1: CPU ── */}
-      <SectionHeader title="CPU" />
+      <SectionHeader title={t("server.cpu")} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <MetricChart
-          title="CPU Usage"
+          title={t("server.cpuUsage")}
           unit="%"
           series={[
             {
@@ -83,7 +85,7 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           formatValue={formatPercent}
         />
         <MetricChart
-          title="CPU Load (cores used)"
+          title={t("server.cpuLoad")}
           unit="cores"
           series={[
             { label: "1m avg", query: queries.loadAvg1(instance), color: "#f59e0b" },
@@ -97,7 +99,7 @@ export function ServerDetailClient({ instance }: { instance: string }) {
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <MetricChart
-          title="CPU Mode Breakdown"
+          title={t("server.cpuModeBreakdown")}
           unit="%"
           series={[
             { label: "user", query: queries.cpuModeUser(instance), color: "#3b82f6" },
@@ -109,7 +111,7 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           formatValue={formatPercent}
         />
         <MetricChart
-          title="CFS Throttled"
+          title={t("server.cfsThrottled")}
           unit="sec/s"
           series={[
             { label: "Throttled", query: queries.cpuModeIowait(instance), color: "#f59e0b" },
@@ -124,10 +126,10 @@ export function ServerDetailClient({ instance }: { instance: string }) {
       <CpuCoreHeatmap instance={instance} />
 
       {/* ── Section 2: Memory ── */}
-      <SectionHeader title="Memory" />
+      <SectionHeader title={t("server.memory")} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <MetricChart
-          title="Memory Usage"
+          title={t("server.memoryUsage")}
           unit="%"
           series={[
             {
@@ -147,7 +149,7 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           formatValue={formatPercent}
         />
         <MetricChart
-          title="Memory (Absolute)"
+          title={t("server.memoryAbsolute")}
           unit="bytes"
           series={[
             {
@@ -168,10 +170,10 @@ export function ServerDetailClient({ instance }: { instance: string }) {
       </div>
 
       {/* ── Section 3: Disk ── */}
-      <SectionHeader title="Disk / Storage" />
+      <SectionHeader title={t("server.disk")} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <MetricChart
-          title="Disk I/O Throughput"
+          title={t("server.diskIoThroughput")}
           unit="Bytes/s"
           series={[
             {
@@ -190,7 +192,7 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           formatValue={formatBytesPerSec}
         />
         <MetricChart
-          title="Disk IOPS"
+          title={t("server.diskIops")}
           unit="ops/s"
           series={[
             {
@@ -211,7 +213,7 @@ export function ServerDetailClient({ instance }: { instance: string }) {
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <MetricChart
-          title="Disk I/O Latency"
+          title={t("server.diskIoLatency")}
           unit="ms"
           series={[
             {
@@ -230,7 +232,7 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           formatValue={formatMs}
         />
         <MetricChart
-          title="Disk Usage (Host)"
+          title={t("server.diskUsage")}
           unit="%"
           series={[
             {
@@ -247,10 +249,10 @@ export function ServerDetailClient({ instance }: { instance: string }) {
       </div>
 
       {/* ── Section 4: Network ── */}
-      <SectionHeader title="Network" />
+      <SectionHeader title={t("server.network")} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <MetricChart
-          title="Network Bandwidth"
+          title={t("server.networkBandwidth")}
           unit="Bytes/s"
           series={[
             {
@@ -269,7 +271,7 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           formatValue={formatBytesPerSec}
         />
         <MetricChart
-          title="Network Errors & Drops"
+          title={t("server.networkErrors")}
           unit="pkt/s"
           series={[
             {
@@ -300,7 +302,7 @@ export function ServerDetailClient({ instance }: { instance: string }) {
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <MetricChart
-          title="TCP Connections"
+          title={t("server.tcpConnections")}
           unit=""
           series={[
             {
@@ -314,7 +316,7 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           formatValue={(v) => `${v.toFixed(0)}`}
         />
         <MetricChart
-          title="TCP Retransmits"
+          title={t("server.tcpRetransmits")}
           unit="segs/s"
           series={[
             {
@@ -330,10 +332,10 @@ export function ServerDetailClient({ instance }: { instance: string }) {
       </div>
 
       {/* ── Section 5: Hardware / Thermal ── */}
-      <SectionHeader title="Hardware / Thermal" />
+      <SectionHeader title={t("server.hardware")} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <MetricChart
-          title="Temperature (hwmon)"
+          title={t("server.temperature")}
           unit="°C"
           series={[
             {
@@ -347,7 +349,7 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           formatValue={formatCelsius}
         />
         <MetricChart
-          title="IPMI Temperatures"
+          title={t("server.ipmiTemperature")}
           unit="°C"
           series={[
             {
@@ -373,7 +375,7 @@ export function ServerDetailClient({ instance }: { instance: string }) {
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <MetricChart
-          title="Power Consumption"
+          title={t("server.powerConsumption")}
           unit="Watts"
           series={[
             {
@@ -392,7 +394,7 @@ export function ServerDetailClient({ instance }: { instance: string }) {
           formatValue={formatWatts}
         />
         <MetricChart
-          title="Fan Speed"
+          title={t("server.fanSpeed")}
           unit="RPM"
           series={[
             {

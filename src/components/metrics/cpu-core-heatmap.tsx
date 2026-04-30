@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { queries } from "@/lib/prometheus";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface CoreData {
   cpu: number;
@@ -101,10 +102,12 @@ export function CpuCoreHeatmap({ instance }: { instance: string }) {
     return () => clearInterval(id);
   }, [fetchData]);
 
+  const t = useT();
+
   if (mode === "loading") {
     return (
       <div className="rounded-xl border border-gray-800/80 bg-gray-900/80 p-4 backdrop-blur-sm">
-        <h3 className="text-sm font-semibold text-gray-300 mb-3">CPU Distribution</h3>
+        <h3 className="text-sm font-semibold text-gray-300 mb-3">{t("cpu.perPod")}</h3>
         <div className="animate-pulse h-24 bg-gray-800/60 rounded-lg" />
       </div>
     );
@@ -126,6 +129,7 @@ function CoreHeatmapView({
   hoveredCore: number | null;
   setHoveredCore: (v: number | null) => void;
 }) {
+  const t = useT();
   const avgUsage = cores.reduce((s, c) => s + c.usage, 0) / cores.length;
   const maxUsage = Math.max(...cores.map((c) => c.usage));
   const colCount = Math.min(cores.length, 32);
@@ -134,7 +138,7 @@ function CoreHeatmapView({
     <div className="rounded-xl border border-gray-800/80 bg-gray-900/80 p-4 backdrop-blur-sm transition-all duration-200 hover:border-gray-700/60">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-gray-300">
-          CPU Core Heatmap
+          {t("cpu.coreHeatmap")}
           <span className="ml-2 rounded-md bg-gray-800/60 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
             {cores.length} cores · avg {avgUsage.toFixed(1)}% · max {maxUsage.toFixed(1)}%
           </span>
@@ -181,22 +185,23 @@ function CoreHeatmapView({
 }
 
 function PodCpuView({ pods }: { pods: PodCpuData[] }) {
+  const t = useT();
   const totalCores = pods.reduce((s, p) => s + p.cores, 0);
 
   return (
     <div className="rounded-xl border border-gray-800/80 bg-gray-900/80 p-4 backdrop-blur-sm transition-all duration-200 hover:border-gray-700/60">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-gray-300">
-          CPU per Pod
+          {t("cpu.perPod")}
           <span className="ml-2 rounded-md bg-gray-800/60 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
-            {pods.length} pods · total {totalCores.toFixed(1)} cores
+            {pods.length} {t("cpu.pods")} · {t("cpu.totalCores")} {totalCores.toFixed(1)} cores
           </span>
         </h3>
-        <span className="text-[10px] text-gray-500">per-core data unavailable</span>
+        <span className="text-[10px] text-gray-500">{t("cpu.perCoreUnavailable")}</span>
       </div>
 
       {pods.length === 0 ? (
-        <p className="text-sm text-gray-500">No pod CPU data available</p>
+        <p className="text-sm text-gray-500">{t("common.noData")}</p>
       ) : (
         <div className="space-y-1.5 max-h-64 overflow-y-auto">
           {pods.slice(0, 20).map((pod) => {

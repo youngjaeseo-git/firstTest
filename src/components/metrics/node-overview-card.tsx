@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { queries } from "@/lib/prometheus";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface PodInfo {
   name: string;
@@ -80,6 +81,7 @@ function barColor(pct: number | null) {
 }
 
 export function NodeOverviewCard({ instance }: { instance: string }) {
+  const t = useT();
   const [metrics, setMetrics] = useState<NodeMetrics>({
     cpuCapacity: null,
     memoryCapacity: null,
@@ -166,7 +168,7 @@ export function NodeOverviewCard({ instance }: { instance: string }) {
       <div className="mb-4 flex items-center gap-2">
         <div className="h-4 w-1 rounded-full bg-emerald-500/60" />
         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-          Node Resources
+          {t("node.resources")}
         </h3>
         <span className="ml-auto rounded-md bg-gray-800/60 px-1.5 py-0.5 text-[10px] text-gray-500">
           kube-state-metrics
@@ -189,14 +191,14 @@ export function NodeOverviewCard({ instance }: { instance: string }) {
                 {metrics.cpuUsed !== null ? metrics.cpuUsed.toFixed(1) : "-"}
                 {metrics.cpuCapacity !== null && (
                   <span className="text-sm text-gray-500 font-normal">
-                    {" "}/ {metrics.cpuCapacity} cores
+                    {" "}/ {metrics.cpuCapacity} {t("node.cores")}
                   </span>
                 )}
               </p>
               {cpuPct !== null && (
                 <>
                   <UsageBar pct={cpuPct} color={barColor(cpuPct)} />
-                  <p className="mt-1 text-[10px] text-gray-500">{cpuPct.toFixed(1)}% used</p>
+                  <p className="mt-1 text-[10px] text-gray-500">{cpuPct.toFixed(1)}% {t("node.used")}</p>
                 </>
               )}
             </div>
@@ -215,7 +217,7 @@ export function NodeOverviewCard({ instance }: { instance: string }) {
               {memPct !== null && (
                 <>
                   <UsageBar pct={memPct} color={barColor(memPct)} />
-                  <p className="mt-1 text-[10px] text-gray-500">{memPct.toFixed(1)}% used</p>
+                  <p className="mt-1 text-[10px] text-gray-500">{memPct.toFixed(1)}% {t("node.used")}</p>
                 </>
               )}
             </div>
@@ -238,7 +240,7 @@ export function NodeOverviewCard({ instance }: { instance: string }) {
               {metrics.diskUsedPct !== null && (
                 <>
                   <UsageBar pct={metrics.diskUsedPct} color={barColor(metrics.diskUsedPct)} />
-                  <p className="mt-1 text-[10px] text-gray-500">{metrics.diskUsedPct.toFixed(1)}% used</p>
+                  <p className="mt-1 text-[10px] text-gray-500">{metrics.diskUsedPct.toFixed(1)}% {t("node.used")}</p>
                 </>
               )}
             </div>
@@ -248,7 +250,7 @@ export function NodeOverviewCard({ instance }: { instance: string }) {
               <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Pods</p>
               <p className="mt-1 text-lg font-semibold text-gray-200">
                 {metrics.runningPods !== null ? metrics.runningPods : "-"}
-                <span className="text-sm text-gray-500 font-normal"> running</span>
+                <span className="text-sm text-gray-500 font-normal"> {t("node.running")}</span>
               </p>
             </div>
           </div>
@@ -257,7 +259,7 @@ export function NodeOverviewCard({ instance }: { instance: string }) {
           {metrics.podList.length > 0 && (
             <div className="mt-4 rounded-lg border border-gray-800/60 bg-gray-800/20 p-3">
               <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-2">
-                Running Pods ({metrics.podList.length})
+                {t("node.runningPods")} ({metrics.podList.length})
               </p>
               <div className="grid grid-cols-1 gap-1 md:grid-cols-2 lg:grid-cols-3">
                 {metrics.podList.map((pod) => (

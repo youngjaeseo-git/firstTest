@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge, SeverityBadge } from "@/components/ui/badge";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface AlertRule {
   id: string;
@@ -74,6 +75,7 @@ const PRESETS = [
 ];
 
 export default function AlertRulesPage() {
+  const t = useT();
   const [rules, setRules] = useState<AlertRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -93,7 +95,7 @@ export default function AlertRulesPage() {
       const res = await fetch("/api/alert-rules");
       if (res.ok) setRules(await res.json());
     } catch {
-      setError("규칙을 불러올 수 없습니다.");
+      setError(t("alerts.loadError"));
     }
     setLoading(false);
   }
@@ -131,7 +133,7 @@ export default function AlertRulesPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "생성 실패");
+        setError(data.error || t("alerts.createError"));
       } else {
         setShowForm(false);
         setName("");
@@ -144,7 +146,7 @@ export default function AlertRulesPage() {
         await loadRules();
       }
     } catch {
-      setError("서버 오류");
+      setError(t("alerts.serverError"));
     }
     setSaving(false);
   }
@@ -159,7 +161,7 @@ export default function AlertRulesPage() {
   }
 
   async function deleteRule(id: string) {
-    if (!confirm("삭제하시겠습니까? 관련 알림 이력도 함께 삭제됩니다.")) return;
+    if (!confirm(t("alerts.confirmDelete"))) return;
     await fetch(`/api/alert-rules/${id}`, { method: "DELETE" });
     await loadRules();
   }
@@ -174,21 +176,21 @@ export default function AlertRulesPage() {
         <div>
           <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
             <Link href="/alerts" className="hover:text-gray-200">
-              Alerts
+              {t("nav.alerts")}
             </Link>
             <span>/</span>
-            <span>Rules</span>
+            <span>{t("alerts.rules")}</span>
           </div>
-          <h1 className="text-2xl font-bold">Alert Rules</h1>
+          <h1 className="text-2xl font-bold">{t("alerts.rules")}</h1>
           <p className="mt-1 text-sm text-gray-400">
-            PromQL 기반 알림 규칙을 관리합니다.
+            {t("alerts.rulesDesc")}
           </p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          {showForm ? "취소" : "+ 규칙 추가"}
+          {showForm ? t("common.cancel") : t("alerts.addRule")}
         </button>
       </div>
 
@@ -201,11 +203,11 @@ export default function AlertRulesPage() {
       {/* New Rule Form */}
       {showForm && (
         <Card>
-          <p className="mb-4 font-medium">새 규칙</p>
+          <p className="mb-4 font-medium">{t("alerts.newRule")}</p>
 
           {/* Presets */}
           <div className="mb-4">
-            <p className={labelClass}>프리셋 사용</p>
+            <p className={labelClass}>{t("alerts.usePreset")}</p>
             <div className="flex flex-wrap gap-2">
               {PRESETS.map((preset) => (
                 <button
@@ -225,7 +227,7 @@ export default function AlertRulesPage() {
             className="grid grid-cols-1 gap-4 md:grid-cols-2"
           >
             <div>
-              <label className={labelClass}>규칙 이름 *</label>
+              <label className={labelClass}>{t("alerts.ruleName")} *</label>
               <input
                 required
                 className={inputClass}
@@ -235,7 +237,7 @@ export default function AlertRulesPage() {
               />
             </div>
             <div>
-              <label className={labelClass}>카테고리</label>
+              <label className={labelClass}>{t("alerts.category")}</label>
               <input
                 list="categories"
                 className={inputClass}
@@ -250,7 +252,7 @@ export default function AlertRulesPage() {
               </datalist>
             </div>
             <div className="md:col-span-2">
-              <label className={labelClass}>설명</label>
+              <label className={labelClass}>{t("common.description")}</label>
               <input
                 className={inputClass}
                 value={description}
@@ -280,7 +282,7 @@ export default function AlertRulesPage() {
               />
             </div>
             <div>
-              <label className={labelClass}>Duration (초)</label>
+              <label className={labelClass}>{t("alerts.durationSec")}</label>
               <input
                 type="number"
                 className={inputClass}
@@ -309,7 +311,7 @@ export default function AlertRulesPage() {
                 disabled={saving}
                 className="rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
               >
-                {saving ? "저장 중..." : "규칙 생성"}
+                {saving ? t("common.saving") : t("alerts.createRule")}
               </button>
             </div>
           </form>
@@ -322,20 +324,20 @@ export default function AlertRulesPage() {
           <p className="text-center text-gray-400">Loading...</p>
         ) : rules.length === 0 ? (
           <p className="py-8 text-center text-gray-500">
-            아직 규칙이 없습니다. "규칙 추가"를 눌러 시작하세요.
+            {t("alerts.noRules")}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-700 text-left text-xs text-gray-400">
-                  <th className="px-3 py-2">이름</th>
-                  <th className="px-3 py-2">Severity</th>
-                  <th className="px-3 py-2">Category</th>
-                  <th className="px-3 py-2">Condition</th>
-                  <th className="px-3 py-2">Duration</th>
-                  <th className="px-3 py-2">Alerts</th>
-                  <th className="px-3 py-2">Enabled</th>
+                  <th className="px-3 py-2">{t("common.name")}</th>
+                  <th className="px-3 py-2">{t("alerts.severity")}</th>
+                  <th className="px-3 py-2">{t("alerts.category")}</th>
+                  <th className="px-3 py-2">{t("alerts.condition")}</th>
+                  <th className="px-3 py-2">{t("alerts.duration")}</th>
+                  <th className="px-3 py-2">{t("nav.alerts")}</th>
+                  <th className="px-3 py-2">{t("common.enabled")}</th>
                   <th className="px-3 py-2"></th>
                 </tr>
               </thead>
@@ -383,7 +385,7 @@ export default function AlertRulesPage() {
                         onClick={() => deleteRule(r.id)}
                         className="text-xs text-red-400 hover:text-red-300"
                       >
-                        삭제
+                        {t("common.delete")}
                       </button>
                     </td>
                   </tr>

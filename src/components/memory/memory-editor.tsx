@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useT } from "@/lib/i18n/i18n-context";
 
 const MEMORY_TYPES = [
   "DDR3", "DDR4", "DDR5", "HBM", "HBM2", "HBM2E", "HBM3", "LPDDR4", "LPDDR5",
@@ -72,6 +73,7 @@ export function MemoryEditor({
   onCancel,
   saving,
 }: MemoryEditorProps) {
+  const t = useT();
   const [slots, setSlots] = useState<MemorySlot[]>(initialMemories);
   const [errors, setErrors] = useState<Record<number, string>>({});
   const [showQuickFill, setShowQuickFill] = useState(false);
@@ -228,7 +230,7 @@ export function MemoryEditor({
       <Card>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <p className="text-sm font-medium text-gray-400">Summary</p>
+            <p className="text-sm font-medium text-gray-400">{t("memory.summary")}</p>
             <Badge variant="info">{populatedCount}/{slots.length} populated</Badge>
             <Badge>{totalCapacity} GB total</Badge>
           </div>
@@ -237,23 +239,23 @@ export function MemoryEditor({
 
       <Card>
         <div className="space-y-3">
-          <p className="text-sm font-medium text-gray-400">Quick Actions</p>
+          <p className="text-sm font-medium text-gray-400">{t("memory.quickActions")}</p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={addSlot} className={btnSecondary}>+ Add Slot</button>
+            <button type="button" onClick={addSlot} className={btnSecondary}>+ {t("memory.addSlot")}</button>
             {slots.length > 0 && (
-              <button type="button" onClick={removeLastSlot} className={btnDanger}>Remove Last Slot</button>
+              <button type="button" onClick={removeLastSlot} className={btnDanger}>{t("memory.removeLastSlot")}</button>
             )}
             <button type="button" onClick={() => setShowAddSlots(!showAddSlots)} className={btnSecondary}>
-              Add N Empty Slots
+              {t("memory.addNSlots")}
             </button>
             <button type="button" onClick={() => setShowQuickFill(!showQuickFill)} className={btnSecondary}>
-              Fill All Empty Slots
+              {t("memory.fillEmpty")}
             </button>
-            <button type="button" onClick={markAllPopulated} className={btnSecondary}>Mark All Populated</button>
-            <button type="button" onClick={markAllEmpty} className={btnDanger}>Mark All Empty</button>
-            <button type="button" onClick={removeEmptySlots} className={btnDanger}>Remove Empty Slots</button>
+            <button type="button" onClick={markAllPopulated} className={btnSecondary}>{t("memory.markAllPopulated")}</button>
+            <button type="button" onClick={markAllEmpty} className={btnDanger}>{t("memory.markAllEmpty")}</button>
+            <button type="button" onClick={removeEmptySlots} className={btnDanger}>{t("memory.removeEmpty")}</button>
             <button type="button" onClick={() => setShowBulkApply(!showBulkApply)} className={btnSecondary}>
-              Apply to All Populated
+              {t("memory.applyToAll")}
             </button>
           </div>
 
@@ -567,7 +569,7 @@ export function MemoryEditor({
           onClick={onCancel}
           className="rounded-lg border border-gray-700 px-6 py-2.5 text-sm text-gray-300 hover:bg-gray-800"
         >
-          Cancel
+          {t("common.cancel")}
         </button>
         <button
           type="button"
@@ -575,7 +577,7 @@ export function MemoryEditor({
           disabled={saving}
           className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {saving ? "Saving..." : "Save Memory Configuration"}
+          {saving ? t("common.saving") : t("memory.saveConfig")}
         </button>
       </div>
     </div>
