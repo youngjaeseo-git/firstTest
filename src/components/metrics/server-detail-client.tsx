@@ -26,7 +26,11 @@ const formatBytesPerSec = (bytes: number) => `${formatBytes(bytes)}/s`;
 const formatPercent = (v: number) => `${v.toFixed(1)}%`;
 const formatCelsius = (v: number) => `${v.toFixed(1)}°C`;
 const formatWatts = (v: number) => `${v.toFixed(0)} W`;
-const formatMs = (v: number) => `${v.toFixed(1)} ms`;
+const formatMs = (v: number) => {
+  if (Math.abs(v) >= 1) return `${v.toFixed(1)} ms`;
+  if (Math.abs(v) >= 0.001) return `${(v * 1000).toFixed(1)} µs`;
+  return `${(v * 1000000).toFixed(1)} ns`;
+};
 const formatIOPS = (v: number) => `${v.toFixed(0)} IOPS`;
 
 export function ServerDetailClient({ instance }: { instance: string }) {
