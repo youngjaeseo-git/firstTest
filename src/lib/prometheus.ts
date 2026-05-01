@@ -282,6 +282,14 @@ export const queries = {
     `sum(rate(container_network_receive_bytes_total{interface!~"veth.*|lo|cni.*|docker.*|br-.*"}[5m]))`,
   fleetTotalNetworkTx: () =>
     `sum(rate(container_network_transmit_bytes_total{interface!~"veth.*|lo|cni.*|docker.*|br-.*"}[5m]))`,
+  fleetAvgCpu: () =>
+    `sum(rate(container_cpu_usage_seconds_total{container!=""}[5m])) / sum(machine_cpu_cores) * 100`,
+  fleetTotalMemoryUsedBytes: () =>
+    `sum(container_memory_working_set_bytes{container!=""})`,
+  fleetTotalMemoryBytes: () =>
+    `sum(machine_memory_bytes)`,
+  fleetTotalCpuCores: () =>
+    `sum(machine_cpu_cores)`,
   fleetTopCpu: () =>
     `topk(5, sum by(instance)(rate(container_cpu_usage_seconds_total{container!=""}[5m])) / on(instance) group_left() machine_cpu_cores * 100)`,
 };

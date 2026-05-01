@@ -56,9 +56,16 @@ interface ServerPageClientProps {
 export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
-  const [view, setView] = useState<"list" | "twin">("list");
-  const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
-  const [selectedRack, setSelectedRack] = useState<string | null>(null);
+  const initialRackId = searchParams.get("rack") || null;
+
+  // Resolve initial room from rack param
+  const initialRoomId = initialRackId
+    ? rooms.find((r) => r.racks.some((rk) => rk.id === initialRackId))?.id ?? null
+    : null;
+
+  const [view, setView] = useState<"list" | "twin">(initialRackId ? "twin" : "list");
+  const [selectedRoom, setSelectedRoom] = useState<string | null>(initialRoomId);
+  const [selectedRack, setSelectedRack] = useState<string | null>(initialRackId);
   const [query, setQuery] = useState(initialQuery);
 
   const filteredServers = useMemo(() => {

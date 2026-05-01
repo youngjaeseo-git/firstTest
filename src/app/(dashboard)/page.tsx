@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardSummaryCards } from "@/components/dashboard/summary-cards";
 import { PrometheusMetrics } from "@/components/dashboard/prometheus-metrics";
+import { FleetOverview } from "@/components/dashboard/fleet-overview";
 import { PageTransition } from "@/components/ui/page-transition";
 
 export default async function DashboardPage() {
@@ -86,6 +87,15 @@ export default async function DashboardPage() {
 
         {/* Prometheus Live Metrics */}
         <PrometheusMetrics />
+
+        {/* Fleet Overview: Top-5 CPU, Sparklines, Status Donut */}
+        <FleetOverview
+          statusCounts={{
+            active: activeEquipmentCount,
+            maintenance: maintenanceCount,
+            failed: failedCount,
+          }}
+        />
 
         {/* Summary Cards with hover overlay */}
         <DashboardSummaryCards

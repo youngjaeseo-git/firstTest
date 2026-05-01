@@ -104,6 +104,17 @@ export default async function ReportsPage() {
   );
 
   const reportDate = now.toLocaleString("ko-KR");
+  const periodStart = thirtyDaysAgo.toLocaleDateString("ko-KR");
+  const periodEnd = now.toLocaleDateString("ko-KR");
+
+  // Serialize equipment data for the client component CSV export
+  const equipmentData = equipment.map((eq) => ({
+    status: eq.status,
+    type: eq.type,
+    manufacturer: eq.manufacturer,
+    totalMemoryGB: eq.totalMemoryGB,
+    rackHeight: eq.rackHeight,
+  }));
 
   return (
     <div className="space-y-6">
@@ -114,59 +125,86 @@ export default async function ReportsPage() {
             인프라 현황 및 알림 통계 리포트 · 생성시각 {reportDate}
           </p>
         </div>
-        <ReportActions />
+        <ReportActions
+          equipmentData={equipmentData}
+          reportDate={reportDate}
+          periodStart={periodStart}
+          periodEnd={periodEnd}
+        />
       </div>
 
       {/* Printable report */}
       <div id="report-content" className="space-y-6">
+        {/* Print-only header: shown only when printing */}
+        <div className="hidden print:block print-report-header">
+          <h1 className="text-2xl font-bold text-black">
+            DCIM Infrastructure Report
+          </h1>
+          <div className="mt-2 text-sm text-gray-600">
+            <p>
+              <span className="font-medium">Report Generated:</span>{" "}
+              {reportDate}
+            </p>
+            <p>
+              <span className="font-medium">Data Period:</span> {periodStart} —{" "}
+              {periodEnd}
+            </p>
+            <p>
+              <span className="font-medium">Total Equipment:</span>{" "}
+              {equipment.length}
+            </p>
+          </div>
+          <hr className="mt-3 border-gray-300" />
+        </div>
+
         {/* Executive Summary */}
         <Card>
           <p className="mb-4 text-lg font-bold">Executive Summary</p>
           <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
             <div>
-              <p className="text-xs text-gray-400">총 장비</p>
-              <p className="text-3xl font-bold text-gray-100">
+              <p className="text-xs text-gray-400 print:text-gray-600">총 장비</p>
+              <p className="text-3xl font-bold text-gray-100 print:text-gray-900">
                 {equipment.length}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">운영중</p>
-              <p className="text-3xl font-bold text-green-400">
+              <p className="text-xs text-gray-400 print:text-gray-600">운영중</p>
+              <p className="text-3xl font-bold text-green-400 print:text-green-700">
                 {statusBreakdown.ACTIVE || 0}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">장애</p>
-              <p className="text-3xl font-bold text-red-400">
+              <p className="text-xs text-gray-400 print:text-gray-600">장애</p>
+              <p className="text-3xl font-bold text-red-400 print:text-red-700">
                 {statusBreakdown.FAILED || 0}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">총 메모리</p>
-              <p className="text-3xl font-bold text-gray-100">
+              <p className="text-xs text-gray-400 print:text-gray-600">총 메모리</p>
+              <p className="text-3xl font-bold text-gray-100 print:text-gray-900">
                 {totalMemoryGB.toLocaleString()}
-                <span className="text-lg text-gray-500"> GB</span>
+                <span className="text-lg text-gray-500 print:text-gray-600"> GB</span>
               </p>
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-6 border-t border-gray-800 pt-4 md:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-6 border-t border-gray-800 pt-4 print:border-gray-300 md:grid-cols-4">
             <div>
-              <p className="text-xs text-gray-400">Rooms</p>
-              <p className="text-xl font-semibold">{rooms.length}</p>
+              <p className="text-xs text-gray-400 print:text-gray-600">Rooms</p>
+              <p className="text-xl font-semibold print:text-gray-900">{rooms.length}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Racks</p>
-              <p className="text-xl font-semibold">
+              <p className="text-xs text-gray-400 print:text-gray-600">Racks</p>
+              <p className="text-xl font-semibold print:text-gray-900">
                 {rooms.reduce((s, r) => s + r._count.racks, 0)}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">알림 (30d)</p>
-              <p className="text-xl font-semibold">{alerts30d}</p>
+              <p className="text-xs text-gray-400 print:text-gray-600">알림 (30d)</p>
+              <p className="text-xl font-semibold print:text-gray-900">{alerts30d}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Critical (30d)</p>
-              <p className="text-xl font-semibold text-red-400">
+              <p className="text-xs text-gray-400 print:text-gray-600">Critical (30d)</p>
+              <p className="text-xl font-semibold text-red-400 print:text-red-700">
                 {criticalAlerts}
               </p>
             </div>
@@ -178,7 +216,7 @@ export default async function ReportsPage() {
           <p className="mb-4 text-lg font-bold">Equipment Breakdown</p>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             <div>
-              <p className="mb-2 text-sm font-medium text-gray-300">
+              <p className="mb-2 text-sm font-medium text-gray-300 print:text-gray-700">
                 상태별
               </p>
               <div className="space-y-1">
@@ -189,8 +227,8 @@ export default async function ReportsPage() {
                       key={status}
                       className="flex items-center justify-between text-sm"
                     >
-                      <span className="text-gray-400">{status}</span>
-                      <span className="font-mono font-medium text-gray-100">
+                      <span className="text-gray-400 print:text-gray-600">{status}</span>
+                      <span className="font-mono font-medium text-gray-100 print:text-gray-900">
                         {count}
                       </span>
                     </div>
@@ -198,7 +236,7 @@ export default async function ReportsPage() {
               </div>
             </div>
             <div>
-              <p className="mb-2 text-sm font-medium text-gray-300">
+              <p className="mb-2 text-sm font-medium text-gray-300 print:text-gray-700">
                 타입별
               </p>
               <div className="space-y-1">
@@ -209,8 +247,8 @@ export default async function ReportsPage() {
                       key={type}
                       className="flex items-center justify-between text-sm"
                     >
-                      <span className="text-gray-400">{type}</span>
-                      <span className="font-mono font-medium text-gray-100">
+                      <span className="text-gray-400 print:text-gray-600">{type}</span>
+                      <span className="font-mono font-medium text-gray-100 print:text-gray-900">
                         {count}
                       </span>
                     </div>
@@ -218,7 +256,7 @@ export default async function ReportsPage() {
               </div>
             </div>
             <div>
-              <p className="mb-2 text-sm font-medium text-gray-300">
+              <p className="mb-2 text-sm font-medium text-gray-300 print:text-gray-700">
                 제조사별
               </p>
               <div className="space-y-1">
@@ -229,8 +267,8 @@ export default async function ReportsPage() {
                       key={m}
                       className="flex items-center justify-between text-sm"
                     >
-                      <span className="text-gray-400">{m}</span>
-                      <span className="font-mono font-medium text-gray-100">
+                      <span className="text-gray-400 print:text-gray-600">{m}</span>
+                      <span className="font-mono font-medium text-gray-100 print:text-gray-900">
                         {count}
                       </span>
                     </div>
@@ -244,24 +282,24 @@ export default async function ReportsPage() {
         <Card>
           <p className="mb-4 text-lg font-bold">Alert Statistics (30d)</p>
           <div className="mb-6 grid grid-cols-3 gap-4">
-            <div className="rounded-lg border border-gray-800 p-4">
-              <p className="text-xs text-gray-400">전체 알림</p>
-              <p className="text-2xl font-bold">{alertsTotal}</p>
+            <div className="rounded-lg border border-gray-800 p-4 print:border-gray-300">
+              <p className="text-xs text-gray-400 print:text-gray-600">전체 알림</p>
+              <p className="text-2xl font-bold print:text-gray-900">{alertsTotal}</p>
             </div>
-            <div className="rounded-lg border border-gray-800 p-4">
-              <p className="text-xs text-gray-400">최근 30일</p>
-              <p className="text-2xl font-bold">{alerts30d}</p>
+            <div className="rounded-lg border border-gray-800 p-4 print:border-gray-300">
+              <p className="text-xs text-gray-400 print:text-gray-600">최근 30일</p>
+              <p className="text-2xl font-bold print:text-gray-900">{alerts30d}</p>
             </div>
-            <div className="rounded-lg border border-gray-800 p-4">
-              <p className="text-xs text-gray-400">최근 7일</p>
-              <p className="text-2xl font-bold">{alerts7d}</p>
+            <div className="rounded-lg border border-gray-800 p-4 print:border-gray-300">
+              <p className="text-xs text-gray-400 print:text-gray-600">최근 7일</p>
+              <p className="text-2xl font-bold print:text-gray-900">{alerts7d}</p>
             </div>
           </div>
 
           {/* Category breakdown */}
           {firedByCategory.length > 0 && (
             <div className="mb-6">
-              <p className="mb-2 text-sm font-medium text-gray-300">
+              <p className="mb-2 text-sm font-medium text-gray-300 print:text-gray-700">
                 카테고리별
               </p>
               <div className="flex flex-wrap gap-2">
@@ -282,23 +320,23 @@ export default async function ReportsPage() {
           {/* Top firing rules */}
           {topRules.length > 0 && (
             <div>
-              <p className="mb-2 text-sm font-medium text-gray-300">
+              <p className="mb-2 text-sm font-medium text-gray-300 print:text-gray-700">
                 Top Firing Rules
               </p>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-800 text-left text-xs text-gray-400">
+                  <tr className="border-b border-gray-800 text-left text-xs text-gray-400 print:border-gray-300 print:text-gray-600">
                     <th className="py-2">Rule</th>
                     <th className="py-2">Severity</th>
                     <th className="py-2 text-right">Count</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800">
+                <tbody className="divide-y divide-gray-800 print:divide-gray-300">
                   {topRules.map((r) => {
                     const rule = ruleMap.get(r.ruleId!);
                     return (
                       <tr key={r.ruleId}>
-                        <td className="py-2 text-gray-100">
+                        <td className="py-2 text-gray-100 print:text-gray-900">
                           {rule?.name || "(deleted)"}
                         </td>
                         <td className="py-2">
@@ -328,24 +366,24 @@ export default async function ReportsPage() {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800 text-left text-xs text-gray-400">
+                <tr className="border-b border-gray-800 text-left text-xs text-gray-400 print:border-gray-300 print:text-gray-600">
                   <th className="py-2">Time</th>
                   <th className="py-2">Severity</th>
                   <th className="py-2">Summary</th>
                   <th className="py-2">Source</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800">
+              <tbody className="divide-y divide-gray-800 print:divide-gray-300">
                 {recentAlerts.map((a) => (
                   <tr key={a.id}>
-                    <td className="py-2 text-xs text-gray-400">
+                    <td className="py-2 text-xs text-gray-400 print:text-gray-600">
                       {a.firedAt.toLocaleString("ko-KR")}
                     </td>
                     <td className="py-2">
                       <SeverityBadge severity={a.severity} />
                     </td>
-                    <td className="py-2 text-gray-100">{a.summary}</td>
-                    <td className="py-2 font-mono text-xs text-gray-500">
+                    <td className="py-2 text-gray-100 print:text-gray-900">{a.summary}</td>
+                    <td className="py-2 font-mono text-xs text-gray-500 print:text-gray-600">
                       {a.source || "-"}
                     </td>
                   </tr>

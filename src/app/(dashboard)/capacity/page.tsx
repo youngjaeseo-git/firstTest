@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { LiveCapacityMetrics } from "@/components/capacity/live-capacity-metrics";
 
 export default async function CapacityPage() {
   const [rooms, equipment] = await Promise.all([
@@ -127,6 +128,9 @@ export default async function CapacityPage() {
           전력 / 공간 / 냉각 / 컴퓨팅 용량 현황
         </p>
       </div>
+
+      {/* Live Prometheus metrics */}
+      <LiveCapacityMetrics />
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
