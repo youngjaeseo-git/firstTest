@@ -7,6 +7,7 @@ import { GitCompareArrows, Search } from "lucide-react";
 import { MetricChart } from "./metric-chart";
 import { EmptyState } from "@/components/ui/empty-state";
 import { queries } from "@/lib/prometheus";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface ServerInfo {
   id: string;
@@ -41,46 +42,49 @@ interface CompareMetric {
   yDomain?: [number | "auto", number | "auto"];
 }
 
-const COMPARE_METRICS: CompareMetric[] = [
+const COMPARE_METRIC_KEYS = ["compare.cpuUsage", "compare.memoryUsage", "compare.loadAvg", "compare.diskIo", "compare.networkRx", "compare.temperature"];
+
+const COMPARE_METRICS_BASE: CompareMetric[] = [
   {
     title: "CPU Usage",
     unit: "%",
-    queryFn: (i) => queries.cpuUsage(i),
-    formatValue: (v) => `${v.toFixed(1)}%`,
+    queryFn: (i: string) => queries.cpuUsage(i),
+    formatValue: (v: number) => `${v.toFixed(1)}%`,
     yDomain: [0, 100],
   },
   {
     title: "Memory Usage",
     unit: "%",
-    queryFn: (i) => queries.memoryUsage(i),
-    formatValue: (v) => `${v.toFixed(1)}%`,
+    queryFn: (i: string) => queries.memoryUsage(i),
+    formatValue: (v: number) => `${v.toFixed(1)}%`,
     yDomain: [0, 100],
   },
   {
     title: "Load Average (1m)",
     unit: "",
-    queryFn: (i) => queries.loadAvg1(i),
-    formatValue: (v) => v.toFixed(2),
+    queryFn: (i: string) => queries.loadAvg1(i),
+    formatValue: (v: number) => v.toFixed(2),
   },
   {
     title: "Disk I/O (Read)",
     unit: "bytes/s",
-    queryFn: (i) => queries.diskIORead(i),
-    formatValue: (v) => formatBytes(v) + "/s",
+    queryFn: (i: string) => queries.diskIORead(i),
+    formatValue: (v: number) => formatBytes(v) + "/s",
   },
   {
     title: "Network RX",
     unit: "bytes/s",
-    queryFn: (i) => queries.networkRx(i),
-    formatValue: (v) => formatBytes(v) + "/s",
+    queryFn: (i: string) => queries.networkRx(i),
+    formatValue: (v: number) => formatBytes(v) + "/s",
   },
   {
     title: "Temperature",
     unit: "°C",
-    queryFn: (i) => queries.temperature(i),
-    formatValue: (v) => `${v.toFixed(1)}°C`,
+    queryFn: (i: string) => queries.temperature(i),
+    formatValue: (v: number) => `${v.toFixed(1)}°C`,
   },
 ];
+const COMPARE_METRICS = COMPARE_METRICS_BASE;
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -91,6 +95,7 @@ function formatBytes(bytes: number): string {
 }
 
 export function ServerCompareClient({ servers }: { servers: ServerInfo[] }) {
+  const t = useT();
   const [selected, setSelected] = useState<string[]>([]);
   const [duration, setDuration] = useState(DURATIONS[1]);
   const [search, setSearch] = useState("");
@@ -138,14 +143,14 @@ export function ServerCompareClient({ servers }: { servers: ServerInfo[] }) {
       <div>
         <div className="flex items-center gap-2 text-sm text-gray-400 mb-1">
           <Link href="/servers" className="hover:text-white">
-            Servers
+            {t("nav.servers")}
           </Link>
           <span>/</span>
-          <span>비교</span>
+          <span>{t("compare.title")}</span>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight">Server Comparison</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("compare.title")}</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Select 2-4 servers to compare key metrics side by side
+          {t("compare.description")}
         </p>
       </div>
 
@@ -153,7 +158,7 @@ export function ServerCompareClient({ servers }: { servers: ServerInfo[] }) {
       <div className="rounded-xl border border-gray-800/80 bg-gray-900/80 p-4 backdrop-blur-sm">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-gray-300">
-            Select Servers
+            {t("compare.selectServersHeader")}
             <span className="ml-2 rounded-full bg-blue-500/15 px-2 py-0.5 text-[11px] font-medium text-blue-400">
               {selected.length}/4
             </span>
@@ -163,7 +168,7 @@ export function ServerCompareClient({ servers }: { servers: ServerInfo[] }) {
               onClick={() => setSelected([])}
               className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
             >
-              Clear selection
+              {t("compare.clearSelection")}
             </button>
           )}
         </div>
@@ -172,7 +177,7 @@ export function ServerCompareClient({ servers }: { servers: ServerInfo[] }) {
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
           <input
             type="text"
-            placeholder="Search by hostname, IP, room, or rack..."
+            placeholder={t("compare.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-lg border border-gray-700/60 bg-gray-800/60 pl-10 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
@@ -215,7 +220,7 @@ export function ServerCompareClient({ servers }: { servers: ServerInfo[] }) {
           })}
           {filtered.length === 0 && (
             <p className="text-sm text-gray-500 text-center py-4">
-              Prometheus instance가 연결된 서버가 없습니다
+              {t("compare.noServers")}
             </p>
           )}
         </div>
@@ -226,7 +231,7 @@ export function ServerCompareClient({ servers }: { servers: ServerInfo[] }) {
         <>
           {/* Time range selector */}
           <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Range</span>
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t("server.range")}</span>
             <div className="flex rounded-lg border border-gray-800/80 bg-gray-800/40 p-0.5">
               {DURATIONS.map((d) => (
                 <button
@@ -257,10 +262,10 @@ export function ServerCompareClient({ servers }: { servers: ServerInfo[] }) {
 
           {/* Metric charts */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {COMPARE_METRICS.map((metric) => (
+            {COMPARE_METRICS.map((metric, idx) => (
               <MetricChart
                 key={metric.title}
-                title={metric.title}
+                title={t(COMPARE_METRIC_KEYS[idx]) || metric.title}
                 unit={metric.unit}
                 series={buildSeries(metric)}
                 durationMin={duration.value}
@@ -277,16 +282,16 @@ export function ServerCompareClient({ servers }: { servers: ServerInfo[] }) {
       {selectedServers.length < 2 && selected.length > 0 && (
         <EmptyState
           icon={GitCompareArrows}
-          title="Select at least 2 servers"
-          description="Pick one more server above to start comparing metrics"
+          title={t("compare.needMore")}
+          description={t("compare.needMoreDesc")}
         />
       )}
 
       {selected.length === 0 && (
         <EmptyState
           icon={GitCompareArrows}
-          title="Select servers to compare"
-          description="Click 2-4 servers above to see their metrics side by side in shared charts"
+          title={t("compare.selectServers")}
+          description={t("compare.emptyDesc")}
         />
       )}
     </div>

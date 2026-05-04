@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
 import { List, Building2, Search, GitCompareArrows } from "lucide-react";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface ServerPageClientProps {
   rooms: Array<{
@@ -54,11 +55,11 @@ interface ServerPageClientProps {
 }
 
 export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
+  const t = useT();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
   const initialRackId = searchParams.get("rack") || null;
 
-  // Resolve initial room from rack param
   const initialRoomId = initialRackId
     ? rooms.find((r) => r.racks.some((rk) => rk.id === initialRackId))?.id ?? null
     : null;
@@ -92,17 +93,17 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Servers</h1>
+          <h1 className="text-2xl font-bold">{t("servers.title")}</h1>
           <p className="text-sm text-gray-400">
-            총 {filteredServers.length}
-            {query && ` / ${servers.length}`}대 서버
+            {filteredServers.length}
+            {query && ` / ${servers.length}`} {t("servers.count")}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/servers/compare">
             <Button variant="outline" size="sm" className="flex items-center gap-2">
               <GitCompareArrows className="h-4 w-4" />
-              서버 비교
+              {t("servers.compare")}
             </Button>
           </Link>
           <div className="flex rounded-lg border border-gray-700 bg-gray-800 p-1">
@@ -110,13 +111,13 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
             onClick={() => { setView("list"); setSelectedRoom(null); setSelectedRack(null); }}
             className={cn("flex items-center gap-2 rounded-md px-3 py-1.5 text-sm", view === "list" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-200")}
           >
-            <List className="h-4 w-4" /> List
+            <List className="h-4 w-4" /> {t("servers.list")}
           </button>
           <button
             onClick={() => { setView("twin"); setSelectedRoom(null); setSelectedRack(null); }}
             className={cn("flex items-center gap-2 rounded-md px-3 py-1.5 text-sm", view === "twin" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-200")}
           >
-            <Building2 className="h-4 w-4" /> Twin
+            <Building2 className="h-4 w-4" /> {t("servers.twin")}
           </button>
           </div>
         </div>
@@ -132,7 +133,7 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="호스트명 / IP / 모델 / 제조사 필터..."
+              placeholder={t("servers.filterPlaceholder")}
               className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 pl-10 text-sm text-gray-200 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
@@ -206,7 +207,7 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
                       </td>
                       <td className="px-4 py-3">{s.roomName || "-"}</td>
                       <td className="px-4 py-3">
-                        {s.rackName || "미배치"}{s.rackPosition != null ? ` / U${s.rackPosition}` : ""}
+                        {s.rackName || t("servers.unassigned")}{s.rackPosition != null ? ` / U${s.rackPosition}` : ""}
                       </td>
                     </tr>
                   ))}
@@ -216,7 +217,7 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
                         colSpan={8}
                         className="px-4 py-12 text-center text-gray-500"
                       >
-                        {query ? "일치하는 서버가 없습니다." : "서버가 없습니다."}
+                        {query ? t("servers.noMatch") : t("servers.empty")}
                       </td>
                     </tr>
                   )}
@@ -232,6 +233,7 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
           roomName={rooms.find((r) => r.id === selectedRoom)?.name || "Room"}
           onBackToRooms={() => { setSelectedRoom(null); setSelectedRack(null); }}
           onBackToRoom={() => setSelectedRack(null)}
+          t={t}
         />
       ) : selectedRoom ? (
         /* TWIN VIEW - Level 2: Room Floor Plan */
@@ -239,6 +241,7 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
           room={rooms.find((r) => r.id === selectedRoom)!}
           onSelectRack={setSelectedRack}
           onBackToRooms={() => setSelectedRoom(null)}
+          t={t}
         />
       ) : (
         /* TWIN VIEW - Level 1: Room Selector */
@@ -279,7 +282,6 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
                   gradient,
                 )}
               >
-                {/* Decorative building icon */}
                 <Building2 className="absolute -right-4 -top-4 h-32 w-32 text-white/5" />
 
                 <div className="relative">
@@ -320,7 +322,6 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
                     </div>
                   </div>
 
-                  {/* Utilization bar */}
                   <div className="mt-4">
                     <div className="flex items-center justify-between text-xs text-gray-400">
                       <span>U Utilization</span>
@@ -344,14 +345,14 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
                   </div>
 
                   <p className="mt-4 text-xs text-gray-500 group-hover:text-blue-300">
-                    클릭하여 Room Floor Plan 보기 →
+                    {t("twin.clickToFloorPlan")}
                   </p>
                 </div>
               </button>
             );
           })}
           {rooms.length === 0 && (
-            <p className="text-gray-500">Room 데이터가 없습니다.</p>
+            <p className="text-gray-500">{t("twin.noRoomData")}</p>
           )}
         </div>
       )}
@@ -364,10 +365,12 @@ function RoomFloorPlan({
   room,
   onSelectRack,
   onBackToRooms,
+  t,
 }: {
   room: ServerPageClientProps["rooms"][0];
   onSelectRack: (id: string) => void;
   onBackToRooms: () => void;
+  t: (key: string) => string;
 }) {
   const groups = room.racks.reduce(
     (acc, rack) => {
@@ -383,7 +386,7 @@ function RoomFloorPlan({
       <div>
         <Breadcrumb
           items={[
-            { label: "Servers", onClick: onBackToRooms },
+            { label: t("servers.title"), onClick: onBackToRooms },
             { label: room.name },
           ]}
           className="mb-1"
@@ -405,7 +408,6 @@ function RoomFloorPlan({
                 >
                   <p className="text-sm font-bold text-gray-100">{rack.name}</p>
                   <div className="mt-2 h-20 rounded border border-gray-700 bg-gray-900 p-1">
-                    {/* Mini rack visualization */}
                     <div className="flex h-full flex-col-reverse gap-px">
                       {Array.from({ length: Math.min(rack.totalUnits, 20) }, (_, i) => {
                         const eq = rack.equipment.find(
@@ -453,14 +455,16 @@ function RackElevation({
   roomName,
   onBackToRooms,
   onBackToRoom,
+  t,
 }: {
   rack: ServerPageClientProps["rooms"][0]["racks"][0];
   roomName: string;
   onBackToRooms: () => void;
   onBackToRoom: () => void;
+  t: (key: string) => string;
 }) {
   const units = Array.from({ length: rack.totalUnits }, (_, i) => {
-    const pos = rack.totalUnits - i; // top to bottom
+    const pos = rack.totalUnits - i;
     const eq = rack.equipment.find(
       (e) => e.rackPosition !== null && pos >= e.rackPosition && pos < e.rackPosition + e.rackHeight,
     );
@@ -476,12 +480,19 @@ function RackElevation({
     PLANNED: "bg-blue-600/30 border-blue-600 text-blue-300",
   };
 
+  const legendItems = [
+    ["ACTIVE", t("status.active"), "bg-green-600"],
+    ["MAINTENANCE", t("status.maintenance"), "bg-purple-600"],
+    ["REPAIR", t("status.repair"), "bg-orange-600"],
+    ["FAILED", t("status.failed"), "bg-red-600"],
+  ];
+
   return (
     <div className="space-y-4">
       <div>
         <Breadcrumb
           items={[
-            { label: "Servers", onClick: onBackToRooms },
+            { label: t("servers.title"), onClick: onBackToRooms },
             { label: roomName, onClick: onBackToRoom },
             { label: rack.name },
           ]}
@@ -498,7 +509,6 @@ function RackElevation({
       <div className="flex gap-6">
         {/* Rack SVG */}
         <div className="w-96 rounded-lg border-2 border-gray-700 bg-gradient-to-b from-gray-900 to-gray-950 p-3 shadow-xl">
-          {/* Rack top bar decoration */}
           <div className="mb-2 flex items-center justify-between border-b border-gray-700 pb-2">
             <div className="flex items-center gap-1.5">
               <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.6)]" />
@@ -530,10 +540,9 @@ function RackElevation({
                     <span className="truncate font-mono">
                       {equipment.hostname || equipment.type}
                     </span>
-                    {/* Tooltip on hover */}
                     <div className="pointer-events-none absolute left-full top-0 z-50 ml-2 hidden w-56 rounded-lg border border-gray-700 bg-gray-900 p-3 text-left text-xs shadow-xl group-hover/eq:block">
                       <p className="font-semibold text-gray-100">
-                        {equipment.hostname || "(unnamed)"}
+                        {equipment.hostname || t("common.unnamed")}
                       </p>
                       <div className="mt-1 space-y-0.5 text-gray-400">
                         <p>
@@ -572,12 +581,12 @@ function RackElevation({
                         )}
                       </div>
                       <p className="mt-2 text-[10px] text-blue-400">
-                        클릭하여 상세보기 →
+                        {t("twin.clickToDetail")}
                       </p>
                     </div>
                   </Link>
                 ) : equipment ? (
-                  <div className="h-0 flex-1" /> // part of multi-U equipment
+                  <div className="h-0 flex-1" />
                 ) : (
                   <div className="flex h-6 flex-1 items-center rounded border border-gray-800 bg-gray-800/30 px-2 text-[10px] text-gray-600">
                     empty
@@ -591,12 +600,7 @@ function RackElevation({
         {/* Legend */}
         <div className="space-y-2 text-sm">
           <p className="font-medium text-gray-300">Legend</p>
-          {[
-            ["ACTIVE", "운영중", "bg-green-600"],
-            ["MAINTENANCE", "유지보수", "bg-purple-600"],
-            ["REPAIR", "수리중", "bg-orange-600"],
-            ["FAILED", "장애", "bg-red-600"],
-          ].map(([status, label, color]) => (
+          {legendItems.map(([status, label, color]) => (
             <div key={status} className="flex items-center gap-2">
               <span className={cn("h-3 w-3 rounded", color)} />
               <span className="text-gray-400">{label}</span>

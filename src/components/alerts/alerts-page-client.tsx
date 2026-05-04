@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface AlertRow {
   id: string;
@@ -28,26 +29,29 @@ interface AlertsPageClientProps {
 }
 
 export function AlertsPageClient({ alerts }: AlertsPageClientProps) {
+  const t = useT();
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [severityFilter, setSeverityFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   // Category counts (computed from all alerts, not filtered)
+  const OTHER_LABEL = t("alerts.categoryOther");
+
   const categories = useMemo(() => {
     return alerts.reduce(
       (acc, a) => {
-        const cat = a.category || "기타";
+        const cat = a.category || OTHER_LABEL;
         acc[cat] = (acc[cat] || 0) + 1;
         return acc;
       },
       {} as Record<string, number>,
     );
-  }, [alerts]);
+  }, [alerts, OTHER_LABEL]);
 
   // Apply filters
   const filteredAlerts = useMemo(() => {
     return alerts.filter((a) => {
-      if (categoryFilter && (a.category || "기타") !== categoryFilter)
+      if (categoryFilter && (a.category || OTHER_LABEL) !== categoryFilter)
         return false;
       if (severityFilter && a.severity !== severityFilter) return false;
       if (statusFilter && a.status !== statusFilter) return false;
@@ -96,7 +100,7 @@ export function AlertsPageClient({ alerts }: AlertsPageClientProps) {
           )}
           onClick={() => toggleStatus("FIRING")}
         >
-          <p className="text-sm text-gray-400">Firing</p>
+          <p className="text-sm text-gray-400">{t("alerts.firing")}</p>
           <p className="text-2xl font-bold text-red-400">{firing}</p>
         </Card>
         <Card
@@ -108,7 +112,7 @@ export function AlertsPageClient({ alerts }: AlertsPageClientProps) {
           )}
           onClick={() => toggleStatus("ACKNOWLEDGED")}
         >
-          <p className="text-sm text-gray-400">Acknowledged</p>
+          <p className="text-sm text-gray-400">{t("alerts.acknowledged")}</p>
           <p className="text-2xl font-bold text-amber-400">{acknowledged}</p>
         </Card>
         <Card
@@ -120,18 +124,18 @@ export function AlertsPageClient({ alerts }: AlertsPageClientProps) {
           )}
           onClick={() => toggleStatus("RESOLVED")}
         >
-          <p className="text-sm text-gray-400">Resolved</p>
+          <p className="text-sm text-gray-400">{t("alerts.resolved")}</p>
           <p className="text-2xl font-bold text-green-400">{resolved}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-gray-400">Total</p>
+          <p className="text-sm text-gray-400">{t("common.total")}</p>
           <p className="text-2xl font-bold">{alerts.length}</p>
         </Card>
       </div>
 
       {/* Category filter badges - clickable */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-gray-500">Category:</span>
+        <span className="text-xs font-medium text-gray-500">{t("alerts.category.label")}</span>
         {Object.entries(categories)
           .sort((a, b) => b[1] - a[1])
           .map(([cat, count]) => {
@@ -161,23 +165,21 @@ export function AlertsPageClient({ alerts }: AlertsPageClientProps) {
             className="ml-2 flex items-center gap-1 rounded-full border border-gray-700 bg-gray-800 px-3 py-1 text-xs text-gray-400 hover:text-gray-200"
           >
             <X className="h-3 w-3" />
-            필터 초기화
+            {t("alerts.clearFilters")}
           </button>
         )}
       </div>
 
       {hasActiveFilter && (
         <p className="text-xs text-gray-500">
-          필터링 결과: {filteredAlerts.length} / {alerts.length}
+          {t("alerts.filterResult")}: {filteredAlerts.length} / {alerts.length}
         </p>
       )}
 
       {/* Date-grouped accordion */}
       {dates.length === 0 ? (
         <Card className="p-8 text-center text-gray-500">
-          {hasActiveFilter
-            ? "필터 조건에 맞는 알림이 없습니다."
-            : "알림 내역이 없습니다."}
+          {hasActiveFilter ? t("alerts.noAlerts") : t("alerts.empty")}
         </Card>
       ) : (
         <Accordion type="multiple" defaultValue={dates.slice(0, 3)}>
@@ -186,7 +188,7 @@ export function AlertsPageClient({ alerts }: AlertsPageClientProps) {
               <AccordionTrigger>
                 <div className="flex items-center gap-3">
                   <span className="text-base font-semibold">{date}</span>
-                  <Badge>{grouped[date].length}건</Badge>
+                  <Badge>{grouped[date].length}</Badge>
                   {grouped[date].some((a) => a.status === "FIRING") && (
                     <Badge variant="critical">
                       {
@@ -226,9 +228,7 @@ export function AlertsPageClient({ alerts }: AlertsPageClientProps) {
                             </button>
                           )}
                           <span>
-                            {new Date(alert.firedAt).toLocaleTimeString(
-                              "ko-KR",
-                            )}
+                            {new Date(alert.firedAt).toLocaleTimeString()}
                           </span>
                         </div>
                       </div>

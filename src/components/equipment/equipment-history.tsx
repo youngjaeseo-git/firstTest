@@ -12,6 +12,7 @@ import {
   History as HistoryIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface AuditEntry {
   id: string;
@@ -29,56 +30,52 @@ interface ActionMeta {
   className: string;
 }
 
-const ACTION_META: Record<string, ActionMeta> = {
+const ACTION_META: Record<string, Omit<ActionMeta, "label"> & { labelKey: string }> = {
   CREATE: {
-    label: "Created",
+    labelKey: "history.created",
     Icon: Plus,
     className: "bg-green-500/15 text-green-400 ring-green-500/30",
   },
   UPDATE: {
-    label: "Updated",
+    labelKey: "history.updated",
     Icon: Pencil,
     className: "bg-blue-500/15 text-blue-400 ring-blue-500/30",
   },
   DELETE: {
-    label: "Deleted",
+    labelKey: "history.deleted",
     Icon: Trash2,
     className: "bg-red-500/15 text-red-400 ring-red-500/30",
   },
   STATUS_CHANGE: {
-    label: "Status Change",
+    labelKey: "history.statusChange",
     Icon: RefreshCw,
     className: "bg-purple-500/15 text-purple-400 ring-purple-500/30",
   },
   POWER_ACTION: {
-    label: "Power Action",
+    labelKey: "history.powerAction",
     Icon: Power,
     className: "bg-amber-500/15 text-amber-400 ring-amber-500/30",
   },
   RACK_MOVE: {
-    label: "Rack Moved",
+    labelKey: "history.rackMoved",
     Icon: ArrowLeftRight,
     className: "bg-cyan-500/15 text-cyan-400 ring-cyan-500/30",
   },
   MAINTENANCE_START: {
-    label: "Maintenance Start",
+    labelKey: "history.maintenanceStart",
     Icon: Wrench,
     className: "bg-yellow-500/15 text-yellow-400 ring-yellow-500/30",
   },
   MAINTENANCE_END: {
-    label: "Maintenance End",
+    labelKey: "history.maintenanceEnd",
     Icon: Wrench,
     className: "bg-green-500/15 text-green-400 ring-green-500/30",
   },
 };
 
-const FALLBACK_META: ActionMeta = {
-  label: "Action",
-  Icon: HistoryIcon,
-  className: "bg-gray-700/40 text-gray-300 ring-gray-600/40",
-};
+const FALLBACK_LABEL_KEY = "history.action";
 
-function formatChanges(action: string, changes: Record<string, unknown> | null) {
+function formatChanges(action: string, changes: Record<string, unknown> | null, t: (key: string) => string) {
   if (!changes) return null;
 
   if (action === "POWER_ACTION") {
@@ -120,13 +117,14 @@ function formatChanges(action: string, changes: Record<string, unknown> | null) 
         );
       })}
       {entries.length > 6 && (
-        <li className="text-gray-600">+{entries.length - 6} more…</li>
+        <li className="text-gray-600">+{entries.length - 6} {t("common.more")}…</li>
       )}
     </ul>
   );
 }
 
 export function EquipmentHistory({ equipmentId }: { equipmentId: string }) {
+  const t = useT();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -157,7 +155,7 @@ export function EquipmentHistory({ equipmentId }: { equipmentId: string }) {
 
   if (loading) {
     return (
-      <p className="text-sm text-gray-500">Loading history…</p>
+      <p className="text-sm text-gray-500">{t("history.loading")}</p>
     );
   }
   if (error) {
@@ -166,7 +164,7 @@ export function EquipmentHistory({ equipmentId }: { equipmentId: string }) {
   if (entries.length === 0) {
     return (
       <p className="text-sm text-gray-500">
-        No history recorded yet for this equipment.
+        {t("history.noHistory")}
       </p>
     );
   }
@@ -174,8 +172,10 @@ export function EquipmentHistory({ equipmentId }: { equipmentId: string }) {
   return (
     <ol className="space-y-3">
       {entries.map((entry) => {
-        const meta = ACTION_META[entry.action] || FALLBACK_META;
-        const Icon = meta.Icon;
+        const meta = ACTION_META[entry.action];
+        const Icon = meta ? meta.Icon : HistoryIcon;
+        const label = meta ? t(meta.labelKey) : t(FALLBACK_LABEL_KEY);
+        const className = meta ? meta.className : "bg-gray-700/40 text-gray-300 ring-gray-600/40";
         return (
           <li
             key={entry.id}
@@ -184,7 +184,7 @@ export function EquipmentHistory({ equipmentId }: { equipmentId: string }) {
             <div
               className={cn(
                 "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ring-1",
-                meta.className,
+                className,
               )}
             >
               <Icon className="h-4 w-4" />
@@ -192,14 +192,14 @@ export function EquipmentHistory({ equipmentId }: { equipmentId: string }) {
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="text-sm font-semibold text-gray-100">
-                  {meta.label}
+                  {label}
                 </p>
                 <p className="text-[11px] text-gray-500">
-                  {new Date(entry.createdAt).toLocaleString("ko-KR")}
+                  {new Date(entry.createdAt).toLocaleString()}
                 </p>
               </div>
               <p className="mt-0.5 text-xs text-gray-500">
-                by {entry.user.name || entry.user.email}
+                {t("common.by")} {entry.user.name || entry.user.email}
                 {entry.ticketRef && (
                   <span className="ml-2 rounded bg-gray-800 px-1.5 py-0.5 font-mono text-[10px] text-gray-300">
                     {entry.ticketRef}
@@ -210,7 +210,7 @@ export function EquipmentHistory({ equipmentId }: { equipmentId: string }) {
                 <p className="mt-1.5 text-sm text-gray-300">{entry.reason}</p>
               )}
               <div className="mt-1.5">
-                {formatChanges(entry.action, entry.changes)}
+                {formatChanges(entry.action, entry.changes, t)}
               </div>
             </div>
           </li>

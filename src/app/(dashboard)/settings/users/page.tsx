@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface UserData {
   id: string;
@@ -13,11 +14,11 @@ interface UserData {
 }
 
 export default function UsersPage() {
+  const t = useT();
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // New user form
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -32,7 +33,7 @@ export default function UsersPage() {
         setUsers(await res.json());
       }
     } catch {
-      setError("사용자 목록을 불러올 수 없습니다.");
+      setError(t("settings.usersLoadError"));
     }
     setLoading(false);
   }
@@ -58,7 +59,7 @@ export default function UsersPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "생성에 실패했습니다.");
+        setError(data.error || t("settings.createError"));
       } else {
         setShowForm(false);
         setNewName("");
@@ -68,7 +69,7 @@ export default function UsersPage() {
         await loadUsers();
       }
     } catch {
-      setError("서버와 통신 중 오류가 발생했습니다.");
+      setError(t("common.serverError"));
     }
     setSaving(false);
   }
@@ -86,7 +87,7 @@ export default function UsersPage() {
         );
       }
     } catch {
-      setError("역할 변경에 실패했습니다.");
+      setError(t("settings.roleChangeError"));
     }
   }
 
@@ -108,16 +109,16 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">사용자 관리</h1>
+          <h1 className="text-2xl font-bold">{t("settings.users")}</h1>
           <p className="mt-1 text-sm text-gray-400">
-            시스템 사용자 계정 및 역할을 관리합니다.
+            {t("settings.usersDesc")}
           </p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          {showForm ? "취소" : "+ 사용자 추가"}
+          {showForm ? t("common.cancel") : t("settings.addUser")}
         </button>
       </div>
 
@@ -127,22 +128,21 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* New User Form */}
       {showForm && (
         <Card>
-          <p className="mb-4 font-medium">새 사용자 등록</p>
+          <p className="mb-4 font-medium">{t("settings.newUser")}</p>
           <form onSubmit={handleCreateUser} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="mb-1 block text-sm text-gray-300">이름</label>
+              <label className="mb-1 block text-sm text-gray-300">{t("common.name")}</label>
               <input
                 className={inputClass}
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="홍길동"
+                placeholder="Hong Gildong"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-gray-300">이메일 *</label>
+              <label className="mb-1 block text-sm text-gray-300">{t("settings.email")} *</label>
               <input
                 type="email"
                 required
@@ -153,7 +153,7 @@ export default function UsersPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-gray-300">비밀번호 *</label>
+              <label className="mb-1 block text-sm text-gray-300">{t("settings.password")} *</label>
               <input
                 type="password"
                 required
@@ -164,7 +164,7 @@ export default function UsersPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-gray-300">역할</label>
+              <label className="mb-1 block text-sm text-gray-300">{t("settings.role")}</label>
               <select
                 className={inputClass}
                 value={newRole}
@@ -181,14 +181,13 @@ export default function UsersPage() {
                 disabled={saving}
                 className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
               >
-                {saving ? "생성 중..." : "사용자 생성"}
+                {saving ? t("settings.creating") : t("settings.createUser")}
               </button>
             </div>
           </form>
         </Card>
       )}
 
-      {/* User List */}
       <Card>
         {loading ? (
           <p className="text-center text-gray-400">Loading...</p>
@@ -197,11 +196,11 @@ export default function UsersPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-700 text-left text-xs text-gray-400">
-                  <th className="px-3 py-2">이름</th>
-                  <th className="px-3 py-2">이메일</th>
-                  <th className="px-3 py-2">역할</th>
-                  <th className="px-3 py-2">생성일</th>
-                  <th className="px-3 py-2">역할 변경</th>
+                  <th className="px-3 py-2">{t("common.name")}</th>
+                  <th className="px-3 py-2">{t("settings.email")}</th>
+                  <th className="px-3 py-2">{t("settings.role")}</th>
+                  <th className="px-3 py-2">{t("settings.createdAt")}</th>
+                  <th className="px-3 py-2">{t("settings.changeRole")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800">
@@ -217,7 +216,7 @@ export default function UsersPage() {
                       </Badge>
                     </td>
                     <td className="px-3 py-2 text-xs text-gray-400">
-                      {new Date(user.createdAt).toLocaleDateString("ko-KR")}
+                      {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-3 py-2">
                       <select

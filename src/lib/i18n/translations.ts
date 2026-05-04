@@ -321,6 +321,113 @@ export const translations: Record<Language, Record<string, string>> = {
     "rack.usedUnits": "Used Units",
     "rack.freeUnits": "Free Units",
     "rack.powerCapacity": "Power Capacity",
+
+    // ── Common (additions) ──
+    "common.unnamed": "(unnamed)",
+    "common.showingFirst10": "Showing first 10",
+    "common.more": "more",
+    "common.serverError": "Server communication error.",
+    "common.prev": "Prev",
+    "common.next": "Next",
+    "common.activeRatio": "Active ratio",
+    "common.maint": "Maint.",
+    "common.by": "by",
+
+    // ── Dashboard Summary Cards ──
+    "dashboard.activeAlerts": "Active Alerts",
+    "dashboard.healthStatus": "Health Status",
+    "dashboard.viewAllAlerts": "View all alerts",
+    "dashboard.racksAcross": "Racks across",
+    "dashboard.rooms": "rooms",
+
+    // ── Command Palette ──
+    "cmd.quickLinks": "Quick Links",
+    "cmd.noResults": "No results found for",
+    "cmd.navigate": "Navigate",
+    "cmd.open": "Open",
+
+    // ── Equipment History ──
+    "history.loading": "Loading history…",
+    "history.noHistory": "No history recorded yet for this equipment.",
+    "history.action": "Action",
+    "history.created": "Created",
+    "history.updated": "Updated",
+    "history.deleted": "Deleted",
+    "history.statusChange": "Status Change",
+    "history.powerAction": "Power Action",
+    "history.rackMoved": "Rack Moved",
+    "history.maintenanceStart": "Maintenance Start",
+    "history.maintenanceEnd": "Maintenance End",
+
+    // ── Server Compare (additions) ──
+    "compare.description": "Select 2-4 servers to compare key metrics side by side",
+    "compare.selectServersHeader": "Select Servers",
+    "compare.clearSelection": "Clear selection",
+    "compare.needMore": "Select at least 2 servers",
+    "compare.needMoreDesc": "Pick one more server above to start comparing metrics",
+    "compare.emptyDesc": "Click 2-4 servers above to see their metrics side by side in shared charts",
+    "compare.range": "Range",
+
+    // ── Alerts (additions) ──
+    "alerts.categoryOther": "Other",
+    "alerts.filterResult": "Filtered",
+    "alerts.empty": "No alert history.",
+    "alerts.category.label": "Category:",
+
+    // ── Discovery (additions) ──
+    "discovery.description": "Auto-discover targets from Prometheus and register as equipment.",
+    "discovery.syncTitle": "Target Sync",
+    "discovery.syncDesc": "Fetches active targets from Prometheus /api/v1/targets endpoint.",
+    "discovery.syncRun": "Run Sync",
+    "discovery.syncFail": "Sync failed",
+    "discovery.registerFail": "Register failed",
+    "discovery.registerError": "Error during registration",
+    "discovery.unregisterConfirm": "This will delete the linked equipment and disconnect. Continue?",
+    "discovery.unregisterFail": "Unregister failed",
+    "discovery.unregisterError": "Error during unregister",
+    "discovery.totalSynced": "Total Synced",
+    "discovery.newTargets": "New Targets",
+    "discovery.updated": "Updated",
+    "discovery.allJobs": "All Jobs",
+    "discovery.allHealth": "All Health",
+    "discovery.notLinked": "Not Linked",
+    "discovery.searchPlaceholder": "Search IP or hostname...",
+    "discovery.targets": "Targets",
+
+    // ── Settings / Users ──
+    "settings.usersDesc": "Manage system user accounts and roles.",
+    "settings.addUser": "+ Add User",
+    "settings.newUser": "New User Registration",
+    "settings.password": "Password",
+    "settings.creating": "Creating...",
+    "settings.createUser": "Create User",
+    "settings.changeRole": "Change Role",
+    "settings.createdAt": "Created At",
+    "settings.usersLoadError": "Failed to load users.",
+    "settings.createError": "Failed to create.",
+    "settings.roleChangeError": "Failed to change role.",
+
+    // ── Servers page ──
+    "servers.title": "Servers",
+    "servers.count": "servers total",
+    "servers.filterPlaceholder": "Filter by hostname / IP / model / manufacturer...",
+    "servers.compare": "Compare",
+    "servers.list": "List",
+    "servers.twin": "Twin",
+    "servers.unassigned": "Unassigned",
+    "servers.noMatch": "No matching servers found.",
+    "servers.empty": "No servers.",
+
+    // ── Digital Twin ──
+    "twin.clickToFloorPlan": "Click to view Room Floor Plan →",
+    "twin.noRoomData": "No room data.",
+    "twin.clickToDetail": "Click to view details →",
+
+    // ── Status labels ──
+    "status.active": "Active",
+    "status.maintenance": "Maintenance",
+    "status.repair": "Repair",
+    "status.failed": "Failed",
   },
   ko: {
     // ── Navigation ──
@@ -633,6 +740,113 @@ export const translations: Record<Language, Record<string, string>> = {
     "rack.usedUnits": "사용 유닛",
     "rack.freeUnits": "여유 유닛",
     "rack.powerCapacity": "전력 용량",
+
+    // ── Common (additions) ──
+    "common.unnamed": "(이름 없음)",
+    "common.showingFirst10": "첫 10개 표시",
+    "common.more": "더보기",
+    "common.serverError": "서버와 통신 중 오류가 발생했습니다.",
+    "common.prev": "이전",
+    "common.next": "다음",
+    "common.activeRatio": "활성 비율",
+    "common.maint": "유지보수",
+    "common.by": "by",
+
+    // ── Dashboard Summary Cards ──
+    "dashboard.activeAlerts": "활성 알림",
+    "dashboard.healthStatus": "건강 상태",
+    "dashboard.viewAllAlerts": "모든 알림 보기",
+    "dashboard.racksAcross": "개 랙,",
+    "dashboard.rooms": "개 룸",
+
+    // ── Command Palette ──
+    "cmd.quickLinks": "빠른 링크",
+    "cmd.noResults": "검색 결과 없음:",
+    "cmd.navigate": "이동",
+    "cmd.open": "열기",
+
+    // ── Equipment History ──
+    "history.loading": "이력 로딩 중…",
+    "history.noHistory": "이 장비의 이력이 없습니다.",
+    "history.action": "작업",
+    "history.created": "생성",
+    "history.updated": "수정",
+    "history.deleted": "삭제",
+    "history.statusChange": "상태 변경",
+    "history.powerAction": "전원 작업",
+    "history.rackMoved": "랙 이동",
+    "history.maintenanceStart": "유지보수 시작",
+    "history.maintenanceEnd": "유지보수 종료",
+
+    // ── Server Compare (additions) ──
+    "compare.description": "2-4대 서버를 선택하여 주요 메트릭을 나란히 비교합니다",
+    "compare.selectServersHeader": "서버 선택",
+    "compare.clearSelection": "선택 해제",
+    "compare.needMore": "서버를 2대 이상 선택하세요",
+    "compare.needMoreDesc": "위에서 서버를 하나 더 선택하면 비교가 시작됩니다",
+    "compare.emptyDesc": "위에서 2-4대 서버를 클릭하면 메트릭이 나란히 표시됩니다",
+    "compare.range": "기간",
+
+    // ── Alerts (additions) ──
+    "alerts.categoryOther": "기타",
+    "alerts.filterResult": "필터링 결과",
+    "alerts.empty": "알림 내역이 없습니다.",
+    "alerts.category.label": "카테고리:",
+
+    // ── Discovery (additions) ──
+    "discovery.description": "Prometheus 서버에서 타겟을 자동 탐지하고 장비로 등록합니다.",
+    "discovery.syncTitle": "타겟 동기화",
+    "discovery.syncDesc": "Prometheus /api/v1/targets 엔드포인트에서 활성 타겟을 가져옵니다.",
+    "discovery.syncRun": "동기화 실행",
+    "discovery.syncFail": "동기화 실패",
+    "discovery.registerFail": "등록 실패",
+    "discovery.registerError": "등록 중 오류 발생",
+    "discovery.unregisterConfirm": "등록된 장비를 삭제하고 연결을 해제합니다. 계속하시겠습니까?",
+    "discovery.unregisterFail": "해제 실패",
+    "discovery.unregisterError": "해제 중 오류 발생",
+    "discovery.totalSynced": "총 동기화",
+    "discovery.newTargets": "신규 타겟",
+    "discovery.updated": "업데이트",
+    "discovery.allJobs": "전체 Job",
+    "discovery.allHealth": "전체 상태",
+    "discovery.notLinked": "미연결",
+    "discovery.searchPlaceholder": "IP 또는 호스트명 검색...",
+    "discovery.targets": "타겟",
+
+    // ── Settings / Users ──
+    "settings.usersDesc": "시스템 사용자 계정 및 역할을 관리합니다.",
+    "settings.addUser": "+ 사용자 추가",
+    "settings.newUser": "새 사용자 등록",
+    "settings.password": "비밀번호",
+    "settings.creating": "생성 중...",
+    "settings.createUser": "사용자 생성",
+    "settings.changeRole": "역할 변경",
+    "settings.createdAt": "생성일",
+    "settings.usersLoadError": "사용자 목록을 불러올 수 없습니다.",
+    "settings.createError": "생성에 실패했습니다.",
+    "settings.roleChangeError": "역할 변경에 실패했습니다.",
+
+    // ── Servers page ──
+    "servers.title": "서버",
+    "servers.count": "대 서버",
+    "servers.filterPlaceholder": "호스트명 / IP / 모델 / 제조사 필터...",
+    "servers.compare": "서버 비교",
+    "servers.list": "목록",
+    "servers.twin": "Twin",
+    "servers.unassigned": "미배치",
+    "servers.noMatch": "일치하는 서버가 없습니다.",
+    "servers.empty": "서버가 없습니다.",
+
+    // ── Digital Twin ──
+    "twin.clickToFloorPlan": "클릭하여 Room Floor Plan 보기 →",
+    "twin.noRoomData": "Room 데이터가 없습니다.",
+    "twin.clickToDetail": "클릭하여 상세보기 →",
+
+    // ── Status labels ──
+    "status.active": "운영중",
+    "status.maintenance": "유지보수",
+    "status.repair": "수리중",
+    "status.failed": "장애",
   },
 };
 

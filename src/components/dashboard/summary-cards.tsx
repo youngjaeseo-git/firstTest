@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Server, Wrench, AlertTriangle, Bell, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface EquipmentRef {
   id: string;
@@ -48,6 +49,7 @@ export function DashboardSummaryCards({
   totalRooms,
   firingAlerts,
 }: SummaryCardsProps) {
+  const t = useT();
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {/* Total Equipment */}
@@ -55,7 +57,7 @@ export function DashboardSummaryCards({
         <Card className="relative overflow-visible border-blue-500/30 bg-gradient-to-br from-blue-600/10 via-blue-600/5 to-transparent hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-gray-300">
-              Total Equipment
+              {t("dashboard.totalEquipment")}
             </h3>
             <div className="rounded-xl bg-blue-500/15 p-2">
               <Server className="h-5 w-5 text-blue-400" />
@@ -66,9 +68,9 @@ export function DashboardSummaryCards({
             <span className="text-lg text-gray-500">/{totalEquipment}</span>
           </p>
           <div className="mt-3 flex gap-2">
-            <HoverStat label="Active" count={activeCount} color="green" items={activeList} />
-            <HoverStat label="Maint." count={maintenanceCount} color="amber" items={maintenanceList} />
-            <HoverStat label="Failed" count={failedCount} color="red" items={failedList} />
+            <HoverStat label={t("dashboard.fleet.active")} count={activeCount} color="green" items={activeList} t={t} />
+            <HoverStat label={t("common.maint")} count={maintenanceCount} color="amber" items={maintenanceList} t={t} />
+            <HoverStat label={t("dashboard.fleet.failed")} count={failedCount} color="red" items={failedList} t={t} />
           </div>
         </Card>
       </motion.div>
@@ -77,16 +79,16 @@ export function DashboardSummaryCards({
       <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible">
         <Card className="border-purple-500/30 bg-gradient-to-br from-purple-600/10 via-purple-600/5 to-transparent hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/5">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-300">Infrastructure</h3>
+            <h3 className="text-sm font-medium text-gray-300">{t("nav.infrastructure")}</h3>
             <div className="rounded-xl bg-purple-500/15 p-2">
               <Building2 className="h-5 w-5 text-purple-400" />
             </div>
           </div>
           <p className="mt-3 text-3xl font-bold text-gray-100">{totalRacks}</p>
           <p className="mt-1 text-sm text-gray-400">
-            Racks across{" "}
+            {t("nav.racks")}{" "}
             <span className="font-semibold text-purple-300">{totalRooms}</span>{" "}
-            rooms
+            {t("dashboard.rooms")}
           </p>
         </Card>
       </motion.div>
@@ -102,7 +104,7 @@ export function DashboardSummaryCards({
           )}
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-300">Active Alerts</h3>
+            <h3 className="text-sm font-medium text-gray-300">{t("dashboard.activeAlerts")}</h3>
             <div
               className={cn(
                 "rounded-xl p-2",
@@ -129,7 +131,7 @@ export function DashboardSummaryCards({
             href="/alerts"
             className="mt-2 inline-block text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
           >
-            View all alerts
+            {t("header.alerts.viewAll")}
           </Link>
         </Card>
       </motion.div>
@@ -147,7 +149,7 @@ export function DashboardSummaryCards({
           )}
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-300">Health Status</h3>
+            <h3 className="text-sm font-medium text-gray-300">{t("dashboard.healthStatus")}</h3>
             <div
               className={cn(
                 "rounded-xl p-2",
@@ -174,7 +176,7 @@ export function DashboardSummaryCards({
             <span className="text-lg text-gray-500">%</span>
           </p>
           <p className="mt-1 text-xs text-gray-500">
-            Active ratio · {failedCount} failed, {maintenanceCount} maint.
+            {t("common.activeRatio")} · {failedCount} {t("dashboard.fleet.failed")}, {maintenanceCount} {t("common.maint")}
           </p>
         </Card>
       </motion.div>
@@ -187,11 +189,13 @@ function HoverStat({
   count,
   color,
   items,
+  t,
 }: {
   label: string;
   count: number;
   color: "green" | "amber" | "red";
   items: EquipmentRef[];
+  t: (key: string) => string;
 }) {
   const [open, setOpen] = useState(false);
   const textColor = {
@@ -237,7 +241,7 @@ function HoverStat({
                   className="block rounded-lg px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-800/60 hover:text-gray-100 transition-colors"
                 >
                   <span className="font-mono">
-                    {eq.hostname || "(unnamed)"}
+                    {eq.hostname || t("common.unnamed")}
                   </span>
                   {eq.ipAddress && (
                     <span className="ml-2 text-gray-500">{eq.ipAddress}</span>
@@ -246,7 +250,7 @@ function HoverStat({
               ))}
               {items.length === 10 && (
                 <p className="mt-2 text-center text-[10px] text-gray-600">
-                  Showing first 10
+                  {t("common.showingFirst10")}
                 </p>
               )}
             </div>

@@ -16,6 +16,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface SearchResults {
   servers: Array<{ id: string; hostname: string; ipAddress: string | null; type: string; status: string }>;
@@ -24,17 +25,18 @@ interface SearchResults {
   alerts: Array<{ id: string; summary: string; severity: string; source: string | null }>;
 }
 
-const quickLinks = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard, description: "Overview" },
-  { label: "Servers", href: "/servers", icon: Server, description: "Server monitoring" },
-  { label: "Infrastructure", href: "/infrastructure", icon: Wrench, description: "Equipment management" },
-  { label: "Alerts", href: "/alerts", icon: AlertTriangle, description: "Active alerts" },
-  { label: "Capacity", href: "/capacity", icon: BarChart3, description: "Capacity planning" },
-  { label: "Settings", href: "/settings", icon: Settings, description: "System settings" },
+const QUICK_LINK_KEYS = [
+  { labelKey: "nav.dashboard", href: "/", icon: LayoutDashboard, descKey: "dashboard.avgCpu" },
+  { labelKey: "nav.servers", href: "/servers", icon: Server, descKey: "server.cpu" },
+  { labelKey: "nav.infrastructure", href: "/infrastructure", icon: Wrench, descKey: "infra.title" },
+  { labelKey: "nav.alerts", href: "/alerts", icon: AlertTriangle, descKey: "alerts.title" },
+  { labelKey: "nav.capacity", href: "/capacity", icon: BarChart3, descKey: "capacity.title" },
+  { labelKey: "nav.settings", href: "/settings", icon: Settings, descKey: "settings.title" },
 ];
 
 export function CommandPalette() {
   const router = useRouter();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults | null>(null);
@@ -98,7 +100,7 @@ export function CommandPalette() {
   }, [query]);
 
   // Build flat list of navigable items
-  const items = buildItems(query, results);
+  const items = buildItems(query, results, t);
 
   const navigate = useCallback(
     (href: string) => {
@@ -168,7 +170,7 @@ export function CommandPalette() {
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="Search servers, racks, alerts..."
+                      placeholder={t("header.searchPlaceholder")}
                       className="flex-1 bg-transparent text-sm text-gray-100 placeholder-gray-500 outline-none"
                     />
                     {loading && (
@@ -186,7 +188,7 @@ export function CommandPalette() {
                   >
                     {items.length === 0 && query.length >= 2 && !loading ? (
                       <p className="px-3 py-8 text-center text-sm text-gray-500">
-                        No results found for &quot;{query}&quot;
+                        {t("cmd.noResults")} &quot;{query}&quot;
                       </p>
                     ) : (
                       items.map((item, idx) => {
@@ -254,20 +256,20 @@ export function CommandPalette() {
                         <kbd className="rounded border border-gray-700 bg-gray-800 px-1 py-0.5 text-[10px]">
                           ↑↓
                         </kbd>
-                        Navigate
+                        {t("cmd.navigate")}
                       </span>
                       <span className="flex items-center gap-1">
                         <kbd className="rounded border border-gray-700 bg-gray-800 px-1 py-0.5 text-[10px]">
                           ↵
                         </kbd>
-                        Open
+                        {t("cmd.open")}
                       </span>
                     </div>
                     <span className="flex items-center gap-1">
                       <kbd className="rounded border border-gray-700 bg-gray-800 px-1 py-0.5 text-[10px]">
                         ESC
                       </kbd>
-                      Close
+                      {t("common.close")}
                     </span>
                   </div>
                 </motion.div>
@@ -291,22 +293,21 @@ interface FlatItem {
   description?: string;
 }
 
-function buildItems(query: string, results: SearchResults | null): FlatItem[] {
+function buildItems(query: string, results: SearchResults | null, t: (k: string) => string): FlatItem[] {
   const q = query.trim();
 
   // No query → show quick links
   if (!q || q.length < 2 || !results) {
     const items: FlatItem[] = [
-      { type: "header", key: "h-quick", label: "Quick Links", href: "", icon: null },
+      { type: "header", key: "h-quick", label: t("cmd.quickLinks"), href: "", icon: null },
     ];
-    quickLinks.forEach((link) =>
+    QUICK_LINK_KEYS.forEach((link) =>
       items.push({
         type: "item",
         key: `ql-${link.href}`,
-        label: link.label,
+        label: t(link.labelKey),
         href: link.href,
         icon: <link.icon className="h-4 w-4" />,
-        description: link.description,
       }),
     );
     return items;
@@ -315,7 +316,7 @@ function buildItems(query: string, results: SearchResults | null): FlatItem[] {
   const items: FlatItem[] = [];
 
   if (results.servers.length > 0) {
-    items.push({ type: "header", key: "h-servers", label: "Servers", href: "", icon: null });
+    items.push({ type: "header", key: "h-servers", label: t("nav.servers"), href: "", icon: null });
     results.servers.forEach((s) =>
       items.push({
         type: "item",
@@ -329,7 +330,7 @@ function buildItems(query: string, results: SearchResults | null): FlatItem[] {
   }
 
   if (results.rooms.length > 0) {
-    items.push({ type: "header", key: "h-rooms", label: "Rooms", href: "", icon: null });
+    items.push({ type: "header", key: "h-rooms", label: t("nav.racks"), href: "", icon: null });
     results.rooms.forEach((r) =>
       items.push({
         type: "item",
@@ -337,13 +338,12 @@ function buildItems(query: string, results: SearchResults | null): FlatItem[] {
         label: r.name,
         href: "/servers",
         icon: <Building2 className="h-4 w-4" />,
-        description: "Room",
       }),
     );
   }
 
   if (results.racks.length > 0) {
-    items.push({ type: "header", key: "h-racks", label: "Racks", href: "", icon: null });
+    items.push({ type: "header", key: "h-racks", label: t("nav.racks"), href: "", icon: null });
     results.racks.forEach((r) =>
       items.push({
         type: "item",
@@ -357,7 +357,7 @@ function buildItems(query: string, results: SearchResults | null): FlatItem[] {
   }
 
   if (results.alerts.length > 0) {
-    items.push({ type: "header", key: "h-alerts", label: "Alerts", href: "", icon: null });
+    items.push({ type: "header", key: "h-alerts", label: t("nav.alerts"), href: "", icon: null });
     results.alerts.forEach((a) =>
       items.push({
         type: "item",
