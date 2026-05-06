@@ -14,9 +14,12 @@ import { MemorySlotDiagram } from "@/components/memory/memory-slot-diagram";
 export default async function MemoryDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string } | Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const resolvedParams = await Promise.resolve(params);
+  const id = resolvedParams?.id;
+  if (!id) notFound();
+
   const equipment = await prisma.equipment.findUnique({
     where: { id },
     include: {
