@@ -6,8 +6,6 @@ import { getSessionUser } from "@/lib/rbac";
 import {
   Users,
   Radar,
-  Shield,
-  Database,
   Bell,
   Settings as SettingsIcon,
 } from "lucide-react";

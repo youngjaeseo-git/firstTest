@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
 import { GitCompareArrows, Search } from "lucide-react";
 import { MetricChart } from "./metric-chart";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -133,7 +132,7 @@ export function ServerCompareClient({ servers }: { servers: ServerInfo[] }) {
   const buildSeries = (metric: CompareMetric) =>
     selectedServers.map((srv, i) => ({
       label: srv.hostname,
-      query: metric.queryFn(srv.instance!),
+      query: metric.queryFn(srv.instance ?? ""),
       color: PALETTE[i % PALETTE.length],
     }));
 

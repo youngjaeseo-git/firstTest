@@ -81,11 +81,6 @@ const EQUIPMENT_STATUSES = [
   "REPAIR", "FAILED", "DECOMMISSIONED", "DISPOSED",
 ];
 
-const MEMORY_TYPES = [
-  "DDR3", "DDR4", "DDR5", "HBM", "HBM2", "HBM2E", "HBM3", "LPDDR4", "LPDDR5",
-];
-
-const FORM_FACTORS = ["RDIMM", "LRDIMM", "UDIMM", "SO-DIMM"];
 
 export default function EditEquipmentPage() {
   const router = useRouter();

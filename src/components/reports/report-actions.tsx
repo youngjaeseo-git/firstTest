@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Printer, Download, FileSpreadsheet } from "lucide-react";
+import { Printer, FileSpreadsheet } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
 
 export interface EquipmentRow {
