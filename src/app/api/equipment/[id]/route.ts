@@ -4,10 +4,11 @@ import { getSessionUser, canEdit, canDelete } from "@/lib/rbac";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const equipment = await prisma.equipment.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       rack: { include: { room: { include: { dataCenter: true } } } },
       cpus: { orderBy: { socketIndex: "asc" } },
@@ -26,8 +27,9 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const user = await getSessionUser();
   if (!user || !canEdit(user.role)) {
     return NextResponse.json(
@@ -41,19 +43,19 @@ export async function PUT(
 
   const equipment = await prisma.$transaction(async (tx) => {
     if (cpus) {
-      await tx.equipmentCpu.deleteMany({ where: { equipmentId: params.id } });
+      await tx.equipmentCpu.deleteMany({ where: { equipmentId: id } });
       if (cpus.length > 0) {
         await tx.equipmentCpu.createMany({
           data: cpus.map((c: Record<string, unknown>) => ({
             ...c,
-            equipmentId: params.id,
+            equipmentId: id,
           })),
         });
       }
     }
 
     return tx.equipment.update({
-      where: { id: params.id },
+      where: { id },
       data: equipmentData,
       include: { cpus: true, memories: true, rack: true },
     });
@@ -64,8 +66,9 @@ export async function PUT(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const user = await getSessionUser();
   if (!user || !canDelete(user.role)) {
     return NextResponse.json(
@@ -74,6 +77,6 @@ export async function DELETE(
     );
   }
 
-  await prisma.equipment.delete({ where: { id: params.id } });
+  await prisma.equipment.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }

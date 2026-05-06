@@ -3,10 +3,11 @@ import { prisma } from "@/lib/db";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const rack = await prisma.rack.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       room: { include: { dataCenter: true } },
       equipment: {

@@ -5,19 +5,19 @@ import { authOptions } from "@/lib/auth";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const memories = await prisma.equipmentMemory.findMany({
-    where: { equipmentId: params.id },
+    where: { equipmentId: id },
     orderBy: { slotIndex: "asc" },
   });
 
   const equipment = await prisma.equipment.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: { cpus: { orderBy: { socketIndex: "asc" } } },
   });
 
-  // Build summary
   const populated = memories.filter((m) => m.populated);
   const summary = {
     totalSlots: memories.length,
@@ -35,8 +35,9 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || (session.user as { role: string }).role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -44,27 +45,25 @@ export async function PUT(
 
   const { memories } = await req.json();
 
-  // Delete existing and recreate
   await prisma.equipmentMemory.deleteMany({
-    where: { equipmentId: params.id },
+    where: { equipmentId: id },
   });
 
   if (memories && memories.length > 0) {
     await prisma.equipmentMemory.createMany({
       data: memories.map((m: Record<string, unknown>, i: number) => ({
         ...m,
-        equipmentId: params.id,
+        equipmentId: id,
         slotIndex: i,
       })),
     });
   }
 
-  // Update cached total
   const totalGb = (memories || [])
     .filter((m: { populated: boolean }) => m.populated)
     .reduce((sum: number, m: { capacityGb?: number }) => sum + (m.capacityGb || 0), 0);
   await prisma.equipment.update({
-    where: { id: params.id },
+    where: { id },
     data: { totalMemoryGB: Math.round(totalGb) },
   });
 

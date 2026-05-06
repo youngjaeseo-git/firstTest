@@ -13,11 +13,12 @@ import { getSessionUser, canControlPower } from "@/lib/rbac";
 export default async function ServerDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const user = await getSessionUser();
   const equipment = await prisma.equipment.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       rack: { include: { room: { include: { dataCenter: true } } } },
       cpus: { orderBy: { socketIndex: "asc" } },

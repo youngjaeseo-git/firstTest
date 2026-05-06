@@ -4,8 +4,9 @@ import { getSessionUser, canChangeStatus } from "@/lib/rbac";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const user = await getSessionUser();
   if (!user || !canChangeStatus(user.role)) {
     return NextResponse.json(
@@ -17,7 +18,7 @@ export async function PATCH(
   const { status, note } = await req.json();
 
   const equipment = await prisma.equipment.findUnique({
-    where: { id: params.id },
+    where: { id },
   });
   if (!equipment) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -26,17 +27,16 @@ export async function PATCH(
   const oldStatus = equipment.status;
 
   const updated = await prisma.equipment.update({
-    where: { id: params.id },
+    where: { id },
     data: { status },
   });
 
-  // Create audit log
   await prisma.auditLog.create({
     data: {
       userId: user.id,
       action: "STATUS_CHANGE",
       entityType: "Equipment",
-      entityId: params.id,
+      entityId: id,
       changes: { status: { old: oldStatus, new: status }, note },
     },
   });

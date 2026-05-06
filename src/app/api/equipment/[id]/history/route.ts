@@ -11,8 +11,9 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,7 +26,7 @@ export async function GET(
   const limit = Math.min(Math.max(limitParam || 50, 1), 200);
 
   const entries = await prisma.auditLog.findMany({
-    where: { entityType: "Equipment", entityId: params.id },
+    where: { entityType: "Equipment", entityId: id },
     orderBy: { createdAt: "desc" },
     take: limit,
     include: {
