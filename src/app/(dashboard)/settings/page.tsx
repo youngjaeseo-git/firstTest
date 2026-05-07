@@ -7,6 +7,7 @@ import {
   Users,
   Radar,
   Bell,
+  Cpu,
   Settings as SettingsIcon,
 } from "lucide-react";
 
@@ -28,6 +29,13 @@ export default async function SettingsPage() {
       description: "Prometheus 타겟 동기화 및 확인",
       icon: Radar,
       adminOnly: false,
+    },
+    {
+      href: "/settings/bmc",
+      title: "BMC 관리",
+      description: "일괄 하드웨어 정보 갱신 및 전원 제어",
+      icon: Cpu,
+      adminOnly: true,
     },
     {
       href: "/alerts/rules",

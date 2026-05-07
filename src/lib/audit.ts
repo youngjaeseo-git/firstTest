@@ -16,7 +16,9 @@ export type AuditAction =
   | "POWER_ACTION"
   | "RACK_MOVE"
   | "MAINTENANCE_START"
-  | "MAINTENANCE_END";
+  | "MAINTENANCE_END"
+  | "BULK_POWER"
+  | "BULK_REFRESH_HW";
 
 export type AuditEntityType =
   | "Equipment"
