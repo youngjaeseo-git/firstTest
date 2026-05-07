@@ -8,6 +8,7 @@ import { PageTransition } from "@/components/ui/page-transition";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { StatusBadge } from "@/components/ui/badge";
 import { PowerConsoleCard } from "@/components/equipment/power-console-card";
+import { RefreshHwButton } from "@/components/equipment/refresh-hw-button";
 import { getSessionUser, canControlPower } from "@/lib/rbac";
 
 export default async function ServerDetailPage({
@@ -60,6 +61,9 @@ export default async function ServerDetailPage({
               {equipment.hostname || "Unnamed Server"}
             </h1>
             <div className="flex gap-2">
+              {equipment.bmcIpAddress && (
+                <RefreshHwButton equipmentId={equipment.id} />
+              )}
               <Link
                 href={`/infrastructure/${equipment.id}`}
                 className="rounded-lg border border-gray-700/60 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800/80 hover:border-gray-600 transition-all"

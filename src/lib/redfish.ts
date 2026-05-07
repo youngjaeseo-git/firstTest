@@ -121,6 +121,24 @@ interface SystemsCollection {
 
 interface SystemDetail {
   PowerState?: string;
+  Manufacturer?: string;
+  Model?: string;
+  SKU?: string;
+  SerialNumber?: string;
+  BiosVersion?: string;
+  UUID?: string;
+  HostName?: string;
+  ProcessorSummary?: {
+    Count?: number;
+    Model?: string;
+    CoreCount?: number;
+    ThreadCount?: number;
+  };
+  MemorySummary?: {
+    TotalSystemMemoryGiB?: number;
+    Status?: { Health?: string };
+  };
+  Processors?: { "@odata.id"?: string };
 }
 
 /**
@@ -210,7 +228,116 @@ export async function resetSystem(
   };
 }
 
-/** Destination URL for the BMC web console (opens in a new browser tab). */
-export function bmcConsoleUrl(host: string): string {
-  return `https://${host}`;
+export interface SystemHwInfo {
+  manufacturer: string | null;
+  model: string | null;
+  serialNumber: string | null;
+  biosVersion: string | null;
+  uuid: string | null;
+  powerState: PowerState;
+  cpuModel: string | null;
+  cpuCount: number | null;
+  cpuCoreCount: number | null;
+  cpuThreadCount: number | null;
+  totalMemoryGiB: number | null;
+  cpus: RedfishCpuInfo[];
+}
+
+export interface RedfishCpuInfo {
+  socket: string | null;
+  manufacturer: string | null;
+  model: string | null;
+  cores: number | null;
+  threads: number | null;
+  maxSpeedMhz: number | null;
+  tdpWatts: number | null;
+  architecture: string | null;
+}
+
+interface ProcessorDetail {
+  Id?: string;
+  Socket?: string;
+  Manufacturer?: string;
+  Model?: string;
+  ProcessorType?: string;
+  TotalCores?: number;
+  TotalThreads?: number;
+  MaxSpeedMHz?: number;
+  TDPWatts?: number;
+  InstructionSet?: string;
+  ProcessorArchitecture?: string;
+  Status?: { State?: string };
+}
+
+interface CollectionResponse {
+  Members?: Array<{ "@odata.id": string }>;
+}
+
+export async function getSystemHwInfo(
+  opts: RedfishOptions,
+): Promise<SystemHwInfo> {
+  const systemPath = await discoverSystemPath(opts);
+  const res = await bmcRequest<SystemDetail>(opts, "GET", systemPath);
+  if (res.status === 401) {
+    throw new RedfishError("BMC authentication failed (401)", 401);
+  }
+  if (res.status !== 200) {
+    throw new RedfishError(
+      `Failed to read system info (HTTP ${res.status})`,
+      res.status,
+    );
+  }
+
+  const sys = res.data;
+  const cpus: RedfishCpuInfo[] = [];
+
+  if (sys.Processors?.["@odata.id"]) {
+    try {
+      const procCol = await bmcRequest<CollectionResponse>(
+        opts,
+        "GET",
+        sys.Processors["@odata.id"],
+      );
+      if (procCol.status === 200 && procCol.data.Members) {
+        for (const member of procCol.data.Members) {
+          try {
+            const procRes = await bmcRequest<ProcessorDetail>(
+              opts,
+              "GET",
+              member["@odata.id"],
+            );
+            if (procRes.status === 200) {
+              const p = procRes.data;
+              if (p.Status?.State === "Absent") continue;
+              cpus.push({
+                socket: p.Socket || p.Id || null,
+                manufacturer: p.Manufacturer || null,
+                model: p.Model || null,
+                cores: p.TotalCores || null,
+                threads: p.TotalThreads || null,
+                maxSpeedMhz: p.MaxSpeedMHz || null,
+                tdpWatts: p.TDPWatts || null,
+                architecture: p.ProcessorArchitecture || p.InstructionSet || null,
+              });
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+
+  return {
+    manufacturer: sys.Manufacturer || null,
+    model: sys.Model || null,
+    serialNumber: sys.SerialNumber || null,
+    biosVersion: sys.BiosVersion || null,
+    uuid: sys.UUID || null,
+    powerState: (sys.PowerState as PowerState) || "Unknown",
+    cpuModel: sys.ProcessorSummary?.Model || cpus[0]?.model || null,
+    cpuCount: sys.ProcessorSummary?.Count || cpus.length || null,
+    cpuCoreCount: sys.ProcessorSummary?.CoreCount || null,
+    cpuThreadCount: sys.ProcessorSummary?.ThreadCount || null,
+    totalMemoryGiB: sys.MemorySummary?.TotalSystemMemoryGiB || null,
+    cpus,
+  };
 }

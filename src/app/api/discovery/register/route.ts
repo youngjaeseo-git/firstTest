@@ -3,6 +3,15 @@ import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { instantQuery } from "@/lib/prometheus";
+import {
+  getSystemHwInfo,
+  type RedfishOptions,
+  type SystemHwInfo,
+} from "@/lib/redfish";
+import {
+  getBmcCredentials,
+  bmcCredentialsConfigured,
+} from "@/lib/bmc-credentials";
 
 const BMC_SUBNET = "192.168.10";
 
@@ -18,6 +27,25 @@ function extractIpFromAddress(address: string | null): string | null {
   const host = address.split(":")[0];
   if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) return host;
   return null;
+}
+
+async function fetchRedfishInfo(
+  bmcIp: string,
+): Promise<SystemHwInfo | null> {
+  if (!bmcCredentialsConfigured()) return null;
+  try {
+    const dummyEquipment = { id: "" } as Parameters<typeof getBmcCredentials>[0];
+    const creds = getBmcCredentials(dummyEquipment);
+    const opts: RedfishOptions = {
+      host: bmcIp,
+      username: creds.username,
+      password: creds.password,
+      timeoutMs: 10_000,
+    };
+    return await getSystemHwInfo(opts);
+  } catch {
+    return null;
+  }
 }
 
 export async function POST(req: Request) {
@@ -65,6 +93,7 @@ export async function POST(req: Request) {
   const group = labels.group || null;
   const allJobs = labels._allJobs as unknown;
 
+  // --- Prometheus metrics ---
   let osImage: string | null = null;
   let kernelVersion: string | null = null;
   let totalMemoryGB: number | null = null;
@@ -72,7 +101,6 @@ export async function POST(req: Request) {
 
   const matcher = `instance=~"${instanceHost}(:.*)?"`;
 
-  // kube_node_info: OS, kernel
   if (!isIp) {
     try {
       const nodeInfoResult = await instantQuery(
@@ -88,7 +116,6 @@ export async function POST(req: Request) {
     } catch {}
   }
 
-  // machine_memory_bytes
   try {
     const memResult = await instantQuery(`max(machine_memory_bytes{${matcher}})`);
     if (memResult.data?.result?.[0]?.value?.[1]) {
@@ -98,7 +125,6 @@ export async function POST(req: Request) {
     }
   } catch {}
 
-  // machine_cpu_cores
   try {
     const cpuResult = await instantQuery(`max(machine_cpu_cores{${matcher}})`);
     if (cpuResult.data?.result?.[0]?.value?.[1]) {
@@ -106,7 +132,6 @@ export async function POST(req: Request) {
     }
   } catch {}
 
-  // health
   let isUp = target.health === "up";
   if (!isUp) {
     try {
@@ -117,6 +142,21 @@ export async function POST(req: Request) {
         );
       }
     } catch {}
+  }
+
+  // --- Redfish HW info (if BMC reachable) ---
+  let hw: SystemHwInfo | null = null;
+  if (bmcIpAddress) {
+    hw = await fetchRedfishInfo(bmcIpAddress);
+  }
+
+  const manufacturer = hw?.manufacturer || null;
+  const model = hw?.model || null;
+  const serialNumber = hw?.serialNumber || null;
+  const biosVersion = hw?.biosVersion || (kernelVersion ? `kernel ${kernelVersion}` : null);
+
+  if (hw?.totalMemoryGiB && !totalMemoryGB) {
+    totalMemoryGB = hw.totalMemoryGiB;
   }
 
   const jobList = Array.isArray(allJobs)
@@ -132,35 +172,61 @@ export async function POST(req: Request) {
     .filter(Boolean)
     .join(", ");
 
+  // Build CPU create data: prefer Redfish detailed info, fallback to Prometheus
+  const cpuCreateData =
+    hw && hw.cpus.length > 0
+      ? hw.cpus.map((cpu, i) => ({
+          socketIndex: i,
+          manufacturer: cpu.manufacturer || null,
+          model: cpu.model || null,
+          cores: cpu.cores || null,
+          threads: cpu.threads || null,
+          baseFreqMhz: null as number | null,
+          maxFreqMhz: cpu.maxSpeedMhz || null,
+          architecture: cpu.architecture || null,
+          tdpWatts: cpu.tdpWatts || null,
+        }))
+      : cpuCores
+        ? [
+            {
+              socketIndex: 0,
+              cores: cpuCores,
+              threads: cpuCores,
+              manufacturer: "Auto-detected" as string | null,
+              model: `${cpuCores} cores (total)` as string | null,
+              baseFreqMhz: null as number | null,
+              maxFreqMhz: null as number | null,
+              architecture: null as string | null,
+              tdpWatts: null as number | null,
+            },
+          ]
+        : [];
+
   const equipment = await prisma.equipment.create({
     data: {
       hostname,
       ipAddress,
       bmcIpAddress,
+      manufacturer,
+      model,
+      serialNumber,
       type: "SERVER",
       status: isUp ? "ACTIVE" : "INSTALLED",
-      totalMemoryGB,
+      totalMemoryGB: totalMemoryGB,
       osType: osImage ? "Linux" : null,
       osVersion: osImage || null,
-      biosVersion: kernelVersion ? `kernel ${kernelVersion}` : null,
+      biosVersion,
       notes: notes || null,
       prometheusInstance: instance,
       prometheusTarget: { connect: { id: target.id } },
-      ...(cpuCores
-        ? {
-            cpus: {
-              create: {
-                socketIndex: 0,
-                cores: cpuCores,
-                threads: cpuCores,
-                manufacturer: "Auto-detected",
-                model: `${cpuCores} cores (total)`,
-              },
-            },
-          }
+      ...(cpuCreateData.length > 0
+        ? { cpus: { create: cpuCreateData } }
         : {}),
     },
   });
 
-  return NextResponse.json({ equipment });
+  return NextResponse.json({
+    equipment,
+    redfishAvailable: hw !== null,
+  });
 }

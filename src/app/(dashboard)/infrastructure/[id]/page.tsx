@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/accordion";
 import { getSessionUser, canControlPower } from "@/lib/rbac";
 import { PowerConsoleCard } from "@/components/equipment/power-console-card";
+import { RefreshHwButton } from "@/components/equipment/refresh-hw-button";
 import { EquipmentHistory } from "@/components/equipment/equipment-history";
 import { ServerDetailClient } from "@/components/metrics/server-detail-client";
 
@@ -62,6 +63,9 @@ export default async function EquipmentDetailPage({
           </h1>
         </div>
         <div className="flex gap-2">
+          {equipment.bmcIpAddress && (
+            <RefreshHwButton equipmentId={equipment.id} />
+          )}
           <Link href={`/infrastructure/${equipment.id}/memory`}>
             <Button variant="outline">Memory 상세</Button>
           </Link>

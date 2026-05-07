@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pickFirstSystemPath, bmcConsoleUrl, RedfishError } from "./redfish";
+import { pickFirstSystemPath, RedfishError } from "./redfish";
 
 describe("pickFirstSystemPath", () => {
   it("returns the first @odata.id from a Members array", () => {
@@ -19,18 +19,6 @@ describe("pickFirstSystemPath", () => {
 
   it("returns null when Members is empty", () => {
     expect(pickFirstSystemPath({ Members: [] })).toBeNull();
-  });
-});
-
-describe("bmcConsoleUrl", () => {
-  it("returns an https URL for a host", () => {
-    expect(bmcConsoleUrl("10.0.0.1")).toBe("https://10.0.0.1");
-  });
-
-  it("works with hostnames", () => {
-    expect(bmcConsoleUrl("idrac-r740-01.dc.local")).toBe(
-      "https://idrac-r740-01.dc.local",
-    );
   });
 });
 
