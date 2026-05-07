@@ -139,6 +139,8 @@ interface SystemDetail {
     Status?: { Health?: string };
   };
   Processors?: { "@odata.id"?: string };
+  Memory?: { "@odata.id"?: string };
+  EthernetInterfaces?: { "@odata.id"?: string };
 }
 
 /**
@@ -241,6 +243,8 @@ export interface SystemHwInfo {
   cpuThreadCount: number | null;
   totalMemoryGiB: number | null;
   cpus: RedfishCpuInfo[];
+  memories: RedfishMemoryInfo[];
+  networkInterfaces: RedfishNicInfo[];
 }
 
 export interface RedfishCpuInfo {
@@ -252,6 +256,63 @@ export interface RedfishCpuInfo {
   maxSpeedMhz: number | null;
   tdpWatts: number | null;
   architecture: string | null;
+}
+
+export interface RedfishMemoryInfo {
+  slotName: string | null;
+  populated: boolean;
+  capacityGb: number | null;
+  memoryType: string | null;
+  manufacturer: string | null;
+  partNumber: string | null;
+  serialNumber: string | null;
+  speedMhz: number | null;
+  currentSpeedMhz: number | null;
+  rank: number | null;
+  eccEnabled: boolean | null;
+  formFactor: string | null;
+  voltage: number | null;
+}
+
+export interface RedfishNicInfo {
+  name: string | null;
+  macAddress: string | null;
+  speedMbps: number | null;
+  linkStatus: string | null;
+  ipv4Address: string | null;
+}
+
+interface MemoryDetail {
+  Id?: string;
+  Name?: string;
+  DeviceLocator?: string;
+  MemoryDeviceType?: string;
+  MemoryType?: string;
+  CapacityMiB?: number;
+  Manufacturer?: string;
+  PartNumber?: string;
+  SerialNumber?: string;
+  OperatingSpeedMhz?: number;
+  AllowedSpeedsMHz?: number[];
+  RankCount?: number;
+  DataWidthBits?: number;
+  BusWidthBits?: number;
+  ErrorCorrection?: string;
+  BaseModuleType?: string;
+  MemoryMedia?: string[];
+  OperatingMemoryModes?: string[];
+  Oem?: Record<string, unknown>;
+  Status?: { State?: string; Health?: string };
+}
+
+interface EthernetDetail {
+  Id?: string;
+  Name?: string;
+  MACAddress?: string;
+  SpeedMbps?: number;
+  LinkStatus?: string;
+  Status?: { State?: string; Health?: string };
+  IPv4Addresses?: Array<{ Address?: string }>;
 }
 
 interface ProcessorDetail {
@@ -326,6 +387,88 @@ export async function getSystemHwInfo(
     } catch {}
   }
 
+  const memories: RedfishMemoryInfo[] = [];
+  if (sys.Memory?.["@odata.id"]) {
+    try {
+      const memCol = await bmcRequest<CollectionResponse>(
+        opts,
+        "GET",
+        sys.Memory["@odata.id"],
+      );
+      if (memCol.status === 200 && memCol.data.Members) {
+        for (const member of memCol.data.Members) {
+          try {
+            const memRes = await bmcRequest<MemoryDetail>(
+              opts,
+              "GET",
+              member["@odata.id"],
+            );
+            if (memRes.status === 200) {
+              const m = memRes.data;
+              const isAbsent = m.Status?.State === "Absent";
+              const capacityMiB = m.CapacityMiB || 0;
+              memories.push({
+                slotName: m.DeviceLocator || m.Name || m.Id || null,
+                populated: !isAbsent && capacityMiB > 0,
+                capacityGb: capacityMiB > 0 ? Math.round(capacityMiB / 1024) : null,
+                memoryType: m.MemoryDeviceType || m.MemoryType || null,
+                manufacturer: m.Manufacturer?.trim() || null,
+                partNumber: m.PartNumber?.trim() || null,
+                serialNumber: m.SerialNumber?.trim() || null,
+                speedMhz: m.AllowedSpeedsMHz?.[0] || m.OperatingSpeedMhz || null,
+                currentSpeedMhz: m.OperatingSpeedMhz || null,
+                rank: m.RankCount || null,
+                eccEnabled: m.ErrorCorrection
+                  ? m.ErrorCorrection !== "NoECC"
+                  : null,
+                formFactor: m.BaseModuleType || null,
+                voltage: null,
+              });
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+
+  const networkInterfaces: RedfishNicInfo[] = [];
+  if (sys.EthernetInterfaces?.["@odata.id"]) {
+    try {
+      const nicCol = await bmcRequest<CollectionResponse>(
+        opts,
+        "GET",
+        sys.EthernetInterfaces["@odata.id"],
+      );
+      if (nicCol.status === 200 && nicCol.data.Members) {
+        for (const member of nicCol.data.Members) {
+          try {
+            const nicRes = await bmcRequest<EthernetDetail>(
+              opts,
+              "GET",
+              member["@odata.id"],
+            );
+            if (nicRes.status === 200) {
+              const n = nicRes.data;
+              if (n.Status?.State === "Absent") continue;
+              const speedStr = n.SpeedMbps
+                ? n.SpeedMbps >= 1000
+                  ? `${n.SpeedMbps / 1000}G`
+                  : `${n.SpeedMbps}M`
+                : null;
+              networkInterfaces.push({
+                name: n.Name || n.Id || null,
+                macAddress: n.MACAddress || null,
+                speedMbps: n.SpeedMbps || null,
+                linkStatus: n.LinkStatus || null,
+                ipv4Address: n.IPv4Addresses?.[0]?.Address || null,
+              });
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+
   return {
     manufacturer: sys.Manufacturer || null,
     model: sys.Model || null,
@@ -339,5 +482,7 @@ export async function getSystemHwInfo(
     cpuThreadCount: sys.ProcessorSummary?.ThreadCount || null,
     totalMemoryGiB: sys.MemorySummary?.TotalSystemMemoryGiB || null,
     cpus,
+    memories,
+    networkInterfaces,
   };
 }

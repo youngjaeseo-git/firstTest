@@ -8,8 +8,30 @@ import {
 } from "@/lib/bmc-credentials";
 import { getSystemHwInfo, RedfishError } from "@/lib/redfish";
 import { logAudit } from "@/lib/audit";
+import { MemoryType } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+const MEMORY_TYPE_MAP: Record<string, string> = {
+  DDR3: "DDR3",
+  DDR4: "DDR4",
+  DDR5: "DDR5",
+  HBM: "HBM",
+  HBM2: "HBM2",
+  HBM2E: "HBM2E",
+  HBM3: "HBM3",
+  LPDDR4: "LPDDR4",
+  LPDDR5: "LPDDR5",
+};
+
+function mapMemoryType(redfishType: string | null): MemoryType | null {
+  if (!redfishType) return null;
+  const upper = redfishType.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  for (const [key, val] of Object.entries(MEMORY_TYPE_MAP)) {
+    if (upper.includes(key)) return val as MemoryType;
+  }
+  return null;
+}
 
 /**
  * POST /api/equipment/[id]/refresh-hw
@@ -93,6 +115,45 @@ export async function POST(
       });
     }
 
+    if (hw.memories.length > 0) {
+      await prisma.equipmentMemory.deleteMany({ where: { equipmentId: id } });
+      await prisma.equipmentMemory.createMany({
+        data: hw.memories.map((mem, i) => ({
+          equipmentId: id,
+          slotName: mem.slotName || `DIMM_${i}`,
+          slotIndex: i,
+          populated: mem.populated,
+          capacityGb: mem.capacityGb,
+          memoryType: mapMemoryType(mem.memoryType),
+          manufacturer: mem.manufacturer,
+          partNumber: mem.partNumber,
+          serialNumber: mem.serialNumber,
+          speedMhz: mem.speedMhz,
+          currentSpeedMhz: mem.currentSpeedMhz,
+          rank: mem.rank,
+          eccEnabled: mem.eccEnabled,
+          formFactor: mem.formFactor,
+          voltage: mem.voltage,
+        })),
+      });
+    }
+
+    if (hw.networkInterfaces.length > 0) {
+      await prisma.networkPort.deleteMany({ where: { equipmentId: id } });
+      await prisma.networkPort.createMany({
+        data: hw.networkInterfaces.map((nic) => ({
+          equipmentId: id,
+          name: nic.name || "Unknown",
+          speed: nic.speedMbps
+            ? nic.speedMbps >= 1000
+              ? `${nic.speedMbps / 1000}G`
+              : `${nic.speedMbps}M`
+            : null,
+          connected: nic.linkStatus === "LinkUp",
+        })),
+      });
+    }
+
     await logAudit({
       userId: user.id,
       action: "UPDATE",
@@ -104,6 +165,9 @@ export async function POST(
         model: hw.model,
         cpuCount: hw.cpus.length,
         totalMemoryGiB: hw.totalMemoryGiB,
+        dimmSlots: hw.memories.length,
+        dimmPopulated: hw.memories.filter((m) => m.populated).length,
+        nicCount: hw.networkInterfaces.length,
       },
       reason: "Hardware info refreshed from BMC",
     });
@@ -118,6 +182,9 @@ export async function POST(
         totalMemoryGiB: hw.totalMemoryGiB,
         cpuCount: hw.cpus.length,
         cpus: hw.cpus,
+        dimmSlots: hw.memories.length,
+        dimmPopulated: hw.memories.filter((m) => m.populated).length,
+        nicCount: hw.networkInterfaces.length,
       },
     });
   } catch (err) {

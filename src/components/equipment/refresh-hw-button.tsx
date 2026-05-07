@@ -20,7 +20,7 @@ export function RefreshHwButton({ equipmentId }: { equipmentId: string }) {
         toast({
           type: "success",
           title: "Hardware info updated",
-          message: `${json.hw?.manufacturer || ""} ${json.hw?.model || ""} — ${json.hw?.cpuCount || 0} CPUs, ${json.hw?.totalMemoryGiB || 0} GB`,
+          message: `${json.hw?.manufacturer || ""} ${json.hw?.model || ""} — ${json.hw?.cpuCount || 0} CPUs, ${json.hw?.totalMemoryGiB || 0} GB, ${json.hw?.dimmPopulated || 0}/${json.hw?.dimmSlots || 0} DIMMs, ${json.hw?.nicCount || 0} NICs`,
         });
         setTimeout(() => window.location.reload(), 1500);
       } else {

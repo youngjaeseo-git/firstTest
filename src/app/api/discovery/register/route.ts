@@ -12,8 +12,30 @@ import {
   getBmcCredentials,
   bmcCredentialsConfigured,
 } from "@/lib/bmc-credentials";
+import { MemoryType } from "@prisma/client";
 
 const BMC_SUBNET = "192.168.10";
+
+const MEMORY_TYPE_MAP: Record<string, string> = {
+  DDR3: "DDR3",
+  DDR4: "DDR4",
+  DDR5: "DDR5",
+  HBM: "HBM",
+  HBM2: "HBM2",
+  HBM2E: "HBM2E",
+  HBM3: "HBM3",
+  LPDDR4: "LPDDR4",
+  LPDDR5: "LPDDR5",
+};
+
+function mapMemoryType(redfishType: string | null): MemoryType | null {
+  if (!redfishType) return null;
+  const upper = redfishType.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  for (const [key, val] of Object.entries(MEMORY_TYPE_MAP)) {
+    if (upper.includes(key)) return val as MemoryType;
+  }
+  return null;
+}
 
 function deriveBmcIp(serverIp: string | null): string | null {
   if (!serverIp) return null;
@@ -202,6 +224,39 @@ export async function POST(req: Request) {
           ]
         : [];
 
+  const memoryCreateData =
+    hw && hw.memories.length > 0
+      ? hw.memories.map((mem, i) => ({
+          slotName: mem.slotName || `DIMM_${i}`,
+          slotIndex: i,
+          populated: mem.populated,
+          capacityGb: mem.capacityGb,
+          memoryType: mapMemoryType(mem.memoryType),
+          manufacturer: mem.manufacturer,
+          partNumber: mem.partNumber,
+          serialNumber: mem.serialNumber,
+          speedMhz: mem.speedMhz,
+          currentSpeedMhz: mem.currentSpeedMhz,
+          rank: mem.rank,
+          eccEnabled: mem.eccEnabled,
+          formFactor: mem.formFactor,
+          voltage: mem.voltage,
+        }))
+      : [];
+
+  const nicCreateData =
+    hw && hw.networkInterfaces.length > 0
+      ? hw.networkInterfaces.map((nic) => ({
+          name: nic.name || "Unknown",
+          speed: nic.speedMbps
+            ? nic.speedMbps >= 1000
+              ? `${nic.speedMbps / 1000}G`
+              : `${nic.speedMbps}M`
+            : null,
+          connected: nic.linkStatus === "LinkUp",
+        }))
+      : [];
+
   const equipment = await prisma.equipment.create({
     data: {
       hostname,
@@ -221,6 +276,12 @@ export async function POST(req: Request) {
       prometheusTarget: { connect: { id: target.id } },
       ...(cpuCreateData.length > 0
         ? { cpus: { create: cpuCreateData } }
+        : {}),
+      ...(memoryCreateData.length > 0
+        ? { memories: { create: memoryCreateData } }
+        : {}),
+      ...(nicCreateData.length > 0
+        ? { networkPorts: { create: nicCreateData } }
         : {}),
     },
   });
