@@ -141,8 +141,9 @@ export async function POST(
 
   let success = false;
   let errorMessage: string | null = null;
+  let bmcResponse: unknown = null;
   try {
-    await resetSystem(
+    const result = await resetSystem(
       {
         host: equipment.bmcIpAddress,
         username: creds.username,
@@ -151,6 +152,11 @@ export async function POST(
       payload.action,
     );
     success = true;
+    bmcResponse = {
+      httpStatus: result.status,
+      actionUrl: result.actionUrl,
+      response: result.response,
+    };
   } catch (err) {
     errorMessage =
       err instanceof RedfishError ? err.message : "BMC reset failed";
@@ -176,5 +182,5 @@ export async function POST(
     return NextResponse.json({ error: errorMessage }, { status: 502 });
   }
 
-  return NextResponse.json({ success: true, action: payload.action });
+  return NextResponse.json({ success: true, action: payload.action, bmc: bmcResponse });
 }

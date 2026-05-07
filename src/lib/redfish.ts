@@ -174,23 +174,37 @@ export async function getPowerState(
  * Issue a power reset action against the BMC's primary computer system.
  * Possible ResetType values are defined by the Redfish ComputerSystem schema.
  */
+export interface ResetResult {
+  status: number;
+  systemPath: string;
+  actionUrl: string;
+  response: unknown;
+}
+
 export async function resetSystem(
   opts: RedfishOptions,
   resetType: ResetType,
-): Promise<void> {
+): Promise<ResetResult> {
   const systemPath = await discoverSystemPath(opts);
+  const actionUrl = `${systemPath}/Actions/ComputerSystem.Reset`;
   const res = await bmcRequest(
     opts,
     "POST",
-    `${systemPath}/Actions/ComputerSystem.Reset`,
+    actionUrl,
     { ResetType: resetType },
   );
   if (res.status >= 400) {
     throw new RedfishError(
-      `Reset action failed (HTTP ${res.status})`,
+      `Reset action failed (HTTP ${res.status}): ${JSON.stringify(res.data)}`,
       res.status,
     );
   }
+  return {
+    status: res.status,
+    systemPath,
+    actionUrl,
+    response: res.data,
+  };
 }
 
 /** Destination URL for the BMC web console (opens in a new browser tab). */
