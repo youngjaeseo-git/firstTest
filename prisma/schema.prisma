@@ -143,6 +143,7 @@ model Equipment {
   memories         EquipmentMemory[]
   networkPorts     NetworkPort[]
   prometheusTarget PrometheusTarget?
+  evalResults      EvalResult[]
 
   // Prometheus target label for metric queries (legacy, prefer PrometheusTarget relation)
   prometheusInstance String?
@@ -373,4 +374,167 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([createdAt])
+}
+
+// ============================================
+// Memory Evaluation Models
+// ============================================
+
+model EvalProject {
+  id            String            @id @default(cuid())
+  title         String
+  description   String?
+  evalType      EvalType
+  status        EvalProjectStatus @default(PLANNED)
+
+  // Memory product info
+  memoryType    MemoryType?
+  manufacturer  String?
+  partNumber    String?
+  capacityGb    Float?
+  speedMhz      Int?
+  formFactor    String?
+
+  // Schedule
+  startDate     DateTime?
+  endDate       DateTime?
+
+  // Ownership
+  createdBy     String
+  assigneeId    String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  phases        EvalPhase[]
+  results       EvalResult[]
+  tasks         EvalTask[]
+  notes         EvalNote[]
+
+  @@index([status])
+  @@index([evalType])
+}
+
+enum EvalType {
+  FIELD
+  ACCELERATED
+}
+
+enum EvalProjectStatus {
+  PLANNED
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+model EvalPhase {
+  id          String          @id @default(cuid())
+  projectId   String
+  name        String
+  sortOrder   Int             @default(0)
+  status      EvalPhaseStatus @default(PENDING)
+  startDate   DateTime?
+  endDate     DateTime?
+  description String?
+
+  project     EvalProject     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  results     EvalResult[]
+  tasks       EvalTask[]
+
+  @@index([projectId])
+}
+
+enum EvalPhaseStatus {
+  PENDING
+  IN_PROGRESS
+  PASSED
+  FAILED
+  SKIPPED
+}
+
+model EvalResult {
+  id              String         @id @default(cuid())
+  projectId       String
+  phaseId         String?
+  equipmentId     String?
+
+  workloadName    String
+  workloadConfig  String?
+  cycleDuration   String?
+  totalCycles     Int?
+  completedCycles Int?
+
+  result          EvalTestResult
+  value           String?
+  unit            String?
+  notes           String?
+
+  startedAt       DateTime?
+  completedAt     DateTime?
+  testedBy        String
+  createdAt       DateTime       @default(now())
+
+  project         EvalProject    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase           EvalPhase?     @relation(fields: [phaseId], references: [id])
+  equipment       Equipment?     @relation(fields: [equipmentId], references: [id])
+
+  @@index([projectId])
+  @@index([equipmentId])
+}
+
+enum EvalTestResult {
+  PASS
+  FAIL
+  WARNING
+  RUNNING
+  PENDING
+}
+
+model EvalTask {
+  id          String           @id @default(cuid())
+  projectId   String
+  phaseId     String?
+  title       String
+  description String?
+  status      EvalTaskStatus   @default(TODO)
+  priority    EvalTaskPriority @default(MEDIUM)
+  assigneeId  String?
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdBy   String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  project     EvalProject      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase       EvalPhase?       @relation(fields: [phaseId], references: [id])
+
+  @@index([projectId])
+  @@index([status])
+}
+
+enum EvalTaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  BLOCKED
+}
+
+enum EvalTaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model EvalNote {
+  id          String      @id @default(cuid())
+  projectId   String
+  content     String
+  createdBy   String
+  createdAt   DateTime    @default(now())
+
+  project     EvalProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
 }

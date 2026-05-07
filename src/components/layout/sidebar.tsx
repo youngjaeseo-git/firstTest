@@ -16,6 +16,7 @@ import {
   Settings,
   Search,
   Cpu,
+  FlaskConical,
 } from "lucide-react";
 
 const navigation = [
@@ -25,6 +26,7 @@ const navigation = [
   { key: "nav.racks", href: "/racks", icon: HardDrive },
   { key: "nav.search", href: "/search", icon: Search },
   { key: "nav.firmware", href: "/firmware", icon: Cpu },
+  { key: "nav.evaluations", href: "/evaluations", icon: FlaskConical },
   { key: "nav.alerts", href: "/alerts", icon: Bell },
   { key: "nav.capacity", href: "/capacity", icon: BarChart3 },
   { key: "nav.reports", href: "/reports", icon: FileText },
