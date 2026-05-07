@@ -4,6 +4,22 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { instantQuery } from "@/lib/prometheus";
 
+const BMC_SUBNET = "192.168.10";
+
+function deriveBmcIp(serverIp: string | null): string | null {
+  if (!serverIp) return null;
+  const parts = serverIp.split(".");
+  if (parts.length !== 4) return null;
+  return `${BMC_SUBNET}.${parts[3]}`;
+}
+
+function extractIpFromAddress(address: string | null): string | null {
+  if (!address) return null;
+  const host = address.split(":")[0];
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) return host;
+  return null;
+}
+
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || (session.user as { role: string }).role !== "ADMIN") {
@@ -37,10 +53,17 @@ export async function POST(req: Request) {
 
   const hostname =
     labels.kubernetes_io_hostname || labels.hostname || labels.nodename || instanceHost || instance;
-  const ipAddress = isIp ? instanceHost : (labels._ip || null);
+
+  const ipAddress = isIp
+    ? instanceHost
+    : (labels._ip || extractIpFromAddress(labels.__address__) || null);
+
+  const bmcIpAddress = deriveBmcIp(ipAddress);
+
   const memoryType = labels.memorytype || null;
   const owner = labels.owner || null;
   const group = labels.group || null;
+  const allJobs = labels._allJobs as unknown;
 
   let osImage: string | null = null;
   let kernelVersion: string | null = null;
@@ -96,10 +119,15 @@ export async function POST(req: Request) {
     } catch {}
   }
 
+  const jobList = Array.isArray(allJobs)
+    ? (allJobs as string[]).join(", ")
+    : null;
+
   const notes = [
     owner ? `owner: ${owner}` : null,
     group ? `group: ${group}` : null,
     memoryType ? `memory: ${memoryType}` : null,
+    jobList ? `jobs: ${jobList}` : null,
   ]
     .filter(Boolean)
     .join(", ");
@@ -108,6 +136,7 @@ export async function POST(req: Request) {
     data: {
       hostname,
       ipAddress,
+      bmcIpAddress,
       type: "SERVER",
       status: isUp ? "ACTIVE" : "INSTALLED",
       totalMemoryGB,
