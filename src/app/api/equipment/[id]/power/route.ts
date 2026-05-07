@@ -19,10 +19,13 @@ export const dynamic = "force-dynamic";
 
 const RESET_TYPES = [
   "On",
+  "ForceOn",
   "ForceOff",
   "GracefulShutdown",
   "GracefulRestart",
   "ForceRestart",
+  "Nmi",
+  "PowerCycle",
 ] as const satisfies readonly ResetType[];
 
 const PowerActionSchema = z.object({

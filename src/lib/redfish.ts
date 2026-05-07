@@ -14,10 +14,13 @@ import * as https from "node:https";
 
 export type ResetType =
   | "On"
+  | "ForceOn"
   | "ForceOff"
   | "GracefulShutdown"
   | "GracefulRestart"
-  | "ForceRestart";
+  | "ForceRestart"
+  | "Nmi"
+  | "PowerCycle";
 
 export type PowerState = "On" | "Off" | "PoweringOn" | "PoweringOff" | "Unknown";
 

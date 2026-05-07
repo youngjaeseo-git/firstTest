@@ -7,7 +7,6 @@ import {
   PowerOff,
   RotateCw,
   Zap,
-  ExternalLink,
   AlertTriangle,
   Loader2,
 } from "lucide-react";
@@ -20,10 +19,13 @@ type PowerState = "On" | "Off" | "PoweringOn" | "PoweringOff" | "Unknown";
 
 type ResetType =
   | "On"
+  | "ForceOn"
   | "ForceOff"
   | "GracefulShutdown"
   | "GracefulRestart"
-  | "ForceRestart";
+  | "ForceRestart"
+  | "Nmi"
+  | "PowerCycle";
 
 interface PowerActionDef {
   type: ResetType;
@@ -170,6 +172,16 @@ export function PowerConsoleCard({
           <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {ACTIONS.map((action) => {
               const Icon = action.Icon;
+              const isOn = state === "On";
+              const isOff = state === "Off";
+              const stateDisabled =
+                (action.type === "On" && isOn) ||
+                (action.type === "ForceOn" && isOn) ||
+                (action.type === "ForceOff" && isOff) ||
+                (action.type === "GracefulShutdown" && isOff) ||
+                (action.type === "GracefulRestart" && isOff) ||
+                (action.type === "ForceRestart" && isOff);
+              const disabled = !canControl || stateDisabled;
               const colors =
                 action.variant === "danger"
                   ? "border-red-500/30 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:border-red-500/50"
@@ -180,11 +192,13 @@ export function PowerConsoleCard({
                 <button
                   key={action.type}
                   onClick={() => setConfirming(action)}
-                  disabled={!canControl}
+                  disabled={disabled}
                   title={
-                    canControl
-                      ? action.description
-                      : "Requires ADMIN or OPERATOR role"
+                    !canControl
+                      ? "Requires ADMIN or OPERATOR role"
+                      : stateDisabled
+                        ? `Not available when server is ${state}`
+                        : action.description
                   }
                   className={cn(
                     "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40",
@@ -196,23 +210,6 @@ export function PowerConsoleCard({
                 </button>
               );
             })}
-          </div>
-
-          {/* BMC Console link */}
-          <div className="mt-4 border-t border-gray-800 pt-4">
-            <a
-              href={`https://${bmcHost}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/5 px-3 py-2 text-sm font-medium text-blue-300 transition-colors hover:bg-blue-500/10 hover:border-blue-500/50"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Open BMC Console (KVM)
-            </a>
-            <p className="mt-1.5 text-[11px] text-gray-500">
-              Opens the vendor BMC web UI in a new tab — full HTML5 KVM,
-              virtual media, and serial-over-LAN.
-            </p>
           </div>
         </>
       )}
