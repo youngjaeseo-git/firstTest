@@ -3,9 +3,9 @@
 # 실행: bash check/20260506-bmc-terminal.sh > bmc-terminal-result.txt 2>&1
 # 주의: BMC_IP, BMC_USER, BMC_PASS 를 실제 값으로 바꿔서 실행
 
-BMC_IP="${1:-10.144.38.100}"   # 첫번째 인자로 BMC IP 지정 가능
-BMC_USER="${BMC_USERNAME:-ADMIN}"
-BMC_PASS="${BMC_PASSWORD:-ADMIN}"
+BMC_IP="1.1.2.3"
+BMC_USER="abc"
+BMC_PASS="123"
 
 echo "====================================================="
 echo " BMC 터미널 접근 방식 확인: $BMC_IP"
