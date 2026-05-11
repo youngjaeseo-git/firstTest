@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
-import { RefreshCw, Power, Zap, ChevronLeft, CheckSquare, Square, Minus } from "lucide-react";
+import { RefreshCw, Power, Zap, ChevronLeft, CheckSquare, Square, Minus, Pencil, Save, X } from "lucide-react";
 
 interface EquipmentItem {
   id: string;
@@ -45,8 +45,12 @@ const POWER_ACTIONS: { type: ResetType; label: string; danger: boolean }[] = [
   { type: "PowerCycle", label: "Power Cycle", danger: true },
 ];
 
+type TabMode = "operations" | "ip-mapping";
+
 export default function BmcManagementPage() {
   const { toast } = useToast();
+  const [tab, setTab] = useState<TabMode>("operations");
+  const [allEquipment, setAllEquipment] = useState<EquipmentItem[]>([]);
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -56,13 +60,19 @@ export default function BmcManagementPage() {
   const [reason, setReason] = useState("");
   const [showPowerPanel, setShowPowerPanel] = useState(false);
 
+  // IP mapping state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [savingIp, setSavingIp] = useState(false);
+  const [ipFilter, setIpFilter] = useState<"all" | "set" | "empty">("all");
+
   const fetchEquipment = useCallback(async () => {
     try {
       const res = await fetch("/api/equipment?type=SERVER&limit=500");
       const json = await res.json();
-      const items: EquipmentItem[] = (json.items || json.equipment || json || [])
-        .filter((e: EquipmentItem) => e.bmcIpAddress);
-      setEquipment(items);
+      const items: EquipmentItem[] = json.items || json.equipment || json || [];
+      setAllEquipment(items);
+      setEquipment(items.filter((e: EquipmentItem) => e.bmcIpAddress));
     } catch {
       toast({ type: "error", title: "Failed to load equipment" });
     } finally {
@@ -73,6 +83,94 @@ export default function BmcManagementPage() {
   useEffect(() => {
     fetchEquipment();
   }, [fetchEquipment]);
+
+  const filteredForMapping = allEquipment.filter((e) => {
+    if (ipFilter === "set") return !!e.bmcIpAddress;
+    if (ipFilter === "empty") return !e.bmcIpAddress;
+    return true;
+  });
+
+  const startEdit = (eq: EquipmentItem) => {
+    setEditingId(eq.id);
+    setEditValue(eq.bmcIpAddress || "");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditValue("");
+  };
+
+  const saveIp = async (eqId: string) => {
+    setSavingIp(true);
+    try {
+      const res = await fetch(`/api/equipment/${eqId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bmcIpAddress: editValue.trim() || null }),
+      });
+      if (!res.ok) {
+        toast({ type: "error", title: "저장 실패" });
+        setSavingIp(false);
+        return;
+      }
+      setAllEquipment((prev) =>
+        prev.map((e) => e.id === eqId ? { ...e, bmcIpAddress: editValue.trim() || null } : e)
+      );
+      setEquipment((prev) => {
+        const updated = prev.map((e) => e.id === eqId ? { ...e, bmcIpAddress: editValue.trim() || null } : e);
+        return updated.filter((e) => e.bmcIpAddress);
+      });
+      toast({ type: "success", title: "BMC IP 저장됨" });
+      setEditingId(null);
+    } catch {
+      toast({ type: "error", title: "네트워크 오류" });
+    } finally {
+      setSavingIp(false);
+    }
+  };
+
+  const autoDeriveBmcIp = (hostIp: string | null): string => {
+    if (!hostIp) return "";
+    const parts = hostIp.split(".");
+    if (parts.length !== 4) return "";
+    return `192.168.10.${parts[3]}`;
+  };
+
+  const bulkAutoSet = async () => {
+    const targets = allEquipment.filter((e) => !e.bmcIpAddress && e.ipAddress);
+    if (targets.length === 0) {
+      toast({ type: "warning", title: "자동 설정할 서버 없음", message: "BMC IP가 비어있고 Host IP가 있는 서버가 없습니다." });
+      return;
+    }
+    const confirmed = window.confirm(
+      `${targets.length}대 서버에 BMC IP를 자동 설정합니다 (192.168.10.{마지막옥텟}). 계속하시겠습니까?`
+    );
+    if (!confirmed) return;
+
+    setSavingIp(true);
+    let ok = 0;
+    let fail = 0;
+    for (const eq of targets) {
+      const bmcIp = autoDeriveBmcIp(eq.ipAddress);
+      if (!bmcIp) { fail++; continue; }
+      try {
+        const res = await fetch(`/api/equipment/${eq.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bmcIpAddress: bmcIp }),
+        });
+        if (res.ok) ok++;
+        else fail++;
+      } catch { fail++; }
+    }
+    toast({
+      type: fail > 0 ? "warning" : "success",
+      title: "일괄 자동 설정 완료",
+      message: `${ok}대 성공, ${fail}대 실패`,
+    });
+    setSavingIp(false);
+    fetchEquipment();
+  };
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -199,11 +297,156 @@ export default function BmcManagementPage() {
           <span>/</span>
           <span>BMC Management</span>
         </div>
-        <h1 className="text-2xl font-bold">BMC 일괄 관리</h1>
+        <h1 className="text-2xl font-bold">BMC 관리</h1>
         <p className="mt-1 text-sm text-gray-400">
-          BMC가 설정된 서버의 하드웨어 정보 갱신 및 전원 제어를 일괄 수행합니다.
+          BMC IP 매핑 관리, 하드웨어 정보 갱신, 전원 제어
         </p>
       </div>
+
+      {/* Tab navigation */}
+      <div className="flex gap-1 rounded-lg bg-gray-900/80 p-1">
+        <button
+          onClick={() => setTab("ip-mapping")}
+          className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+            tab === "ip-mapping"
+              ? "bg-gray-700 text-gray-100"
+              : "text-gray-400 hover:text-gray-200"
+          }`}
+        >
+          BMC IP 매핑 ({allEquipment.length})
+        </button>
+        <button
+          onClick={() => setTab("operations")}
+          className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+            tab === "operations"
+              ? "bg-gray-700 text-gray-100"
+              : "text-gray-400 hover:text-gray-200"
+          }`}
+        >
+          일괄 작업 ({equipment.length})
+        </button>
+      </div>
+
+      {/* ====== IP Mapping Tab ====== */}
+      {tab === "ip-mapping" && (
+        <>
+          <Card>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex gap-1 rounded-md bg-gray-800 p-0.5">
+                {(["all", "set", "empty"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setIpFilter(f)}
+                    className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                      ipFilter === f
+                        ? "bg-gray-600 text-gray-100"
+                        : "text-gray-400 hover:text-gray-200"
+                    }`}
+                  >
+                    {f === "all" ? `All (${allEquipment.length})`
+                      : f === "set" ? `BMC 설정됨 (${allEquipment.filter((e) => e.bmcIpAddress).length})`
+                      : `BMC 미설정 (${allEquipment.filter((e) => !e.bmcIpAddress).length})`}
+                  </button>
+                ))}
+              </div>
+              <div className="h-5 w-px bg-gray-700" />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={bulkAutoSet}
+                disabled={savingIp}
+              >
+                <Zap className="mr-1.5 h-3.5 w-3.5" />
+                미설정 서버 자동 설정
+              </Button>
+              <span className="text-[10px] text-gray-500">
+                Host IP 마지막 옥텟으로 192.168.10.X 자동 생성
+              </span>
+            </div>
+          </Card>
+
+          <Card>
+            {loading ? (
+              <p className="text-gray-500 text-sm">Loading...</p>
+            ) : filteredForMapping.length === 0 ? (
+              <p className="text-gray-500 text-sm">해당하는 서버가 없습니다.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-800 text-left text-xs text-gray-500 uppercase">
+                      <th className="pb-2 pr-3">Hostname</th>
+                      <th className="pb-2 pr-3">Host IP</th>
+                      <th className="pb-2 pr-3">BMC IP</th>
+                      <th className="pb-2 pr-3">Model</th>
+                      <th className="pb-2 pr-3 w-20">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredForMapping.map((eq) => (
+                      <tr key={eq.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                        <td className="py-2 pr-3 font-mono text-gray-200">{eq.hostname || "-"}</td>
+                        <td className="py-2 pr-3 font-mono text-gray-400">{eq.ipAddress || "-"}</td>
+                        <td className="py-2 pr-3">
+                          {editingId === eq.id ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") saveIp(eq.id);
+                                  if (e.key === "Escape") cancelEdit();
+                                }}
+                                placeholder="192.168.10.xxx"
+                                className="w-40 rounded border border-blue-600 bg-gray-800 px-2 py-1 text-xs font-mono text-gray-100 focus:outline-none"
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => saveIp(eq.id)}
+                                disabled={savingIp}
+                                className="rounded p-1 text-green-400 hover:bg-green-900/30"
+                              >
+                                <Save className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={cancelEdit}
+                                className="rounded p-1 text-gray-400 hover:bg-gray-700"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className={`font-mono ${eq.bmcIpAddress ? "text-gray-300" : "text-gray-600 italic"}`}>
+                              {eq.bmcIpAddress || "미설정"}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-3 text-gray-500 text-xs truncate max-w-[180px]">
+                          {eq.model || "-"}
+                        </td>
+                        <td className="py-2 pr-3">
+                          {editingId !== eq.id && (
+                            <button
+                              onClick={() => startEdit(eq)}
+                              className="rounded p-1 text-gray-500 hover:text-blue-400 hover:bg-gray-800"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </>
+      )}
+
+      {/* ====== Operations Tab ====== */}
+      {tab === "operations" && (<>
 
       {/* Action bar */}
       <Card className="sticky top-0 z-10">
@@ -405,6 +648,7 @@ export default function BmcManagementPage() {
           </div>
         )}
       </Card>
+      </>)}
     </div>
   );
 }
