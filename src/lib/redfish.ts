@@ -320,6 +320,7 @@ interface ProcessorDetail {
   Socket?: string;
   Manufacturer?: string;
   Model?: string;
+  Description?: string;
   ProcessorType?: string;
   TotalCores?: number;
   TotalThreads?: number;
@@ -327,6 +328,13 @@ interface ProcessorDetail {
   TDPWatts?: number;
   InstructionSet?: string;
   ProcessorArchitecture?: string;
+  ProcessorId?: {
+    VendorId?: string;
+    EffectiveFamily?: string;
+    EffectiveModel?: string;
+    IdentificationRegisters?: string;
+  };
+  Oem?: Record<string, unknown>;
   Status?: { State?: string };
 }
 
@@ -437,12 +445,30 @@ export async function getSystemHwInfo(
             if (procRes.status === 200) {
               const p = procRes.data;
               if (p.Status?.State === "Absent") continue;
+              const model =
+                p.Model ||
+                p.Description ||
+                p.ProcessorId?.EffectiveFamily ||
+                sys.ProcessorSummary?.Model ||
+                null;
+              const cores =
+                p.TotalCores ||
+                (sys.ProcessorSummary?.CoreCount && sys.ProcessorSummary?.Count
+                  ? Math.round(sys.ProcessorSummary.CoreCount / sys.ProcessorSummary.Count)
+                  : sys.ProcessorSummary?.CoreCount) ||
+                null;
+              const threads =
+                p.TotalThreads ||
+                (sys.ProcessorSummary?.ThreadCount && sys.ProcessorSummary?.Count
+                  ? Math.round(sys.ProcessorSummary.ThreadCount / sys.ProcessorSummary.Count)
+                  : sys.ProcessorSummary?.ThreadCount) ||
+                null;
               cpus.push({
                 socket: p.Socket || p.Id || null,
-                manufacturer: p.Manufacturer || null,
-                model: p.Model || null,
-                cores: p.TotalCores || null,
-                threads: p.TotalThreads || null,
+                manufacturer: p.Manufacturer || p.ProcessorId?.VendorId || null,
+                model,
+                cores,
+                threads,
                 maxSpeedMhz: p.MaxSpeedMHz || null,
                 tdpWatts: p.TDPWatts || null,
                 architecture: p.ProcessorArchitecture || p.InstructionSet || null,
