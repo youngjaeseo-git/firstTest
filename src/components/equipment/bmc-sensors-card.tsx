@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Thermometer, Fan, Zap, RefreshCw, AlertTriangle } from "lucide-react";
@@ -65,7 +65,7 @@ function tempBarColor(reading: number | null, critical: number | null): string {
 
 export function BmcSensorsCard({ equipmentId }: { equipmentId: string }) {
   const [data, setData] = useState<SensorsData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchSensors = useCallback(async () => {
@@ -85,6 +85,10 @@ export function BmcSensorsCard({ equipmentId }: { equipmentId: string }) {
       setLoading(false);
     }
   }, [equipmentId]);
+
+  useEffect(() => {
+    fetchSensors();
+  }, [fetchSensors]);
 
   return (
     <Card>
@@ -106,7 +110,7 @@ export function BmcSensorsCard({ equipmentId }: { equipmentId: string }) {
             disabled={loading}
           >
             <RefreshCw className={`h-3 w-3 mr-1 ${loading ? "animate-spin" : ""}`} />
-            {data ? "Refresh" : "Load Sensors"}
+            Refresh
           </Button>
         </div>
       </div>
@@ -118,14 +122,8 @@ export function BmcSensorsCard({ equipmentId }: { equipmentId: string }) {
         </div>
       )}
 
-      {!data && !error && !loading && (
-        <p className="text-sm text-gray-500 text-center py-4">
-          Load Sensors 버튼을 클릭하여 BMC에서 실시간 센서 데이터를 가져옵니다.
-        </p>
-      )}
-
       {loading && !data && (
-        <p className="text-sm text-gray-500 text-center py-4">Loading...</p>
+        <p className="text-sm text-gray-500 text-center py-4">BMC에서 센서 데이터를 가져오는 중...</p>
       )}
 
       {data && (
