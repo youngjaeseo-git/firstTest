@@ -9,6 +9,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { StatusBadge } from "@/components/ui/badge";
 import { PowerConsoleCard } from "@/components/equipment/power-console-card";
 import { RefreshHwButton } from "@/components/equipment/refresh-hw-button";
+import { BmcSensorsCard } from "@/components/equipment/bmc-sensors-card";
 import { getSessionUser, canControlPower } from "@/lib/rbac";
 
 export default async function ServerDetailPage({
@@ -123,6 +124,11 @@ export default async function ServerDetailPage({
           hostname={equipment.hostname}
           canControl={!!user && canControlPower(user.role)}
         />
+
+        {/* BMC Sensors (Thermal & Power) */}
+        {equipment.bmcIpAddress && (
+          <BmcSensorsCard equipmentId={equipment.id} />
+        )}
 
         {/* Metric charts */}
         {instance ? (

@@ -330,6 +330,73 @@ interface ProcessorDetail {
   Status?: { State?: string };
 }
 
+export interface RedfishThermalSensor {
+  name: string;
+  readingCelsius: number | null;
+  upperCritical: number | null;
+  upperFatal: number | null;
+  status: string | null;
+}
+
+export interface RedfishFanSensor {
+  name: string;
+  reading: number | null;
+  readingUnits: string | null;
+  status: string | null;
+}
+
+export interface RedfishPowerSupply {
+  name: string;
+  model: string | null;
+  capacityWatts: number | null;
+  type: string | null;
+  status: string | null;
+}
+
+export interface RedfishPowerControl {
+  consumedWatts: number | null;
+  capacityWatts: number | null;
+  limitWatts: number | null;
+}
+
+export interface RedfishSensorsData {
+  temperatures: RedfishThermalSensor[];
+  fans: RedfishFanSensor[];
+  powerSupplies: RedfishPowerSupply[];
+  powerControl: RedfishPowerControl | null;
+}
+
+interface ThermalResponse {
+  Temperatures?: Array<{
+    Name?: string;
+    ReadingCelsius?: number;
+    UpperThresholdCritical?: number;
+    UpperThresholdFatal?: number;
+    Status?: { State?: string; Health?: string };
+  }>;
+  Fans?: Array<{
+    Name?: string;
+    Reading?: number;
+    ReadingUnits?: string;
+    Status?: { State?: string; Health?: string };
+  }>;
+}
+
+interface PowerResponse {
+  PowerSupplies?: Array<{
+    Name?: string;
+    Model?: string;
+    PowerCapacityWatts?: number;
+    PowerSupplyType?: string;
+    Status?: { State?: string; Health?: string };
+  }>;
+  PowerControl?: Array<{
+    PowerConsumedWatts?: number;
+    PowerCapacityWatts?: number;
+    PowerLimit?: { LimitInWatts?: number };
+  }>;
+}
+
 interface CollectionResponse {
   Members?: Array<{ "@odata.id": string }>;
 }
@@ -485,4 +552,75 @@ export async function getSystemHwInfo(
     memories,
     networkInterfaces,
   };
+}
+
+/**
+ * Fetch live thermal (temperatures, fans) and power (PSU, consumption)
+ * from Redfish Chassis/1/Thermal and Chassis/1/Power.
+ */
+export async function getSensorsData(
+  opts: RedfishOptions,
+): Promise<RedfishSensorsData> {
+  const temperatures: RedfishThermalSensor[] = [];
+  const fans: RedfishFanSensor[] = [];
+  const powerSupplies: RedfishPowerSupply[] = [];
+  let powerControl: RedfishPowerControl | null = null;
+
+  try {
+    const thermalRes = await bmcRequest<ThermalResponse>(
+      opts,
+      "GET",
+      "/redfish/v1/Chassis/1/Thermal",
+    );
+    if (thermalRes.status === 200) {
+      for (const t of thermalRes.data.Temperatures || []) {
+        if (!t.Name) continue;
+        temperatures.push({
+          name: t.Name,
+          readingCelsius: t.ReadingCelsius ?? null,
+          upperCritical: t.UpperThresholdCritical ?? null,
+          upperFatal: t.UpperThresholdFatal ?? null,
+          status: t.Status?.Health || null,
+        });
+      }
+      for (const f of thermalRes.data.Fans || []) {
+        if (!f.Name) continue;
+        fans.push({
+          name: f.Name,
+          reading: f.Reading ?? null,
+          readingUnits: f.ReadingUnits || "RPM",
+          status: f.Status?.Health || null,
+        });
+      }
+    }
+  } catch {}
+
+  try {
+    const powerRes = await bmcRequest<PowerResponse>(
+      opts,
+      "GET",
+      "/redfish/v1/Chassis/1/Power",
+    );
+    if (powerRes.status === 200) {
+      for (const p of powerRes.data.PowerSupplies || []) {
+        powerSupplies.push({
+          name: p.Name || "PSU",
+          model: p.Model || null,
+          capacityWatts: p.PowerCapacityWatts ?? null,
+          type: p.PowerSupplyType || null,
+          status: p.Status?.Health || null,
+        });
+      }
+      const ctrl = powerRes.data.PowerControl?.[0];
+      if (ctrl) {
+        powerControl = {
+          consumedWatts: ctrl.PowerConsumedWatts ?? null,
+          capacityWatts: ctrl.PowerCapacityWatts ?? null,
+          limitWatts: ctrl.PowerLimit?.LimitInWatts ?? null,
+        };
+      }
+    }
+  } catch {}
+
+  return { temperatures, fans, powerSupplies, powerControl };
 }
