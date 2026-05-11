@@ -42,3 +42,22 @@ DCIM 앱에서 BMC에 접속할 때 어느 Lab의 BMC인지 구분이 필요하�
 → DCIM 앱 서버(10.144.38.100)에서 `192.168.10.101`에 접속하면
   Lab-1 SPR BMC에 연결됨 (Lab-3 GNR-AP BMC가 아님).
   Lab-3 BMC 접근에는 별도 네트워크 경로 또는 게이트웨이가 필요할 수 있음.
+
+## Redfish 엔드포인트 지원 현황 (2026-05-12 확인)
+
+| 엔드포인트 | SPR (v1.9.0) | GNR-AP (v1.21.1) | GNR-SP (v1.21.1) | Ampere (v1.17.0) | SRF |
+|---|---|---|---|---|---|
+| Thermal (구형) | OK (24 temp, 8 fan) | OK (21 temp, 9 fan) | OK (21 temp, 9 fan) | OK (33 temp, 8 fan) | 미확인 |
+| ThermalSubsystem (신형) | 404 | OK | OK | OK | 미확인 |
+| Power (구형) | OK (768W/2400W) | OK (331W) | OK (322W) | OK (PSU만, 소비량 None) | 미확인 |
+| PowerSubsystem (신형) | 404 | OK | OK | OK | 미확인 |
+| Sensors | OK (1개) | OK (58개) | OK (57개) | OK (92개) | 미확인 |
+| Memory | OK (32 DIMM) | OK (8 DIMM) | OK (32 DIMM) | OK (16 DIMM) | 미확인 |
+| Processors | OK | OK (6952P, 96c/192t) | OK (6767P, 64c/128t) | OK (파싱 불완전) | 미확인 |
+| EthernetInterfaces | OK (3) | OK (3) | OK (3) | OK (5) | 미확인 |
+
+### 참고사항
+- 구형 Thermal/Power: 모든 서버 타입에서 동작 → 현재 DCIM 구현 호환
+- Ampere: PowerConsumedWatts = None (전력 소비량 미제공), Processor 상세 파싱 불완전
+- SPR: Redfish v1.9.0으로 ThermalSubsystem/PowerSubsystem 미지원
+- SRF: 서버 부팅 불가로 미확인 (TODO)
