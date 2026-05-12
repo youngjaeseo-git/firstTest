@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
-import { List, Building2, Search, GitCompareArrows } from "lucide-react";
+import { List, Building2, Search, GitCompareArrows, ArrowUpDown } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
 
 interface ServerPageClientProps {
@@ -68,26 +68,69 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
   const [selectedRoom, setSelectedRoom] = useState<string | null>(initialRoomId);
   const [selectedRack, setSelectedRack] = useState<string | null>(initialRackId);
   const [query, setQuery] = useState(initialQuery);
+  const [filterModel, setFilterModel] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterRoom, setFilterRoom] = useState("all");
+  const [sortKey, setSortKey] = useState<"hostname" | "ipAddress" | "model" | "status">("hostname");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const modelOptions = useMemo(() => {
+    const models = new Set(servers.map((s) => s.model).filter(Boolean) as string[]);
+    return Array.from(models).sort();
+  }, [servers]);
+
+  const statusOptions = useMemo(() => {
+    const statuses = new Set(servers.map((s) => s.status));
+    return Array.from(statuses).sort();
+  }, [servers]);
+
+  const roomOptions = useMemo(() => {
+    const names = new Set(servers.map((s) => s.roomName).filter(Boolean) as string[]);
+    return Array.from(names).sort();
+  }, [servers]);
 
   const filteredServers = useMemo(() => {
+    let result = servers;
+
     const q = query.trim().toLowerCase();
-    if (!q) return servers;
-    return servers.filter((s) =>
-      [
-        s.hostname,
-        s.ipAddress,
-        s.bmcIpAddress,
-        s.model,
-        s.manufacturer,
-        s.cpuManufacturer,
-        s.cpuModel,
-        s.roomName,
-        s.rackName,
-      ]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q)),
-    );
-  }, [servers, query]);
+    if (q) {
+      result = result.filter((s) =>
+        [s.hostname, s.ipAddress, s.bmcIpAddress, s.model, s.manufacturer, s.cpuManufacturer, s.cpuModel, s.roomName, s.rackName]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q)),
+      );
+    }
+
+    if (filterModel !== "all") {
+      result = result.filter((s) => s.model === filterModel);
+    }
+    if (filterStatus !== "all") {
+      result = result.filter((s) => s.status === filterStatus);
+    }
+    if (filterRoom !== "all") {
+      result = result.filter((s) => s.roomName === filterRoom);
+    }
+
+    result = [...result].sort((a, b) => {
+      const va = (a[sortKey] || "").toLowerCase();
+      const vb = (b[sortKey] || "").toLowerCase();
+      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+
+    return result;
+  }, [servers, query, filterModel, filterStatus, filterRoom, sortKey, sortDir]);
+
+  const toggleSort = (key: typeof sortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const activeFilterCount = [filterModel !== "all", filterStatus !== "all", filterRoom !== "all"].filter(Boolean).length;
 
   return (
     <div className="space-y-6">
@@ -127,15 +170,55 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
         /* LIST VIEW */
         <>
           {/* Filter bar */}
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("servers.filterPlaceholder")}
-              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 pl-10 text-sm text-gray-200 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[200px] max-w-md">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("servers.filterPlaceholder")}
+                className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 pl-10 text-sm text-gray-200 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <select
+              value={filterModel}
+              onChange={(e) => setFilterModel(e.target.value)}
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-300 focus:border-blue-500 focus:outline-none"
+            >
+              <option value="all">Model: 전체</option>
+              {modelOptions.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-300 focus:border-blue-500 focus:outline-none"
+            >
+              <option value="all">Status: 전체</option>
+              {statusOptions.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <select
+              value={filterRoom}
+              onChange={(e) => setFilterRoom(e.target.value)}
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-300 focus:border-blue-500 focus:outline-none"
+            >
+              <option value="all">Room: 전체</option>
+              {roomOptions.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            {activeFilterCount > 0 && (
+              <button
+                onClick={() => { setFilterModel("all"); setFilterStatus("all"); setFilterRoom("all"); setQuery(""); }}
+                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-gray-400 hover:text-gray-200 hover:border-gray-600"
+              >
+                초기화 ({activeFilterCount})
+              </button>
+            )}
           </div>
 
           <Card className="overflow-hidden p-0">
@@ -143,12 +226,12 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-800 bg-gray-900/50 text-left text-gray-400">
-                    <th className="px-4 py-3 font-medium">Hostname</th>
-                    <th className="px-4 py-3 font-medium">IP</th>
+                    <SortTh label="Hostname" sortKey="hostname" current={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortTh label="IP" sortKey="ipAddress" current={sortKey} dir={sortDir} onSort={toggleSort} />
                     <th className="px-4 py-3 font-medium">BMC IP</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
+                    <SortTh label="Status" sortKey="status" current={sortKey} dir={sortDir} onSort={toggleSort} />
                     <th className="px-4 py-3 font-medium">CPU</th>
-                    <th className="px-4 py-3 font-medium">System Model</th>
+                    <SortTh label="System Model" sortKey="model" current={sortKey} dir={sortDir} onSort={toggleSort} />
                     <th className="px-4 py-3 font-medium">Room</th>
                     <th className="px-4 py-3 font-medium">Rack / U</th>
                   </tr>
@@ -609,5 +692,36 @@ function RackElevation({
         </div>
       </div>
     </div>
+  );
+}
+
+/* Sortable Table Header */
+function SortTh({
+  label,
+  sortKey: key,
+  current,
+  dir,
+  onSort,
+}: {
+  label: string;
+  sortKey: "hostname" | "ipAddress" | "model" | "status";
+  current: string;
+  dir: "asc" | "desc";
+  onSort: (key: "hostname" | "ipAddress" | "model" | "status") => void;
+}) {
+  const active = current === key;
+  return (
+    <th
+      className="px-4 py-3 font-medium cursor-pointer select-none hover:text-gray-200 transition-colors"
+      onClick={() => onSort(key)}
+    >
+      <span className="flex items-center gap-1">
+        {label}
+        <ArrowUpDown className={cn("h-3 w-3", active ? "text-blue-400" : "text-gray-600")} />
+        {active && (
+          <span className="text-[10px] text-blue-400">{dir === "asc" ? "▲" : "▼"}</span>
+        )}
+      </span>
+    </th>
   );
 }
