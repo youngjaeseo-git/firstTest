@@ -462,7 +462,7 @@ export async function getSystemHwInfo(
                 (sys.ProcessorSummary?.ThreadCount && sys.ProcessorSummary?.Count
                   ? Math.round(sys.ProcessorSummary.ThreadCount / sys.ProcessorSummary.Count)
                   : sys.ProcessorSummary?.ThreadCount) ||
-                null;
+                cores;
               cpus.push({
                 socket: p.Socket || p.Id || null,
                 manufacturer: p.Manufacturer || p.ProcessorId?.VendorId || null,
