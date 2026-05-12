@@ -1,5 +1,9 @@
 # DCIM Management System
 
+## Important Rules
+
+- **명령어나 플레이스홀더에 꺽쇠 괄호(`<>`)를 절대 사용하지 않는다.** 실제 값을 넣거나, 설명으로 대체한다.
+
 ## Project Overview
 
 기존 Grafana 기반의 서버 모니터링(온도, PCIe bandwidth, 전력 등)을 대체하는
