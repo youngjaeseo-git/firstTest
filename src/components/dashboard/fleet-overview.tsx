@@ -148,11 +148,8 @@ export function FleetOverview({ statusCounts }: { statusCounts: StatusCounts }) 
     setTopCpu(parsed);
 
     // ---- Sparklines (range queries, last 30min) ----
-    const fleetCpuQuery =
-      "sum(rate(container_cpu_usage_seconds_total{container!=\"\"}[5m])) / sum(machine_cpu_cores) * 100";
-
     const [cpuRange, memRange, netRange, powerRange] = await Promise.all([
-      fetchRange(fleetCpuQuery),
+      fetchRange(queries.fleetAvgCpu()),
       fetchRange(queries.fleetAvgMemory()),
       fetchRange(queries.fleetTotalNetworkRx()),
       fetchRange(queries.fleetTotalPower()),

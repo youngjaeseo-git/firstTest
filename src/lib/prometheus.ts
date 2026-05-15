@@ -136,6 +136,7 @@ function ne(instance: string, hostIp?: string): string {
   return `instance=~"${addr}(:.*)?",job="node-exporter"`;
 }
 
+const NE_JOB = `job="node-exporter"`;
 const VNIC = `device!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"`;
 const FS_REAL = `fstype!~"tmpfs|devtmpfs|overlay|squashfs|proc|sysfs|autofs|rootfs",mountpoint!~"/dev.*|/sys.*|/proc.*|/run.*|/host/dev.*|/host/sys.*|/host/proc.*|/host/run.*"`;
 const DISK_REAL = `device=~"/dev/mapper/.*|/dev/md.*|/dev/sd.*|/dev/nvme.*"`;
@@ -417,22 +418,42 @@ export const queries = {
   nodePodList: (instance: string) =>
     `kube_pod_info{node=~"${ip(instance)}.*"}`,
 
-  // ── Dashboard fleet-wide aggregations ──
+  // ── Dashboard fleet-wide aggregations (node-exporter first, cAdvisor fallback) ──
   fleetTotalPower: () => `sum(rate(Package_Joules_Consumed[5m]))`,
   fleetAvgMemory: () =>
+    `(1 - sum(node_memory_MemAvailable_bytes{${NE_JOB}}) / sum(node_memory_MemTotal_bytes{${NE_JOB}})) * 100` +
+    ` or ` +
     `sum(container_memory_working_set_bytes{container!=""}) / sum(machine_memory_bytes) * 100`,
   fleetTotalNetworkRx: () =>
+    `sum(rate(node_network_receive_bytes_total{${NE_JOB},${VNIC}}[5m]))` +
+    ` or ` +
     `sum(rate(container_network_receive_bytes_total{interface!~"veth.*|lo|cni.*|docker.*|br-.*"}[5m]))`,
   fleetTotalNetworkTx: () =>
+    `sum(rate(node_network_transmit_bytes_total{${NE_JOB},${VNIC}}[5m]))` +
+    ` or ` +
     `sum(rate(container_network_transmit_bytes_total{interface!~"veth.*|lo|cni.*|docker.*|br-.*"}[5m]))`,
   fleetAvgCpu: () =>
+    `(1 - avg(rate(node_cpu_seconds_total{mode="idle",${NE_JOB}}[5m]))) * 100` +
+    ` or ` +
     `sum(rate(container_cpu_usage_seconds_total{container!=""}[5m])) / sum(machine_cpu_cores) * 100`,
   fleetTotalMemoryUsedBytes: () =>
+    `sum(node_memory_MemTotal_bytes{${NE_JOB}} - node_memory_MemAvailable_bytes{${NE_JOB}})` +
+    ` or ` +
     `sum(container_memory_working_set_bytes{container!=""})`,
   fleetTotalMemoryBytes: () =>
+    `sum(node_memory_MemTotal_bytes{${NE_JOB}})` +
+    ` or ` +
     `sum(machine_memory_bytes)`,
   fleetTotalCpuCores: () =>
+    `count(node_cpu_seconds_total{mode="idle",${NE_JOB}})` +
+    ` or ` +
     `sum(machine_cpu_cores)`,
   fleetTopCpu: () =>
+    `topk(5, (1 - avg by(instance)(rate(node_cpu_seconds_total{mode="idle",${NE_JOB}}[5m]))) * 100)` +
+    ` or ` +
     `topk(5, sum by(instance)(rate(container_cpu_usage_seconds_total{container!=""}[5m])) / on(instance) group_left() machine_cpu_cores * 100)`,
+  fleetAvgUptime: () =>
+    `avg(time() - node_boot_time_seconds{${NE_JOB}})` +
+    ` or ` +
+    `avg(time() - min by(instance)(container_start_time_seconds{container!=""}))`,
 };

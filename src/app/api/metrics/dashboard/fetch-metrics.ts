@@ -43,18 +43,14 @@ export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
       totalRxResult,
       totalTxResult,
     ] = await Promise.allSettled([
-      instantQuery(
-        'sum(rate(container_cpu_usage_seconds_total{id="/"}[5m])) / sum(machine_cpu_cores) * 100',
-      ),
+      instantQuery(queries.fleetAvgCpu()),
       instantQuery('avg(Package_Joules_Consumed{type="thermal"} or vector(0))'),
       instantQuery(queries.allNodesUp()),
-      instantQuery('sum(time() - container_start_time_seconds{id="/"}) / count(container_start_time_seconds{id="/"})'),
-      instantQuery('sum(rate(Package_Joules_Consumed[5m]))'),
-      instantQuery(
-        'sum(container_memory_working_set_bytes{id="/"}) / sum(machine_memory_bytes) * 100',
-      ),
-      instantQuery('sum(rate(container_network_receive_bytes_total{interface!~"veth.*|lo|cni.*|docker.*|br-.*"}[5m]))'),
-      instantQuery('sum(rate(container_network_transmit_bytes_total{interface!~"veth.*|lo|cni.*|docker.*|br-.*"}[5m]))'),
+      instantQuery(queries.fleetAvgUptime()),
+      instantQuery(queries.fleetTotalPower()),
+      instantQuery(queries.fleetAvgMemory()),
+      instantQuery(queries.fleetTotalNetworkRx()),
+      instantQuery(queries.fleetTotalNetworkTx()),
     ]);
 
     const extractScalar = (r: typeof cpuResult): number | null => {

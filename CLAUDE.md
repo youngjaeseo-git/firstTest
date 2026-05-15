@@ -90,12 +90,14 @@
 
 ### 확인된 Prometheus 환경 (2026-04-22 기준)
 
-**메트릭 소스 (2026-04-28 확인):**
-- **node_exporter 없음** — 서버에 cAdvisor + PCM만 존재, bare-metal 메트릭 없음
-- **cAdvisor**: CPU, Memory, Disk, Network (컨테이너 레벨 합산, 서버 전체가 아님)
+**메트릭 소스 (2026-05-15 확인):**
+- **node_exporter 사용 가능** — DaemonSet 배포, bare-metal 수준 메트릭 제공 (21 타겟, 18 up, 3 down)
+  - instance 형식: IP:port (예: `10.144.38.103:9100`)
+  - job 이름: `node-exporter` (+ `kubernetes-pods` 중복 수집)
+  - 수집 메트릭: node_cpu_seconds_total, node_memory_*, node_filesystem_*, node_disk_*, node_network_*, node_load*, node_hwmon_*, node_boot_time_seconds 등
+- **cAdvisor**: CPU, Memory, Disk, Network (컨테이너 레벨 합산, node-exporter 폴백용)
 - **Intel PCM**: Power (Package_Joules_Consumed)
-- **Grafana 기존 쿼리**: `sum(rate(container_cpu_usage_seconds_total{id="/"}[1m])) by(instance)` — `id="/"` 사용
-- **DCIM 앱 쿼리**: `container!=""` 사용 — `id="/"`가 없는 서버에서도 동작하므로 Grafana보다 커버리지 넓음
+- **DCIM 앱 쿼리 전략**: node-exporter 우선, cAdvisor 폴백 (`queries.*` 함수에서 PromQL `or` 사용)
 
 **cAdvisor 쿼리 규칙 (K8s 환경):**
 - `id="/"` 사용 금지 — K8s cAdvisor에서 root cgroup이 존재하지 않음
@@ -118,7 +120,8 @@
 - 조직: 자체 서버 외에 다른 조직 서버도 포함 (정확한 정보 없을 수 있음)
 - 워크로드 라벨: `stress: "stress"` = stressapptest 메모리 에러 검증용
 
-**주요 Job 목록 (305 타겟):**
+**주요 Job 목록:**
+- `node-exporter` (up:18, down:3) — node_cpu_*, node_memory_*, node_disk_*, node_network_*, node_hwmon_* (IP:port)
 - `kubernetes-cadvisor` (up:18, down:23) — container_cpu_*, machine_memory_bytes
 - `kubernetes-nodes` (up:18, down:23) — 노드 정보
 - `QRA-SMC-DDR5-Dell` (up:136) — Package_Joules_Consumed (IP:port)
@@ -132,6 +135,7 @@
 - `kube-state-metrics` (up:1), `kubernetes-apiservers` (up:1), `kubernetes-service-endpoints` (up:4)
 
 **메트릭별 instance 형식:**
+- `node_*` (node-exporter) → IP:port (예: `10.144.38.103:9100`)
 - `machine_memory_bytes` → 호스트네임 (kubernetes-cadvisor job)
 - `container_cpu_usage_seconds_total` → 호스트네임 (kubernetes-cadvisor job)
 - `Package_Joules_Consumed` → IP:port (QRA-SMC-DDR5-Dell) 또는 호스트네임 (AE-SMC_* PCM)
