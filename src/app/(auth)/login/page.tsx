@@ -48,20 +48,25 @@ function LoginForm() {
       {success ? (
         <motion.div
           key="success"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="rounded-2xl border border-green-800/60 bg-gray-900/90 p-8 shadow-2xl shadow-black/40 backdrop-blur-md text-center"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-950/95 backdrop-blur-sm"
         >
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.1, type: "spring", stiffness: 300 }}
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
           >
-            <CheckCircle2 className="h-12 w-12 text-green-400 mx-auto mb-4" />
+            <CheckCircle2 className="h-14 w-14 text-green-400 mb-6" />
           </motion.div>
-          <p className="text-lg font-semibold text-gray-100">로그인 성공</p>
-          <p className="mt-1 text-sm text-gray-500">대시보드로 이동합니다...</p>
+          <p className="text-lg font-semibold text-gray-100 mb-2">로그인 성공</p>
+          <p className="text-sm text-gray-500 mb-8">대시보드로 이동합니다</p>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+            className="h-8 w-8 rounded-full border-2 border-blue-500/30 border-t-blue-400"
+          />
         </motion.div>
       ) : (
       <motion.div
