@@ -1,4 +1,12 @@
-# node-exporter 응답 불가 이슈 (GNR-AP / GNR-SP)
+# node-exporter 응답 불가 이슈 (GNR-AP / GNR-SP) — 해결됨
+
+## 해결
+- **원인**: calico 파드가 stale 상태로 네트워크 통신 차단
+- **해결 방법**: 각 워커노드의 calico 파드를 kubectl delete로 재시작
+- **결과**: SPR / GNR-AP / GNR-SP 3대 모두 node-exporter 정상 응답 (Ampere 제외)
+- **날짜**: 2026-05-14
+
+---
 
 ## 환경
 - K8s master: 10.144.38.100
