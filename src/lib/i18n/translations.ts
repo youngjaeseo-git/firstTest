@@ -123,6 +123,19 @@ export const translations: Record<Language, Record<string, string>> = {
     "server.powerConsumption": "Power Consumption",
     "server.fanSpeed": "Fan Speed",
 
+    // ── System Health ──
+    "system.health": "System Health",
+    "system.uptime": "Uptime",
+    "system.bootedAt": "Booted",
+    "system.days": "d ",
+    "system.hours": "h ",
+    "system.mins": "m",
+    "system.memAvailable": "Memory Available",
+    "system.dataSources": "Data Sources",
+    "system.filesystems": "Filesystem Breakdown",
+    "system.networkInterfaces": "Network Interfaces",
+    "system.interfaces": "interfaces",
+
     // ── Node Overview ──
     "node.resources": "Node Resources",
     "node.cores": "cores",
@@ -544,6 +557,19 @@ export const translations: Record<Language, Record<string, string>> = {
     "server.ipmiTemperature": "IPMI 온도",
     "server.powerConsumption": "전력 소비",
     "server.fanSpeed": "팬 속도",
+
+    // ── System Health ──
+    "system.health": "시스템 상태",
+    "system.uptime": "가동 시간",
+    "system.bootedAt": "부팅 시각",
+    "system.days": "일 ",
+    "system.hours": "시간 ",
+    "system.mins": "분",
+    "system.memAvailable": "사용 가능 메모리",
+    "system.dataSources": "데이터 소스",
+    "system.filesystems": "파일시스템 현황",
+    "system.networkInterfaces": "네트워크 인터페이스",
+    "system.interfaces": "개 인터페이스",
 
     // ── Node Overview ──
     "node.resources": "노드 리소스",

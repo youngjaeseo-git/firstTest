@@ -39,7 +39,7 @@ function getBarColor(fraction: number) {
   return "bg-red-500";
 }
 
-export function CpuCoreHeatmap({ instance }: { instance: string }) {
+export function CpuCoreHeatmap({ instance, hostIp }: { instance: string; hostIp?: string }) {
   const [cores, setCores] = useState<CoreData[]>([]);
   const [pods, setPods] = useState<PodCpuData[]>([]);
   const [mode, setMode] = useState<"cores" | "pods" | "loading">("loading");
@@ -49,7 +49,7 @@ export function CpuCoreHeatmap({ instance }: { instance: string }) {
     // Try per-core first
     try {
       const res = await fetch(
-        `/api/metrics/instant?query=${encodeURIComponent(queries.cpuPerCore(instance))}`
+        `/api/metrics/instant?query=${encodeURIComponent(queries.cpuPerCore(instance, hostIp))}`
       ).then((r) => r.json());
 
       const results = res.data?.result;

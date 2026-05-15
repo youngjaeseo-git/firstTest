@@ -3,6 +3,10 @@
  *
  * Queries Prometheus for server metrics and auto-discovery.
  * Prometheus URL: http://10.100.175.248:8080 (K8s ClusterIP)
+ *
+ * Query strategy: node-exporter first, cAdvisor fallback via PromQL "or".
+ * Instance label mismatch: cAdvisor uses hostnames, node-exporter uses IP:port.
+ * The hostIp parameter resolves this by providing the IP for node-exporter matching.
  */
 
 import type { PrometheusQueryResult } from "@/types/metrics";
@@ -83,10 +87,6 @@ export interface DiscoveredPrometheusTarget {
   address: string | null;
 }
 
-/**
- * Fetch all active targets from Prometheus /api/v1/targets.
- * Used for auto-discovery of servers.
- */
 export async function fetchTargets(): Promise<DiscoveredPrometheusTarget[]> {
   const url = new URL("/api/v1/targets", PROMETHEUS_URL);
 
@@ -113,64 +113,234 @@ export async function fetchTargets(): Promise<DiscoveredPrometheusTarget[]> {
 }
 
 // ============================================
-// Common PromQL Queries
+// Instance Matchers
 // ============================================
 
 function ip(instance: string): string {
   return instance.split(":")[0];
 }
 
+// cAdvisor/general matcher: matches hostname or IP regardless of port
 function m(instance: string): string {
   return `instance=~"${ip(instance)}(:.*)?"`;
 }
 
-// K8s cAdvisor: container!="" selects only real containers (no cgroup hierarchy duplicates)
+// cAdvisor matcher with container filter
 function cm(instance: string): string {
   return `${m(instance)},container!=""`;
 }
 
+// node-exporter matcher: uses hostIp if provided (resolves hostname vs IP mismatch)
+function ne(instance: string, hostIp?: string): string {
+  const addr = hostIp || ip(instance);
+  return `instance=~"${addr}(:.*)?",job="node-exporter"`;
+}
+
+const VNIC = `device!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"`;
+const FS_REAL = `fstype!~"tmpfs|devtmpfs|overlay|squashfs|proc|sysfs|autofs|rootfs",mountpoint!~"/dev.*|/sys.*|/proc.*|/run.*|/host/dev.*|/host/sys.*|/host/proc.*|/host/run.*"`;
+const DISK_REAL = `device=~"/dev/mapper/.*|/dev/md.*|/dev/sd.*|/dev/nvme.*"`;
+
+// ============================================
+// Common PromQL Queries
+// node-exporter first, cAdvisor fallback via "or"
+// ============================================
+
 export const queries = {
-  cpuUsage: (instance: string) =>
+  // ── CPU ──
+  cpuUsage: (instance: string, hostIp?: string) =>
+    `(1 - avg(rate(node_cpu_seconds_total{mode="idle",${ne(instance, hostIp)}}[5m]))) * 100` +
+    ` or ` +
     `sum(rate(container_cpu_usage_seconds_total{${cm(instance)}}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
 
-  cpuPerCore: (instance: string) =>
+  cpuPerCore: (instance: string, hostIp?: string) =>
+    `sum by(cpu)(rate(node_cpu_seconds_total{mode!="idle",${ne(instance, hostIp)}}[5m])) * 100` +
+    ` or ` +
     `sum by(cpu)(rate(container_cpu_usage_seconds_total{${cm(instance)},cpu!="total"}[5m])) * 100`,
 
   cpuPerPod: (instance: string) =>
     `sort_desc(sum by(pod, namespace)(rate(container_cpu_usage_seconds_total{${cm(instance)}}[5m])))`,
 
-  memoryUsage: (instance: string) =>
+  loadAvg1: (instance: string, hostIp?: string) =>
+    `node_load1{${ne(instance, hostIp)}}` +
+    ` or ` +
+    `sum(rate(container_cpu_usage_seconds_total{${cm(instance)}}[1m]))`,
+
+  loadAvg5: (instance: string, hostIp?: string) =>
+    `node_load5{${ne(instance, hostIp)}}` +
+    ` or ` +
+    `sum(rate(container_cpu_usage_seconds_total{${cm(instance)}}[5m]))`,
+
+  loadAvg15: (instance: string, hostIp?: string) =>
+    `node_load15{${ne(instance, hostIp)}}` +
+    ` or ` +
+    `sum(rate(container_cpu_usage_seconds_total{${cm(instance)}}[15m]))`,
+
+  normalizedLoad: (instance: string, hostIp?: string) =>
+    `node_load1{${ne(instance, hostIp)}} / count(node_cpu_seconds_total{mode="idle",${ne(instance, hostIp)}})` +
+    ` or ` +
+    `sum(rate(container_cpu_usage_seconds_total{${cm(instance)}}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}}))`,
+
+  cpuModeUser: (instance: string, hostIp?: string) =>
+    `avg(rate(node_cpu_seconds_total{mode="user",${ne(instance, hostIp)}}[5m])) * 100` +
+    ` or ` +
+    `sum(rate(container_cpu_user_seconds_total{${cm(instance)}}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
+
+  cpuModeSystem: (instance: string, hostIp?: string) =>
+    `avg(rate(node_cpu_seconds_total{mode="system",${ne(instance, hostIp)}}[5m])) * 100` +
+    ` or ` +
+    `sum(rate(container_cpu_system_seconds_total{${cm(instance)}}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
+
+  cpuModeIowait: (instance: string, hostIp?: string) =>
+    `avg(rate(node_cpu_seconds_total{mode="iowait",${ne(instance, hostIp)}}[5m])) * 100` +
+    ` or ` +
+    `sum(rate(container_cpu_cfs_throttled_seconds_total{${cm(instance)}}[5m]))`,
+
+  cpuModeSteal: (instance: string, hostIp?: string) =>
+    `avg(rate(node_cpu_seconds_total{mode="steal",${ne(instance, hostIp)}}[5m])) * 100`,
+
+  // ── Memory ──
+  memoryUsage: (instance: string, hostIp?: string) =>
+    `(1 - node_memory_MemAvailable_bytes{${ne(instance, hostIp)}} / node_memory_MemTotal_bytes{${ne(instance, hostIp)}}) * 100` +
+    ` or ` +
     `sum(container_memory_working_set_bytes{${cm(instance)}}) / sum(machine_memory_bytes{${m(instance)}}) * 100`,
 
-  memoryTotal: (instance: string) =>
+  memoryTotal: (instance: string, hostIp?: string) =>
+    `node_memory_MemTotal_bytes{${ne(instance, hostIp)}}` +
+    ` or ` +
     `max(machine_memory_bytes{${m(instance)}})`,
 
-  memoryAvailable: (instance: string) =>
+  memoryAvailable: (instance: string, hostIp?: string) =>
+    `node_memory_MemAvailable_bytes{${ne(instance, hostIp)}}` +
+    ` or ` +
     `max(machine_memory_bytes{${m(instance)}}) - sum(container_memory_working_set_bytes{${cm(instance)}})`,
 
-  swapUsage: (instance: string) =>
+  memoryUsedBytes: (instance: string, hostIp?: string) =>
+    `node_memory_MemTotal_bytes{${ne(instance, hostIp)}} - node_memory_MemAvailable_bytes{${ne(instance, hostIp)}}` +
+    ` or ` +
+    `sum(container_memory_working_set_bytes{${cm(instance)}})`,
+
+  memoryCached: (instance: string, hostIp?: string) =>
+    `node_memory_Cached_bytes{${ne(instance, hostIp)}} + node_memory_Buffers_bytes{${ne(instance, hostIp)}}` +
+    ` or ` +
+    `sum(container_memory_cache{${cm(instance)}})`,
+
+  swapUsage: (instance: string, hostIp?: string) =>
+    `node_memory_SwapTotal_bytes{${ne(instance, hostIp)}} - node_memory_SwapFree_bytes{${ne(instance, hostIp)}}` +
+    ` or ` +
     `sum(container_memory_swap{${cm(instance)}})`,
 
+  // ── Disk ──
   diskUsage: (instance: string) =>
     `sum(container_fs_usage_bytes{${cm(instance)}}) / sum(container_fs_limit_bytes{${cm(instance)}}) * 100`,
 
-  diskIORead: (instance: string) =>
+  diskIORead: (instance: string, hostIp?: string) =>
+    `sum(rate(node_disk_read_bytes_total{${ne(instance, hostIp)}}[5m]))` +
+    ` or ` +
     `sum(rate(container_fs_reads_bytes_total{${cm(instance)}}[5m]))`,
 
-  diskIOWrite: (instance: string) =>
+  diskIOWrite: (instance: string, hostIp?: string) =>
+    `sum(rate(node_disk_written_bytes_total{${ne(instance, hostIp)}}[5m]))` +
+    ` or ` +
     `sum(rate(container_fs_writes_bytes_total{${cm(instance)}}[5m]))`,
 
-  networkRx: (instance: string) =>
+  diskReadIOPS: (instance: string, hostIp?: string) =>
+    `sum(rate(node_disk_reads_completed_total{${ne(instance, hostIp)}}[5m]))` +
+    ` or ` +
+    `sum(rate(container_fs_reads_total{${cm(instance)}}[5m]))`,
+
+  diskWriteIOPS: (instance: string, hostIp?: string) =>
+    `sum(rate(node_disk_writes_completed_total{${ne(instance, hostIp)}}[5m]))` +
+    ` or ` +
+    `sum(rate(container_fs_writes_total{${cm(instance)}}[5m]))`,
+
+  diskReadLatency: (instance: string, hostIp?: string) =>
+    `sum(rate(node_disk_read_time_seconds_total{${ne(instance, hostIp)}}[5m])) / clamp_min(sum(rate(node_disk_reads_completed_total{${ne(instance, hostIp)}}[5m])), 0.001) * 1000` +
+    ` or ` +
+    `sum(rate(container_fs_read_seconds_total{${cm(instance)}}[5m])) * 1000`,
+
+  diskWriteLatency: (instance: string, hostIp?: string) =>
+    `sum(rate(node_disk_write_time_seconds_total{${ne(instance, hostIp)}}[5m])) / clamp_min(sum(rate(node_disk_writes_completed_total{${ne(instance, hostIp)}}[5m])), 0.001) * 1000` +
+    ` or ` +
+    `sum(rate(container_fs_write_seconds_total{${cm(instance)}}[5m])) * 1000`,
+
+  diskIOQueue: (instance: string) =>
+    `sum(container_fs_io_current{${cm(instance)}})`,
+
+  hostDiskUsage: (instance: string, hostIp?: string) =>
+    `(1 - sum(node_filesystem_avail_bytes{${ne(instance, hostIp)},mountpoint="/",${FS_REAL}}) / sum(node_filesystem_size_bytes{${ne(instance, hostIp)},mountpoint="/",${FS_REAL}})) * 100` +
+    ` or ` +
+    `sum(container_fs_usage_bytes{${m(instance)},${DISK_REAL}}) / sum(container_fs_limit_bytes{${m(instance)},${DISK_REAL}}) * 100`,
+
+  hostDiskUsedBytes: (instance: string, hostIp?: string) =>
+    `sum(node_filesystem_size_bytes{${ne(instance, hostIp)},mountpoint="/",${FS_REAL}}) - sum(node_filesystem_avail_bytes{${ne(instance, hostIp)},mountpoint="/",${FS_REAL}})` +
+    ` or ` +
+    `sum(container_fs_usage_bytes{${m(instance)},${DISK_REAL}})`,
+
+  hostDiskTotalBytes: (instance: string, hostIp?: string) =>
+    `sum(node_filesystem_size_bytes{${ne(instance, hostIp)},mountpoint="/",${FS_REAL}})` +
+    ` or ` +
+    `sum(container_fs_limit_bytes{${m(instance)},${DISK_REAL}})`,
+
+  // ── Network ──
+  networkRx: (instance: string, hostIp?: string) =>
+    `sum(rate(node_network_receive_bytes_total{${ne(instance, hostIp)},${VNIC}}[5m]))` +
+    ` or ` +
     `sum(rate(container_network_receive_bytes_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
 
-  networkTx: (instance: string) =>
+  networkTx: (instance: string, hostIp?: string) =>
+    `sum(rate(node_network_transmit_bytes_total{${ne(instance, hostIp)},${VNIC}}[5m]))` +
+    ` or ` +
     `sum(rate(container_network_transmit_bytes_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
 
-  temperature: (instance: string) =>
+  networkRxErrors: (instance: string, hostIp?: string) =>
+    `sum(rate(node_network_receive_errs_total{${ne(instance, hostIp)},${VNIC}}[5m]))` +
+    ` or ` +
+    `sum(rate(container_network_receive_errors_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
+
+  networkTxErrors: (instance: string, hostIp?: string) =>
+    `sum(rate(node_network_transmit_errs_total{${ne(instance, hostIp)},${VNIC}}[5m]))` +
+    ` or ` +
+    `sum(rate(container_network_transmit_errors_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
+
+  networkRxDrops: (instance: string, hostIp?: string) =>
+    `sum(rate(node_network_receive_drop_total{${ne(instance, hostIp)},${VNIC}}[5m]))` +
+    ` or ` +
+    `sum(rate(container_network_receive_packets_dropped_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
+
+  networkTxDrops: (instance: string, hostIp?: string) =>
+    `sum(rate(node_network_transmit_drop_total{${ne(instance, hostIp)},${VNIC}}[5m]))` +
+    ` or ` +
+    `sum(rate(container_network_transmit_packets_dropped_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
+
+  tcpEstablished: (instance: string, hostIp?: string) =>
+    `node_netstat_Tcp_CurrEstab{${ne(instance, hostIp)}}` +
+    ` or ` +
+    `sum(container_network_tcp_usage_total{${m(instance)},tcp_state="established"})`,
+
+  tcpRetransmits: (instance: string, hostIp?: string) =>
+    `rate(node_netstat_TcpExt_TCPRetransSegs{${ne(instance, hostIp)}}[5m])` +
+    ` or ` +
+    `sum(container_network_tcp_usage_total{${m(instance)},tcp_state="close_wait"})`,
+
+  // ── Hardware / Thermal ──
+  temperature: (instance: string, hostIp?: string) =>
+    `node_hwmon_temp_celsius{${ne(instance, hostIp)}}` +
+    ` or ` +
     `{job="temperature",${m(instance)}}`,
 
-  uptime: (instance: string) =>
-    `time() - min(container_start_time_seconds{${cm(instance)}})`,
+  inletTemp: (instance: string) =>
+    `{job="temperature",${m(instance)},type=~"inlet|ambient"}`,
+
+  exhaustTemp: (instance: string) =>
+    `{job="temperature",${m(instance)},type=~"exhaust|outlet"}`,
+
+  cpuSocketTemp: (instance: string) =>
+    `{job="temperature",${m(instance)},type=~"cpu|processor"}`,
+
+  fanSpeed: (instance: string, hostIp?: string) =>
+    `node_hwmon_fan_rpm{${ne(instance, hostIp)}}` +
+    ` or ` +
+    `{job="temperature",${m(instance)},type="fan"}`,
 
   powerWatts: (instance: string) =>
     `rate(Package_Joules_Consumed{${m(instance)}}[5m])`,
@@ -178,79 +348,60 @@ export const queries = {
   powerDramWatts: (instance: string) =>
     `rate(DRAM_Joules_Consumed{${m(instance)}}[5m])`,
 
-  fanSpeed: (instance: string) =>
-    `{job="temperature",${m(instance)},type="fan"}`,
+  // ── System / Uptime ──
+  uptime: (instance: string, hostIp?: string) =>
+    `time() - node_boot_time_seconds{${ne(instance, hostIp)}}` +
+    ` or ` +
+    `time() - min(container_start_time_seconds{${cm(instance)}})`,
 
+  bootTime: (instance: string, hostIp?: string) =>
+    `node_boot_time_seconds{${ne(instance, hostIp)}}`,
+
+  // ── Status ──
   nodeUp: (instance: string) => `up{${m(instance)}}`,
 
   allNodesUp: () => `up{job!~"kube-state-metrics|kubernetes-apiservers|kubernetes-cadvisor|kubernetes-sevice-endpoints"}`,
 
-  loadAvg1: (instance: string) =>
-    `sum(rate(container_cpu_usage_seconds_total{${cm(instance)}}[1m]))`,
-  loadAvg5: (instance: string) =>
-    `sum(rate(container_cpu_usage_seconds_total{${cm(instance)}}[5m]))`,
-  loadAvg15: (instance: string) =>
-    `sum(rate(container_cpu_usage_seconds_total{${cm(instance)}}[15m]))`,
+  nodeExporterUp: (instance: string, hostIp?: string) =>
+    `up{${ne(instance, hostIp)}}`,
 
-  normalizedLoad: (instance: string) =>
-    `sum(rate(container_cpu_usage_seconds_total{${cm(instance)}}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}}))`,
+  cadvisorUp: (instance: string) =>
+    `up{job="kubernetes-cadvisor",${m(instance)}}`,
 
-  cpuModeUser: (instance: string) =>
-    `sum(rate(container_cpu_user_seconds_total{${cm(instance)}}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
-  cpuModeSystem: (instance: string) =>
-    `sum(rate(container_cpu_system_seconds_total{${cm(instance)}}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
-  cpuModeIowait: (instance: string) =>
-    `sum(rate(container_cpu_cfs_throttled_seconds_total{${cm(instance)}}[5m]))`,
-  cpuModeSteal: (instance: string) =>
-    `sum(rate(container_cpu_usage_seconds_total{${cm(instance)}}[5m])) * 0`,
+  // ── Filesystem breakdown (node-exporter only) ──
+  filesystemSize: (instance: string, hostIp?: string) =>
+    `node_filesystem_size_bytes{${ne(instance, hostIp)},${FS_REAL}}`,
 
-  memoryUsedBytes: (instance: string) =>
-    `sum(container_memory_working_set_bytes{${cm(instance)}})`,
-  memoryCached: (instance: string) =>
-    `sum(container_memory_cache{${cm(instance)}})`,
+  filesystemAvail: (instance: string, hostIp?: string) =>
+    `node_filesystem_avail_bytes{${ne(instance, hostIp)},${FS_REAL}}`,
 
-  diskReadIOPS: (instance: string) =>
-    `sum(rate(container_fs_reads_total{${cm(instance)}}[5m]))`,
-  diskWriteIOPS: (instance: string) =>
-    `sum(rate(container_fs_writes_total{${cm(instance)}}[5m]))`,
+  // ── Network interface inventory (node-exporter only) ──
+  networkInterfaceUp: (instance: string, hostIp?: string) =>
+    `node_network_up{${ne(instance, hostIp)},${VNIC}}`,
 
-  diskReadLatency: (instance: string) =>
-    `sum(rate(container_fs_read_seconds_total{${cm(instance)}}[5m])) * 1000`,
-  diskWriteLatency: (instance: string) =>
-    `sum(rate(container_fs_write_seconds_total{${cm(instance)}}[5m])) * 1000`,
+  networkInterfaceSpeed: (instance: string, hostIp?: string) =>
+    `node_network_speed_bytes{${ne(instance, hostIp)},${VNIC}}`,
 
-  diskIOQueue: (instance: string) =>
-    `sum(container_fs_io_current{${cm(instance)}})`,
+  networkInterfaceInfo: (instance: string, hostIp?: string) =>
+    `node_network_info{${ne(instance, hostIp)},${VNIC}}`,
 
-  networkRxErrors: (instance: string) =>
-    `sum(rate(container_network_receive_errors_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
-  networkTxErrors: (instance: string) =>
-    `sum(rate(container_network_transmit_errors_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
-  networkRxDrops: (instance: string) =>
-    `sum(rate(container_network_receive_packets_dropped_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
-  networkTxDrops: (instance: string) =>
-    `sum(rate(container_network_transmit_packets_dropped_total{${m(instance)},interface!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"}[5m]))`,
-
-  tcpEstablished: (instance: string) =>
-    `sum(container_network_tcp_usage_total{${m(instance)},tcp_state="established"})`,
-  tcpRetransmits: (instance: string) =>
-    `sum(container_network_tcp_usage_total{${m(instance)},tcp_state="close_wait"})`,
-
-  inletTemp: (instance: string) =>
-    `{job="temperature",${m(instance)},type=~"inlet|ambient"}`,
-  exhaustTemp: (instance: string) =>
-    `{job="temperature",${m(instance)},type=~"exhaust|outlet"}`,
-  cpuSocketTemp: (instance: string) =>
-    `{job="temperature",${m(instance)},type=~"cpu|processor"}`,
-
-  procsRunning: (instance: string) =>
+  // ── Process / System ──
+  procsRunning: (instance: string, hostIp?: string) =>
+    `node_procs_running{${ne(instance, hostIp)}}` +
+    ` or ` +
     `max(machine_cpu_cores{${m(instance)}})`,
-  procsBlocked: (instance: string) =>
+
+  procsBlocked: (instance: string, hostIp?: string) =>
+    `node_procs_blocked{${ne(instance, hostIp)}}` +
+    ` or ` +
     `max(machine_cpu_cores{${m(instance)}}) * 0`,
-  fileDescriptorUsage: (instance: string) =>
+
+  fileDescriptorUsage: (instance: string, hostIp?: string) =>
+    `node_filefd_allocated{${ne(instance, hostIp)}} / node_filefd_maximum{${ne(instance, hostIp)}} * 100` +
+    ` or ` +
     `sum(container_file_descriptors{${cm(instance)}}) / sum(process_open_fds{${m(instance)}}) * 100`,
 
-  // ---- kube-state-metrics: node-level capacity ----
+  // ── kube-state-metrics: node-level capacity ──
   nodeCapacityCpu: (instance: string) =>
     `kube_node_status_capacity{resource="cpu",node=~"${ip(instance)}.*"}`,
   nodeCapacityMemory: (instance: string) =>
@@ -266,15 +417,7 @@ export const queries = {
   nodePodList: (instance: string) =>
     `kube_pod_info{node=~"${ip(instance)}.*"}`,
 
-  // ---- Host-level disk (device-filtered for real block devices) ----
-  hostDiskUsage: (instance: string) =>
-    `sum(container_fs_usage_bytes{${m(instance)},device=~"/dev/mapper/.*|/dev/md.*|/dev/sd.*|/dev/nvme.*"}) / sum(container_fs_limit_bytes{${m(instance)},device=~"/dev/mapper/.*|/dev/md.*|/dev/sd.*|/dev/nvme.*"}) * 100`,
-  hostDiskUsedBytes: (instance: string) =>
-    `sum(container_fs_usage_bytes{${m(instance)},device=~"/dev/mapper/.*|/dev/md.*|/dev/sd.*|/dev/nvme.*"})`,
-  hostDiskTotalBytes: (instance: string) =>
-    `sum(container_fs_limit_bytes{${m(instance)},device=~"/dev/mapper/.*|/dev/md.*|/dev/sd.*|/dev/nvme.*"})`,
-
-  // ---- Dashboard fleet-wide aggregations ----
+  // ── Dashboard fleet-wide aggregations ──
   fleetTotalPower: () => `sum(rate(Package_Joules_Consumed[5m]))`,
   fleetAvgMemory: () =>
     `sum(container_memory_working_set_bytes{container!=""}) / sum(machine_memory_bytes) * 100`,

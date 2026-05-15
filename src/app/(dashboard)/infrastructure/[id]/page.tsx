@@ -136,7 +136,7 @@ export default async function EquipmentDetailPage({
           equipment.prometheusTarget?.instance ||
           null;
         return instance ? (
-          <ServerDetailClient instance={instance} />
+          <ServerDetailClient instance={instance} hostIp={equipment.ipAddress || undefined} />
         ) : (
           <Card>
             <p className="text-sm text-gray-500">

@@ -109,10 +109,25 @@ export default async function ServerDetailPage({
                   ? `${equipment.cpus.length}x ${equipment.cpus[0].model || "Unknown"}`
                   : "-"}
               </p>
+              {equipment.cpus[0]?.architecture && (
+                <p className="text-[10px] text-gray-500">{equipment.cpus[0].architecture}</p>
+              )}
             </div>
             <div>
               <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Memory</p>
               <p className="mt-1 text-gray-200">{totalMemoryGb} GB</p>
+              {(() => {
+                const populatedDimms = equipment.memories.filter(m => m.populated);
+                const speed = populatedDimms.find(m => m.speedMhz)?.speedMhz;
+                const dimmCount = populatedDimms.length;
+                const totalSlots = equipment.memories.length;
+                return (dimmCount > 0 || speed) ? (
+                  <p className="text-[10px] text-gray-500">
+                    {dimmCount > 0 && `${dimmCount}/${totalSlots} DIMM`}
+                    {speed ? ` ${speed} MHz` : ""}
+                  </p>
+                ) : null;
+              })()}
             </div>
           </div>
         </div>
@@ -132,7 +147,7 @@ export default async function ServerDetailPage({
 
         {/* Metric charts */}
         {instance ? (
-          <ServerDetailClient instance={instance} />
+          <ServerDetailClient instance={instance} hostIp={equipment.ipAddress || undefined} />
         ) : (
           <div className="rounded-xl border border-yellow-600/30 bg-yellow-500/5 p-8 text-center backdrop-blur-sm">
             <div className="rounded-xl bg-yellow-500/10 p-3 inline-block mb-3">

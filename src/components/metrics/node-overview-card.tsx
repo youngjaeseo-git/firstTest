@@ -80,7 +80,7 @@ function barColor(pct: number | null) {
   return "bg-blue-500";
 }
 
-export function NodeOverviewCard({ instance }: { instance: string }) {
+export function NodeOverviewCard({ instance, hostIp }: { instance: string; hostIp?: string }) {
   const t = useT();
   const [metrics, setMetrics] = useState<NodeMetrics>({
     cpuCapacity: null,
@@ -109,11 +109,11 @@ export function NodeOverviewCard({ instance }: { instance: string }) {
         fetchInstant(queries.nodeCapacityCpu(instance)),
         fetchInstant(queries.nodeCapacityMemory(instance)),
         fetchInstant(queries.nodeCapacityDisk(instance)),
-        fetchInstant(queries.loadAvg5(instance)),
-        fetchInstant(queries.memoryUsedBytes(instance)),
-        fetchInstant(queries.hostDiskUsage(instance)),
-        fetchInstant(queries.hostDiskUsedBytes(instance)),
-        fetchInstant(queries.hostDiskTotalBytes(instance)),
+        fetchInstant(queries.loadAvg5(instance, hostIp)),
+        fetchInstant(queries.memoryUsedBytes(instance, hostIp)),
+        fetchInstant(queries.hostDiskUsage(instance, hostIp)),
+        fetchInstant(queries.hostDiskUsedBytes(instance, hostIp)),
+        fetchInstant(queries.hostDiskTotalBytes(instance, hostIp)),
         fetchInstant(queries.kubeletRunningPods(instance)),
         fetchPodList(queries.nodePodList(instance)),
       ]);
