@@ -145,24 +145,53 @@
 
 ---
 
+## 2026-05-15 (목)
+### 완료
+- **node-exporter 정상 수집 확인** — DaemonSet 배포 완료, 21 타겟 (18 up, 3 down), instance=IP:port
+- **대시보드 fleet 쿼리 node-exporter 전환** — `id="/"` 하드코딩 제거, `queries.fleetAvgCpu()` 등 중앙화된 함수 사용
+  - CPU, Memory, Network, Uptime 4개 쿼리: node-exporter 우선, cAdvisor 폴백 (`or`)
+  - `fetch-metrics.ts`, `fleet-overview.tsx` 하드코딩 → `prometheus.ts` 함수 호출로 통일
+- **CLAUDE.md 업데이트** — "node_exporter 없음" → "node_exporter 사용 가능 (21 타겟)" 반영
+- **CPU 코어 히트맵 누락 원인 분석** — Prometheus config의 hostname/IP 혼재가 원인. 다음 주 정리 작업으로 등록
+
+### 확인된 사항
+- node-exporter scrape_duration=0s이지만 데이터 정상 수집 (표시 이슈)
+- 동일 서버 군(s222hax14ae011/012)에서 히트맵 차이: Prometheus config에 IP/호스트네임 혼재 → 일부 서버 매칭 실패
+- 대시보드에 기존에 안 나오던 CPU/Memory/Uptime이 이제 표시됨
+
+---
+
 ## TODO (해야 할 일)
 
-### 진행 중 — Lab-1 서버 메트릭 완성 (최우선)
-> 클러스터1(Lab-1, 10.144.38.100)의 cAdvisor 서버부터 모든 차트가 정상 표시되도록 완성한다.
+### 이번 주 — 서버별 메트릭 세부 검증
+> node-exporter가 정상 배포된 상태. 대시보드 fleet 쿼리를 node-exporter 우선으로 전환 완료.
+> 이제 서버 유형별 1대씩 세부 수치를 화면과 비교하여 정확성 검증 필요.
+
+- [ ] **서버 유형별 1대씩 세부 비교** — 각 시스템 군에서 대표 서버 1대를 선정, 화면에 표시되는 수치와 실제 Prometheus 값을 비교하여 정확성 검증
+- [ ] **대시보드 fleet 메트릭 값 검증** — node-exporter 전환 후 CPU/Memory/Network/Uptime 수치가 화면에 정상 표시되는지 확인
+
+### 다음 주 — Prometheus config 정리 (hostname/IP 불일치)
+> Prometheus scrape config에서 타겟을 IP로 쓴 곳과 호스트네임으로 쓴 곳이 혼재.
+> 같은 서버 군(예: s222hax14ae011 vs s222hax14ae012)인데 하나는 히트맵이 나오고 하나는 안 나오는 등 불일치 발생.
+
+- [ ] **Prometheus ConfigMap 전수 조사** — 모든 job의 타겟 목록을 추출하여 IP/호스트네임 형식 불일치 파악
+- [ ] **node-exporter 타겟 누락 확인** — 21개 타겟 중 어떤 서버가 빠져있는지 확인, 필요시 추가
+- [ ] **instance 라벨 통일 방안 수립** — relabeling 또는 config 수정으로 일관된 instance 형식 확보
+- [ ] **히트맵 표시 누락 서버 수정** — config 정리 후 동일 스펙 서버군 전체에서 히트맵 정상 표시 확인
+
+### 진행 중 — Lab-1 서버 메트릭 완성
+> 클러스터1(Lab-1, 10.144.38.100) 서버의 모든 차트가 정상 표시되도록 완성한다.
+> node-exporter 우선, cAdvisor 폴백 전략 적용 완료.
 > 완료 후 Lab-3(10.144.131.100) 서버로 확장.
 
-- [ ] **1단계: 기존 Grafana 쿼리 확인** — `check/20260423-grafana-queries.sh` 실행하여 운영 중인 대시보드의 실제 PromQL 추출. 동작하는 쿼리를 그대로 따라가기
-- [ ] **2단계: cAdvisor 메트릭 개별 검증** — `check/20260423-cadvisor-each-metric.sh` 실행하여 s131x13ae013 서버에서 각 메트릭 존재 여부 확인 (CPU/Memory/Disk/Network 각각)
-- [ ] **3단계: 확인된 메트릭 기반 쿼리 수정** — 실제 데이터가 있는 메트릭만 차트 표시, 없는 메트릭은 안내 메시지
-- [ ] **4단계: Lab-3 서버 확장** — 클러스터2(Lab-3, 10.144.131.100) 서버 메트릭 확인 및 지원
+- [x] ~~1단계: node-exporter 배포 및 데이터 수집 확인~~ (2026-05-15 완료)
+- [x] ~~대시보드 fleet 쿼리 node-exporter 전환~~ (2026-05-15 완료, `id="/"` 제거)
+- [ ] **2단계: 서버별 세부 메트릭 정확성 검증** — 서버 유형별 대표 1대씩 비교
+- [ ] **3단계: Lab-3 서버 확장** — 클러스터2(Lab-3, 10.144.131.100) 서버 메트릭 확인 및 지원
 
 ### 인프라 구조 (확인됨)
 - **Cluster 1 (Lab-1)**: 10.144.38.100 — K8s master, Grafana(30004) + Prometheus
 - **Cluster 2 (Lab-3)**: 10.144.131.100 — K8s master-lab3, k8s-monitoring(prometheus) → Cluster 1으로 메트릭 전송
-
-### 우선순위 높음
-- [ ] 시드(가짜) 데이터 삭제 실행 — `POST /api/admin/cleanup-seed` 호출
-- [ ] 대시보드 fleet 메트릭 값 검증 — cAdvisor 쿼리 실제 데이터 확인
 
 ### 우선순위 중간
 - [ ] 메트릭 없는 서버의 상세 페이지 처리 — "이 서버에서 지원하지 않는 메트릭입니다" 안내
