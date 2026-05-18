@@ -1,11 +1,32 @@
 #!/bin/bash
-# s222hax14ae011 서버 상세 페이지 - 모든 차트 검증
-# 페이지 코드와 동일: node-exporter or cAdvisor 폴백
-# 실행: bash check/20260519-server-detail-verify.sh
+# 서버 상세 페이지 - 모든 차트 검증 (IP 입력, hostname 자동 조회)
+# 실행: bash check/20260519-server-detail-verify.sh 10.144.38.103
+# IP 생략 시 기본값 10.144.38.61
 
 PROM=http://10.100.175.248:8080
-IP="10.144.38.61"
-HOST="s222hax14ae011"
+IP="${1:-10.144.38.61}"
+
+HOST=$(curl -s "$PROM/api/v1/query" --data-urlencode "query=node_uname_info{instance=~\"${IP}(.*)\"}" | python3 -c "
+import sys, json
+d = json.loads(sys.stdin.read())
+r = d.get('data',{}).get('result',[])
+print(r[0]['metric'].get('nodename','') if r else '')
+" 2>/dev/null)
+
+if [ -z "$HOST" ]; then
+  HOST=$(curl -s "$PROM/api/v1/query" --data-urlencode "query=kube_node_info{internal_ip=\"${IP}\"}" | python3 -c "
+import sys, json
+d = json.loads(sys.stdin.read())
+r = d.get('data',{}).get('result',[])
+print(r[0]['metric'].get('node','') if r else '')
+" 2>/dev/null)
+fi
+
+echo "IP=${IP} HOST=${HOST}"
+if [ -z "$HOST" ]; then
+  echo "WARNING: hostname not found, cAdvisor/PCM queries will fail"
+fi
+
 NE="instance=~\"${IP}(:.*)?\",job=\"node-exporter\""
 CM="instance=~\"${HOST}(:.*)?\",container!=\"\""
 M="instance=~\"${HOST}(:.*)?\""
@@ -53,18 +74,17 @@ q "Write(B/s)" "sum(rate(node_disk_written_bytes_total{${NE}}[5m])) or sum(rate(
 q "Read IOPS" "sum(rate(node_disk_reads_completed_total{${NE}}[5m])) or sum(rate(container_fs_reads_total{${CM}}[5m]))"
 q "Write IOPS" "sum(rate(node_disk_writes_completed_total{${NE}}[5m])) or sum(rate(container_fs_writes_total{${CM}}[5m]))"
 q "Disk Usage(%)" "(1 - sum(node_filesystem_avail_bytes{${NE},mountpoint=\"/\",fstype!~\"tmpfs|devtmpfs|overlay|squashfs\"}) / sum(node_filesystem_size_bytes{${NE},mountpoint=\"/\",fstype!~\"tmpfs|devtmpfs|overlay|squashfs\"})) * 100 or sum(container_fs_usage_bytes{${M}}) / sum(container_fs_limit_bytes{${M}}) * 100"
+q "Filesystem count" "count(node_filesystem_size_bytes{${NE},fstype!~\"tmpfs|devtmpfs|overlay|squashfs|proc|sysfs|autofs|rootfs\"})"
 
 echo "=== Network ==="
 q "RX(B/s)" "sum(rate(node_network_receive_bytes_total{${NE},device!~\"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*\"}[5m])) or sum(rate(container_network_receive_bytes_total{${M},interface!~\"lo|veth.*\"}[5m]))"
 q "TX(B/s)" "sum(rate(node_network_transmit_bytes_total{${NE},device!~\"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*\"}[5m])) or sum(rate(container_network_transmit_bytes_total{${M},interface!~\"lo|veth.*\"}[5m]))"
 q "RX Errors" "sum(rate(node_network_receive_errs_total{${NE},device!~\"lo|veth.*\"}[5m])) or sum(rate(container_network_receive_errors_total{${M},interface!~\"lo|veth.*\"}[5m]))"
 q "TCP Established" "node_netstat_Tcp_CurrEstab{${NE}} or sum(container_network_tcp_usage_total{${M},tcp_state=\"established\"})"
+q "NIC count" "count(node_network_up{${NE},device!~\"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*\"})"
 
 echo "=== Hardware ==="
-q "Temperature(C)" "node_hwmon_temp_celsius{${NE}} or {job=\"temperature\",${M}}"
-q "IPMI Inlet(C)" "{job=\"temperature\",${M},type=~\"inlet|ambient\"}"
-q "IPMI Exhaust(C)" "{job=\"temperature\",${M},type=~\"exhaust|outlet\"}"
-q "IPMI CPU(C)" "{job=\"temperature\",${M},type=~\"cpu|processor\"}"
-q "Fan RPM" "node_hwmon_fan_rpm{${NE}} or {job=\"temperature\",${M},type=\"fan\"}"
+q "Temperature(C)" "node_hwmon_temp_celsius{${NE}}"
+q "Fan RPM" "node_hwmon_fan_rpm{${NE}}"
 q "Power Package(W)" "rate(Package_Joules_Consumed{${M}}[5m])"
 q "Power DRAM(W)" "rate(DRAM_Joules_Consumed{${M}}[5m])"
