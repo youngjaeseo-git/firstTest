@@ -135,6 +135,44 @@ export function ServerDetailClient({ instance, hostIp }: Props) {
       {/* CPU Core Heatmap - full width */}
       <CpuCoreHeatmap instance={instance} hostIp={hostIp} />
 
+      {/* PCM: IPC + Cache (CPU 섹션 하위) */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <MetricChart
+          title={t("server.pcmIPC")}
+          unit=""
+          series={[
+            {
+              label: "IPC",
+              query: queries.pcmIPC(instance),
+              color: "#8b5cf6",
+            },
+          ]}
+          durationMin={duration.value}
+          step={duration.step}
+          formatValue={(v) => v.toFixed(3)}
+        />
+        <MetricChart
+          title={t("server.pcmCacheHitRate")}
+          unit="%"
+          series={[
+            {
+              label: "L2",
+              query: queries.pcmL2HitRate(instance),
+              color: "#06b6d4",
+            },
+            {
+              label: "L3",
+              query: queries.pcmL3HitRate(instance),
+              color: "#10b981",
+            },
+          ]}
+          durationMin={duration.value}
+          step={duration.step}
+          yDomain={[0, 100]}
+          formatValue={formatPercent}
+        />
+      </div>
+
       {/* ── Section 2: Memory ── */}
       <SectionHeader title={t("server.memory")} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -176,6 +214,33 @@ export function ServerDetailClient({ instance, hostIp }: Props) {
           durationMin={duration.value}
           step={duration.step}
           formatValue={formatBytes}
+        />
+      </div>
+      {/* PCM: DRAM Bandwidth (Memory 섹션 하위) */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <MetricChart
+          title={t("server.pcmMemoryBandwidth")}
+          unit="ops/s"
+          series={[
+            {
+              label: "DRAM Reads",
+              query: queries.pcmDRAMReads(instance),
+              color: "#3b82f6",
+            },
+            {
+              label: "DRAM Writes",
+              query: queries.pcmDRAMWrites(instance),
+              color: "#f97316",
+            },
+          ]}
+          durationMin={duration.value}
+          step={duration.step}
+          formatValue={(v) => {
+            if (v >= 1e9) return `${(v / 1e9).toFixed(1)}G`;
+            if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
+            if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K`;
+            return v.toFixed(0);
+          }}
         />
       </div>
 

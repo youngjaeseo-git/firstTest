@@ -386,34 +386,19 @@ export const queries = {
 
   // ── PCM (Intel Performance Counter Monitor) ──
   pcmIPC: (instance: string) =>
-    `rate(Instructions_Retired_Any{${m(instance)},aggregate="system"}[5m]) / rate(Clock_Unhalted_Ref{${m(instance)},aggregate="system"}[5m])`,
-
-  pcmInstructionsRetired: (instance: string) =>
-    `rate(Instructions_Retired_Any{${m(instance)},aggregate="system"}[5m])`,
-
-  pcmL2CacheHits: (instance: string) =>
-    `rate(L2_Cache_Hits{${m(instance)},aggregate="system"}[5m])`,
-
-  pcmL2CacheMisses: (instance: string) =>
-    `rate(L2_Cache_Misses{${m(instance)},aggregate="system"}[5m])`,
+    `sum(rate(Instructions_Retired_Any{${m(instance)}}[5m])) / sum(rate(Clock_unhalted_ref{${m(instance)}}[5m]))`,
 
   pcmL2HitRate: (instance: string) =>
-    `rate(L2_Cache_Hits{${m(instance)},aggregate="system"}[5m]) / (rate(L2_Cache_Hits{${m(instance)},aggregate="system"}[5m]) + rate(L2_Cache_Misses{${m(instance)},aggregate="system"}[5m])) * 100`,
-
-  pcmL3CacheHits: (instance: string) =>
-    `rate(L3_Cache_Hits{${m(instance)},aggregate="system"}[5m])`,
-
-  pcmL3CacheMisses: (instance: string) =>
-    `rate(L3_Cache_Misses{${m(instance)},aggregate="system"}[5m])`,
+    `sum(rate(L2_Cache_Hits{${m(instance)}}[5m])) / (sum(rate(L2_Cache_Hits{${m(instance)}}[5m])) + sum(rate(L2_Cache_Misses{${m(instance)}}[5m]))) * 100`,
 
   pcmL3HitRate: (instance: string) =>
-    `rate(L3_Cache_Hits{${m(instance)},aggregate="system"}[5m]) / (rate(L3_Cache_Hits{${m(instance)},aggregate="system"}[5m]) + rate(L3_Cache_Misses{${m(instance)},aggregate="system"}[5m])) * 100`,
+    `sum(rate(L3_Cache_Hits{${m(instance)}}[5m])) / (sum(rate(L3_Cache_Hits{${m(instance)}}[5m])) + sum(rate(L3_Cache_Misses{${m(instance)}}[5m]))) * 100`,
 
   pcmDRAMReads: (instance: string) =>
-    `rate(DRAM_Reads{${m(instance)},aggregate="system"}[5m])`,
+    `sum(rate(DRAM_Reads{${m(instance)}}[5m]))`,
 
   pcmDRAMWrites: (instance: string) =>
-    `rate(DRAM_Writes{${m(instance)},aggregate="system"}[5m])`,
+    `sum(rate(DRAM_Writes{${m(instance)}}[5m]))`,
 
   // ── System / Uptime ──
   uptime: (instance: string, hostIp?: string) =>
