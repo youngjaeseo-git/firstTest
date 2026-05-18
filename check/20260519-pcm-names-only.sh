@@ -4,8 +4,8 @@
 
 PROM=http://10.100.175.248:8080
 
-echo "=== AE-SMC_GNRAP_PCM job 메트릭 이름 ==="
-curl -s "$PROM/api/v1/query" --data-urlencode 'query={job="AE-SMC_GNRAP_PCM"}' | python3 -c "
+echo "=== AE-SMC-GNRAP_PCM job 메트릭 이름 ==="
+curl -s "$PROM/api/v1/query" --data-urlencode 'query={job="AE-SMC-GNRAP_PCM"}' | python3 -c "
 import sys, json
 d = json.loads(sys.stdin.read())
 r = d.get('data',{}).get('result',[])
