@@ -130,3 +130,20 @@
 - 앱에서 hostIp(DB의 ipAddress 필드)가 있어야 node-exporter 매칭 가능
 - DB에 ipAddress가 누락된 서버는 hostname으로 node-exporter를 찾아 실패 → 히트맵 안 나옴
 - 해결 방안: Prometheus config 정리 (hostname/IP 통일) 또는 DB에 ipAddress 채우기
+
+---
+
+## PCM Metrics (job: AE-SMC-GNRAP_PCM)
+
+Total: 66 metrics
+
+| Category | Count | Examples |
+|----------|-------|----------|
+| CPU | 3 | CStateResidency, Instructions_Retired_Any |
+| Memory | 14 | CXL_Write_Cache, CXL_Write_Mem |
+| Cache | 9 | L2_Cache_Hits, L2_Cache_Misses |
+| Power | 4 | DRAM_Joules_Consumed, PP0_Joules_Consumed |
+| Interconnect | 24 | Incoming_Data_Traffic_On_Link_0, Incomming_Data_Traffic_On_Link_1 |
+| Other | 12 | Clock_unhalted_ref, Invariant_TSC |
+
+Labels: aggregate, socket, source
