@@ -5,11 +5,13 @@ import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardSummaryCards } from "@/components/dashboard/summary-cards";
-import { PrometheusMetrics } from "@/components/dashboard/prometheus-metrics";
-import { FleetOverview } from "@/components/dashboard/fleet-overview";
+import { DashboardClusterView } from "@/components/dashboard/dashboard-cluster-view";
 import { PageTransition } from "@/components/ui/page-transition";
 
 export default async function DashboardPage() {
+  const lab1Where = { ipAddress: { startsWith: "10.144.38." } };
+  const lab3Where = { ipAddress: { startsWith: "10.144.131." } };
+
   const [
     totalEquipment,
     activeEquipmentCount,
@@ -23,6 +25,12 @@ export default async function DashboardPage() {
     firingAlerts,
     recentAlerts,
     statusBreakdown,
+    lab1Active,
+    lab1Maintenance,
+    lab1Failed,
+    lab3Active,
+    lab3Maintenance,
+    lab3Failed,
   ] = await Promise.all([
     prisma.equipment.count(),
     prisma.equipment.count({ where: { status: "ACTIVE" } }),
@@ -72,6 +80,12 @@ export default async function DashboardPage() {
       by: ["status"],
       _count: true,
     }),
+    prisma.equipment.count({ where: { status: "ACTIVE", ...lab1Where } }),
+    prisma.equipment.count({ where: { status: { in: ["MAINTENANCE", "REPAIR"] }, ...lab1Where } }),
+    prisma.equipment.count({ where: { status: "FAILED", ...lab1Where } }),
+    prisma.equipment.count({ where: { status: "ACTIVE", ...lab3Where } }),
+    prisma.equipment.count({ where: { status: { in: ["MAINTENANCE", "REPAIR"] }, ...lab3Where } }),
+    prisma.equipment.count({ where: { status: "FAILED", ...lab3Where } }),
   ]);
 
   return (
@@ -85,15 +99,12 @@ export default async function DashboardPage() {
           </p>
         </div>
 
-        {/* Prometheus Live Metrics */}
-        <PrometheusMetrics />
-
-        {/* Fleet Overview: Top-5 CPU, Sparklines, Status Donut */}
-        <FleetOverview
+        {/* Prometheus Live Metrics + Fleet Overview (with Lab filter) */}
+        <DashboardClusterView
           statusCounts={{
-            active: activeEquipmentCount,
-            maintenance: maintenanceCount,
-            failed: failedCount,
+            all: { active: activeEquipmentCount, maintenance: maintenanceCount, failed: failedCount },
+            lab1: { active: lab1Active, maintenance: lab1Maintenance, failed: lab1Failed },
+            lab3: { active: lab3Active, maintenance: lab3Maintenance, failed: lab3Failed },
           }}
         />
 

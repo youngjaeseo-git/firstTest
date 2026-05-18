@@ -1,4 +1,5 @@
 import { instantQuery, queries } from "@/lib/prometheus";
+import type { Cluster } from "@/lib/prometheus";
 
 export interface DashboardMetrics {
   avgCpu: number | null;
@@ -26,12 +27,9 @@ const EMPTY_METRICS: DashboardMetrics = {
   error: null,
 };
 
-/**
- * Fetches dashboard metrics from Prometheus in parallel.
- * Returns all-null values (with error message) if Prometheus is unreachable.
- * Shared between the JSON endpoint and the SSE stream.
- */
-export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
+export async function fetchDashboardMetrics(
+  cluster: Cluster = "all",
+): Promise<DashboardMetrics> {
   try {
     const [
       cpuResult,
@@ -43,14 +41,14 @@ export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
       totalRxResult,
       totalTxResult,
     ] = await Promise.allSettled([
-      instantQuery(queries.fleetAvgCpu()),
+      instantQuery(queries.fleetAvgCpu(cluster)),
       instantQuery('avg(Package_Joules_Consumed{type="thermal"} or vector(0))'),
-      instantQuery(queries.allNodesUp()),
-      instantQuery(queries.fleetAvgUptime()),
-      instantQuery(queries.fleetTotalPower()),
-      instantQuery(queries.fleetAvgMemory()),
-      instantQuery(queries.fleetTotalNetworkRx()),
-      instantQuery(queries.fleetTotalNetworkTx()),
+      instantQuery(queries.allNodesUpFiltered(cluster)),
+      instantQuery(queries.fleetAvgUptime(cluster)),
+      instantQuery(queries.fleetTotalPower(cluster)),
+      instantQuery(queries.fleetAvgMemory(cluster)),
+      instantQuery(queries.fleetTotalNetworkRx(cluster)),
+      instantQuery(queries.fleetTotalNetworkTx(cluster)),
     ]);
 
     const extractScalar = (r: typeof cpuResult): number | null => {

@@ -1,20 +1,13 @@
 import { fetchDashboardMetrics } from "../fetch-metrics";
+import type { Cluster } from "@/lib/prometheus";
 
 export const dynamic = "force-dynamic";
 
 const PUSH_INTERVAL_MS = 15_000;
 
-/**
- * Server-Sent Events stream for dashboard metrics.
- *
- * Pushes the full metric snapshot every 15s, plus an initial push on
- * connection. Clients consume via `new EventSource("/api/metrics/dashboard/stream")`.
- *
- * SSE (rather than socket.io) is used because Next.js App Router has no
- * built-in support for socket.io without a custom server — SSE runs on
- * the standard request lifecycle.
- */
 export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const cluster = (url.searchParams.get("cluster") || "all") as Cluster;
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -25,7 +18,7 @@ export async function GET(request: Request) {
       const send = async () => {
         if (closed) return;
         try {
-          const metrics = await fetchDashboardMetrics();
+          const metrics = await fetchDashboardMetrics(cluster);
           const payload = `data: ${JSON.stringify(metrics)}\n\n`;
           controller.enqueue(encoder.encode(payload));
         } catch {
@@ -44,10 +37,8 @@ export async function GET(request: Request) {
         }
       };
 
-      // Abort on client disconnect
       request.signal.addEventListener("abort", cleanup);
 
-      // Initial push, then periodic updates
       await send();
       interval = setInterval(send, PUSH_INTERVAL_MS);
     },

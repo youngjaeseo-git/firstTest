@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/i18n-context";
 import { queries } from "@/lib/prometheus";
+import type { Cluster } from "@/lib/prometheus";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -116,7 +117,7 @@ const POLL_INTERVAL = 30_000; // 30s
 // Component
 // ---------------------------------------------------------------------------
 
-export function FleetOverview({ statusCounts }: { statusCounts: StatusCounts }) {
+export function FleetOverview({ statusCounts, cluster = "all" }: { statusCounts: StatusCounts; cluster?: Cluster }) {
   const t = useT();
 
   // Top-5 CPU
@@ -136,7 +137,7 @@ export function FleetOverview({ statusCounts }: { statusCounts: StatusCounts }) 
 
   const fetchAll = useCallback(async () => {
     // ---- Top-5 CPU ----
-    const topResults = await fetchInstant(queries.fleetTopCpu());
+    const topResults = await fetchInstant(queries.fleetTopCpu(cluster));
     const parsed: TopCpuServer[] = topResults
       .filter((r) => r.value)
       .map((r) => ({
@@ -149,10 +150,10 @@ export function FleetOverview({ statusCounts }: { statusCounts: StatusCounts }) 
 
     // ---- Sparklines (range queries, last 30min) ----
     const [cpuRange, memRange, netRange, powerRange] = await Promise.all([
-      fetchRange(queries.fleetAvgCpu()),
-      fetchRange(queries.fleetAvgMemory()),
-      fetchRange(queries.fleetTotalNetworkRx()),
-      fetchRange(queries.fleetTotalPower()),
+      fetchRange(queries.fleetAvgCpu(cluster)),
+      fetchRange(queries.fleetAvgMemory(cluster)),
+      fetchRange(queries.fleetTotalNetworkRx(cluster)),
+      fetchRange(queries.fleetTotalPower(cluster)),
     ]);
 
     const toSpark = (
@@ -178,7 +179,7 @@ export function FleetOverview({ statusCounts }: { statusCounts: StatusCounts }) 
     if (netPoints.length > 0) setLatestNet(netPoints[netPoints.length - 1].v);
     if (powerPoints.length > 0)
       setLatestPower(powerPoints[powerPoints.length - 1].v);
-  }, []);
+  }, [cluster]);
 
   useEffect(() => {
     fetchAll();

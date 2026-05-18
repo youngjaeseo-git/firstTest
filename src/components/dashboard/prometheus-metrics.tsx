@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Cpu, Thermometer, Clock, Wifi, WifiOff, Zap, Database, Network } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/i18n-context";
+import type { Cluster } from "@/lib/prometheus";
 
 interface MetricData {
   avgCpu: number | null;
@@ -37,8 +38,9 @@ const cardVariants = {
   }),
 };
 
-export function PrometheusMetrics() {
+export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Cluster; onClusterChange: (c: Cluster) => void }) {
   const t = useT();
+  const sourceRef = useRef<EventSource | null>(null);
   const [data, setData] = useState<MetricData>({
     avgCpu: null,
     avgTemp: null,
@@ -52,10 +54,13 @@ export function PrometheusMetrics() {
     error: null,
   });
   useEffect(() => {
-    // Prefer SSE streaming for real-time updates; fall back to one-shot fetch
-    // if EventSource is unavailable or the stream errors out.
+    if (sourceRef.current) {
+      sourceRef.current.close();
+      sourceRef.current = null;
+    }
+
     if (typeof EventSource === "undefined") {
-      fetch("/api/metrics/dashboard")
+      fetch(`/api/metrics/dashboard?cluster=${cluster}`)
         .then((res) => res.json())
         .then((json) => setData({ ...json, error: null }))
         .catch(() =>
@@ -64,7 +69,8 @@ export function PrometheusMetrics() {
       return;
     }
 
-    const source = new EventSource("/api/metrics/dashboard/stream");
+    const source = new EventSource(`/api/metrics/dashboard/stream?cluster=${cluster}`);
+    sourceRef.current = source;
 
     source.onmessage = (event) => {
       try {
@@ -81,8 +87,9 @@ export function PrometheusMetrics() {
 
     return () => {
       source.close();
+      sourceRef.current = null;
     };
-  }, []);
+  }, [cluster]);
 
   if (data.error && data.avgCpu === null) {
     return (
@@ -105,8 +112,32 @@ export function PrometheusMetrics() {
   const uptimeDays =
     data.avgUptime !== null ? Math.floor(data.avgUptime / 86400) : null;
 
+  const TABS: { key: Cluster; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "lab1", label: "Lab-1" },
+    { key: "lab3", label: "Lab-3" },
+  ];
+
   return (
     <div className="space-y-4">
+      {/* Cluster Tabs */}
+      <div className="flex items-center gap-1 rounded-lg bg-gray-800/50 p-1 w-fit">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => onClusterChange(tab.key)}
+            className={cn(
+              "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
+              cluster === tab.key
+                ? "bg-gray-700 text-white shadow-sm"
+                : "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50",
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {/* Average CPU */}
         <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">

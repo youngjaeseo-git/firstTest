@@ -142,6 +142,38 @@ const FS_REAL = `fstype!~"tmpfs|devtmpfs|overlay|squashfs|proc|sysfs|autofs|root
 const DISK_REAL = `device=~"/dev/mapper/.*|/dev/md.*|/dev/sd.*|/dev/nvme.*"`;
 
 // ============================================
+// Cluster (Lab) Filter
+// ============================================
+
+export type Cluster = "all" | "lab1" | "lab3";
+
+const CLUSTER_NE: Record<Cluster, string> = {
+  all: NE_JOB,
+  lab1: `${NE_JOB},instance=~"10.144.38..*"`,
+  lab3: `${NE_JOB},instance=~"10.144.131..*"`,
+};
+
+const CLUSTER_CA: Record<Cluster, string> = {
+  all: `container!=""`,
+  lab1: `container!="",instance=~".*13ae.*|.*14ae.*|k8-master"`,
+  lab3: `container!="",instance=~".*131.*"`,
+};
+
+const CLUSTER_UP: Record<Cluster, string> = {
+  all: `job!~"kube-state-metrics|kubernetes-apiservers|kubernetes-cadvisor|kubernetes-service-endpoints"`,
+  lab1: `job!~"kube-state-metrics|kubernetes-apiservers|kubernetes-cadvisor|kubernetes-service-endpoints",instance=~"10.144.38..*|.*13ae.*|.*14ae.*|k8-master"`,
+  lab3: `job!~"kube-state-metrics|kubernetes-apiservers|kubernetes-cadvisor|kubernetes-service-endpoints",instance=~"10.144.131..*"`,
+};
+
+function neC(cluster: Cluster): string {
+  return CLUSTER_NE[cluster];
+}
+
+function caC(cluster: Cluster): string {
+  return CLUSTER_CA[cluster];
+}
+
+// ============================================
 // Common PromQL Queries
 // node-exporter first, cAdvisor fallback via "or"
 // ============================================
@@ -419,41 +451,45 @@ export const queries = {
     `kube_pod_info{node=~"${ip(instance)}.*"}`,
 
   // ── Dashboard fleet-wide aggregations (node-exporter first, cAdvisor fallback) ──
-  fleetTotalPower: () => `sum(rate(Package_Joules_Consumed[5m]))`,
-  fleetAvgMemory: () =>
-    `(1 - sum(node_memory_MemAvailable_bytes{${NE_JOB}}) / sum(node_memory_MemTotal_bytes{${NE_JOB}})) * 100` +
+  // All fleet queries accept optional cluster filter
+  fleetTotalPower: (_cluster: Cluster = "all") =>
+    `sum(rate(Package_Joules_Consumed[5m]))`,
+  fleetAvgMemory: (cluster: Cluster = "all") =>
+    `(1 - sum(node_memory_MemAvailable_bytes{${neC(cluster)}}) / sum(node_memory_MemTotal_bytes{${neC(cluster)}})) * 100` +
     ` or ` +
-    `sum(container_memory_working_set_bytes{container!=""}) / sum(machine_memory_bytes) * 100`,
-  fleetTotalNetworkRx: () =>
-    `sum(rate(node_network_receive_bytes_total{${NE_JOB},${VNIC}}[5m]))` +
+    `sum(container_memory_working_set_bytes{${caC(cluster)}}) / sum(machine_memory_bytes) * 100`,
+  fleetTotalNetworkRx: (cluster: Cluster = "all") =>
+    `sum(rate(node_network_receive_bytes_total{${neC(cluster)},${VNIC}}[5m]))` +
     ` or ` +
-    `sum(rate(container_network_receive_bytes_total{interface!~"veth.*|lo|cni.*|docker.*|br-.*"}[5m]))`,
-  fleetTotalNetworkTx: () =>
-    `sum(rate(node_network_transmit_bytes_total{${NE_JOB},${VNIC}}[5m]))` +
+    `sum(rate(container_network_receive_bytes_total{${caC(cluster)},interface!~"veth.*|lo|cni.*|docker.*|br-.*"}[5m]))`,
+  fleetTotalNetworkTx: (cluster: Cluster = "all") =>
+    `sum(rate(node_network_transmit_bytes_total{${neC(cluster)},${VNIC}}[5m]))` +
     ` or ` +
-    `sum(rate(container_network_transmit_bytes_total{interface!~"veth.*|lo|cni.*|docker.*|br-.*"}[5m]))`,
-  fleetAvgCpu: () =>
-    `(1 - avg(rate(node_cpu_seconds_total{mode="idle",${NE_JOB}}[5m]))) * 100` +
+    `sum(rate(container_network_transmit_bytes_total{${caC(cluster)},interface!~"veth.*|lo|cni.*|docker.*|br-.*"}[5m]))`,
+  fleetAvgCpu: (cluster: Cluster = "all") =>
+    `(1 - avg(rate(node_cpu_seconds_total{mode="idle",${neC(cluster)}}[5m]))) * 100` +
     ` or ` +
-    `sum(rate(container_cpu_usage_seconds_total{container!=""}[5m])) / sum(machine_cpu_cores) * 100`,
-  fleetTotalMemoryUsedBytes: () =>
-    `sum(node_memory_MemTotal_bytes{${NE_JOB}} - node_memory_MemAvailable_bytes{${NE_JOB}})` +
+    `sum(rate(container_cpu_usage_seconds_total{${caC(cluster)}}[5m])) / sum(machine_cpu_cores) * 100`,
+  fleetTotalMemoryUsedBytes: (cluster: Cluster = "all") =>
+    `sum(node_memory_MemTotal_bytes{${neC(cluster)}} - node_memory_MemAvailable_bytes{${neC(cluster)}})` +
     ` or ` +
-    `sum(container_memory_working_set_bytes{container!=""})`,
-  fleetTotalMemoryBytes: () =>
-    `sum(node_memory_MemTotal_bytes{${NE_JOB}})` +
+    `sum(container_memory_working_set_bytes{${caC(cluster)}})`,
+  fleetTotalMemoryBytes: (cluster: Cluster = "all") =>
+    `sum(node_memory_MemTotal_bytes{${neC(cluster)}})` +
     ` or ` +
     `sum(machine_memory_bytes)`,
-  fleetTotalCpuCores: () =>
-    `count(node_cpu_seconds_total{mode="idle",${NE_JOB}})` +
+  fleetTotalCpuCores: (cluster: Cluster = "all") =>
+    `count(node_cpu_seconds_total{mode="idle",${neC(cluster)}})` +
     ` or ` +
     `sum(machine_cpu_cores)`,
-  fleetTopCpu: () =>
-    `topk(5, (1 - avg by(instance)(rate(node_cpu_seconds_total{mode="idle",${NE_JOB}}[5m]))) * 100)` +
+  fleetTopCpu: (cluster: Cluster = "all") =>
+    `topk(5, (1 - avg by(instance)(rate(node_cpu_seconds_total{mode="idle",${neC(cluster)}}[5m]))) * 100)` +
     ` or ` +
-    `topk(5, sum by(instance)(rate(container_cpu_usage_seconds_total{container!=""}[5m])) / on(instance) group_left() machine_cpu_cores * 100)`,
-  fleetAvgUptime: () =>
-    `avg(time() - node_boot_time_seconds{${NE_JOB}})` +
+    `topk(5, sum by(instance)(rate(container_cpu_usage_seconds_total{${caC(cluster)}}[5m])) / on(instance) group_left() machine_cpu_cores * 100)`,
+  fleetAvgUptime: (cluster: Cluster = "all") =>
+    `avg(time() - node_boot_time_seconds{${neC(cluster)}})` +
     ` or ` +
-    `avg(time() - min by(instance)(container_start_time_seconds{container!=""}))`,
+    `avg(time() - min by(instance)(container_start_time_seconds{${caC(cluster)}}))`,
+  allNodesUpFiltered: (cluster: Cluster = "all") =>
+    `up{${CLUSTER_UP[cluster]}}`,
 };
