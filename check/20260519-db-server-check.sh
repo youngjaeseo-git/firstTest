@@ -4,7 +4,7 @@
 # 실행: bash check/20260519-db-server-check.sh
 
 echo "=== DB 서버 데이터 (instance 매핑 확인) ==="
-docker exec $(docker ps -qf "name=db") psql -U dcim -d dcim -t -A -F '|' -c "
+docker exec firsttest-db-1 psql -U dcim -d dcim -t -A -F '|' -c "
 SELECT hostname, \"ipAddress\", \"prometheusInstance\", status
 FROM \"Equipment\"
 WHERE type = 'SERVER'
