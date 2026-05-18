@@ -88,10 +88,10 @@
 - Kubernetes API 호출
 - 기타 외부 데이터 소스 연동
 
-### 확인된 Prometheus 환경 (2026-04-22 기준)
+### 확인된 Prometheus 환경 (2026-05-19 기준)
 
-**메트릭 소스 (2026-05-15 확인):**
-- **node_exporter 사용 가능** — DaemonSet 배포, bare-metal 수준 메트릭 제공 (21 타겟, 18 up, 3 down)
+**메트릭 소스:**
+- **node_exporter 사용 가능** — DaemonSet 배포, bare-metal 수준 메트릭 제공 (21 타겟)
   - instance 형식: IP:port (예: `10.144.38.103:9100`)
   - job 이름: `node-exporter` (+ `kubernetes-pods` 중복 수집)
   - 수집 메트릭: node_cpu_seconds_total, node_memory_*, node_filesystem_*, node_disk_*, node_network_*, node_load*, node_hwmon_*, node_boot_time_seconds 등
@@ -110,9 +110,43 @@
 - `id` 라벨 값: `/kubepods.slice/kubepods-besteffort.slice/...` (root cgroup `/` 없음)
 - labels: `__name__`, `container`, `cpu`, `group`, `id`, `image`, `instance`, `job`, `namespace`, `pod`, `stress` 등
 
-**Instance 형식:**
-- 대부분의 job은 **호스트네임**을 instance로 사용 (예: `s131x13ae010`)
-- `QRA-SMC-DDR5-Dell` 등 일부 job만 **IP:port** 사용 (예: `110.80.103.100:9200`)
+**Job별 instance 형식 (2026-05-19 확인):**
+
+| Job | 형식 | 타겟 수 | up | down |
+|-----|------|---------|-----|------|
+| node-exporter | IP:port | 21 | 17 | 4 |
+| kubernetes-pods | IP:port | 23 | 17 | 6 |
+| kubernetes-cadvisor | HOSTNAME | 43 | 24 | 19 |
+| kubernetes-nodes | HOSTNAME | 43 | 24 | 19 |
+| QRA-SMC-DDR5-Dell | IP:port | 136 | 136 | 0 |
+| QRA-SMC-DDR5-PCM | HOSTNAME | 50 | 1 | 49 |
+| QRA-SMC-DDR5-EMR_PCM | HOSTNAME | 40 | 0 | 40 |
+| AE-SMC-GNRAP_PCM | HOSTNAME | 11 | 7 | 4 |
+| AE-SMC-GNRSP_PCM | HOSTNAME | 10 | 10 | 0 |
+| AE-SMC-SRF_PCM | HOSTNAME | 5 | 0 | 5 |
+| PCM | HOSTNAME | 41 | 15 | 26 |
+| server-info | HOSTNAME | 41 | 14 | 27 |
+| kube-state-metrics | HOSTNAME | 1 | 1 | 0 |
+| kubernetes-apiservers | IP:port | 1 | 1 | 0 |
+| kubernetes-service-endpoints | IP:port | 4 | 4 | 0 |
+| temperature | IP:port | 1 | 0 | 1 |
+
+**node-exporter 타겟 전체 목록 (21개):**
+- 10.144.38.61, .62, .81, .82, .83, .84
+- 10.144.38.100, .103, .105, .106, .107
+- 10.144.38.113, .114, .115
+- 10.144.38.125, .128, .129, .131, .132, .133, .134
+- 포트: 모두 :9100
+
+**kubernetes-cadvisor 타겟 (up 24개, hostname):**
+- g222bx14ae001 (2개 중복), k8-master
+- s121x13ae003, 005, 006, 007, 008, 013, 014, 015, 025, 028, 029, 031, 032, 033, 034
+- s222hax14ae011, 012
+- s222hx14ae021, 022, 023, 024
+
+**hostname→IP 매핑 (확인된 것):**
+- s222hax14ae011 → 10.144.38.61
+- s222hax14ae012 → 10.144.38.62
 
 **서버 다양성:**
 - CPU: Intel (SRF, SPR, GNR, EMR), AMD (Turin), ARM (Ampere) 등 혼재
@@ -120,31 +154,15 @@
 - 조직: 자체 서버 외에 다른 조직 서버도 포함 (정확한 정보 없을 수 있음)
 - 워크로드 라벨: `stress: "stress"` = stressapptest 메모리 에러 검증용
 
-**주요 Job 목록:**
-- `node-exporter` (up:18, down:3) — node_cpu_*, node_memory_*, node_disk_*, node_network_*, node_hwmon_* (IP:port)
-- `kubernetes-cadvisor` (up:18, down:23) — container_cpu_*, machine_memory_bytes
-- `kubernetes-nodes` (up:18, down:23) — 노드 정보
-- `QRA-SMC-DDR5-Dell` (up:136) — Package_Joules_Consumed (IP:port)
-- `QRA-SMC-DDR5-PCM` (up:49, down:1) — PCM 전력
-- `QRA-SMC-EMR-PCM` (down:40) — EMR 서버 PCM
-- `AE-SMC_GNRAP_PCM` (up:6, down:3) — GNR-AP PCM
-- `AE-SMC_GNRSP_PCM` (up:5, down:10) — GNR-SP PCM
-- `PCM` (up:10, down:31) — 기타 PCM
-- `server-info` (down:41) — 서버 기본 정보 (모두 down)
-- `temperature` (down:1)
-- `kube-state-metrics` (up:1), `kubernetes-apiservers` (up:1), `kubernetes-service-endpoints` (up:4)
+**서버별 메트릭 가용성 예시:**
+- `s222hax14ae011` → AE-SMC-GNRAP_PCM + kubernetes-cadvisor + kubernetes-nodes + kubernetes-pods(IP:10.144.38.61:9100) — 4 job
+- `s222hax14ae012` → AE-SMC-GNRAP_PCM + kubernetes-cadvisor + kubernetes-nodes + kubernetes-pods(IP:10.144.38.62:9100) — 4 job (동일 구성)
+- 두 서버 모두 node-exporter 타겟에 IP로 포함됨 (61, 62)
 
-**메트릭별 instance 형식:**
-- `node_*` (node-exporter) → IP:port (예: `10.144.38.103:9100`)
-- `machine_memory_bytes` → 호스트네임 (kubernetes-cadvisor job)
-- `container_cpu_usage_seconds_total` → 호스트네임 (kubernetes-cadvisor job)
-- `Package_Joules_Consumed` → IP:port (QRA-SMC-DDR5-Dell) 또는 호스트네임 (AE-SMC_* PCM)
-
-**서버별 메트릭 가용성 (2026-04-22 확인):**
-- 서버마다 소속된 job이 다르며, job에 따라 사용 가능한 메트릭이 다름
-- 예시: `s131x13ae013` → kubernetes-cadvisor + kubernetes-nodes + PCM + server-info (4 job, 풀 메트릭)
-- 예시: `s222hax14ae005` → AE-SMC_GNRAP_PCM만 (전력만, CPU/메모리/네트워크 없음)
-- **TODO**: 전체 서버별 메트릭 가용성 조사 → 서버 유형별 표시 가능 차트 정의 필요
+**히트맵 차이 원인 (2026-05-19 확인):**
+- node-exporter는 IP:port 형식, cadvisor는 hostname 형식
+- 앱에서 hostIp(DB의 ipAddress 필드)가 있어야 node-exporter 매칭 가능
+- DB에 ipAddress가 누락된 서버는 hostname으로 node-exporter를 찾아 실패 → 히트맵 안 나옴
 
 ## Key Features
 
