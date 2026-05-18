@@ -81,6 +81,7 @@
 
 | hostname | IP | 확인 방법 |
 |----------|-----|-----------|
+| k8-master | 10.144.38.100 | DCIM 마스터 서버 |
 | s222hax14ae011 | 10.144.38.61 | Prometheus __address__ 라벨 |
 | s222hax14ae012 | 10.144.38.62 | Prometheus __address__ 라벨 |
 
