@@ -5,10 +5,24 @@
 APP=http://localhost:3000
 
 echo "=== DB 서버 데이터 (instance 매핑 확인) ==="
-curl -s "${APP}/api/equipment?type=SERVER&limit=100" | python3 -c "
+RAW=$(curl -s "${APP}/api/equipment?type=SERVER&limit=100")
+
+echo "$RAW" | python3 -c "
 import sys, json
-d = json.loads(sys.stdin.read())
+raw = sys.stdin.read()
+try:
+    d = json.loads(raw)
+except:
+    print('JSON 파싱 실패. 응답 첫 200자:')
+    print(raw[:200])
+    sys.exit(1)
+
 items = d.get('items', d) if isinstance(d, dict) else d
+if not isinstance(items, list):
+    print('items가 리스트가 아님:', type(items))
+    print(str(d)[:200])
+    sys.exit(1)
+
 print(f'Total: {len(items)}')
 print(f'{\"hostname\":<25} {\"ipAddress\":<18} {\"promInstance\":<25} {\"status\":<10}')
 print('-' * 80)
