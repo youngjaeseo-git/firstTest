@@ -381,6 +381,40 @@ export const queries = {
   powerDramWatts: (instance: string) =>
     `rate(DRAM_Joules_Consumed{${m(instance)}}[5m])`,
 
+  powerPP0Watts: (instance: string) =>
+    `rate(PP0_Joules_Consumed{${m(instance)}}[5m])`,
+
+  // ── PCM (Intel Performance Counter Monitor) ──
+  pcmIPC: (instance: string) =>
+    `rate(Instructions_Retired_Any{${m(instance)},aggregate="system"}[5m]) / rate(Clock_Unhalted_Ref{${m(instance)},aggregate="system"}[5m])`,
+
+  pcmInstructionsRetired: (instance: string) =>
+    `rate(Instructions_Retired_Any{${m(instance)},aggregate="system"}[5m])`,
+
+  pcmL2CacheHits: (instance: string) =>
+    `rate(L2_Cache_Hits{${m(instance)},aggregate="system"}[5m])`,
+
+  pcmL2CacheMisses: (instance: string) =>
+    `rate(L2_Cache_Misses{${m(instance)},aggregate="system"}[5m])`,
+
+  pcmL2HitRate: (instance: string) =>
+    `rate(L2_Cache_Hits{${m(instance)},aggregate="system"}[5m]) / (rate(L2_Cache_Hits{${m(instance)},aggregate="system"}[5m]) + rate(L2_Cache_Misses{${m(instance)},aggregate="system"}[5m])) * 100`,
+
+  pcmL3CacheHits: (instance: string) =>
+    `rate(L3_Cache_Hits{${m(instance)},aggregate="system"}[5m])`,
+
+  pcmL3CacheMisses: (instance: string) =>
+    `rate(L3_Cache_Misses{${m(instance)},aggregate="system"}[5m])`,
+
+  pcmL3HitRate: (instance: string) =>
+    `rate(L3_Cache_Hits{${m(instance)},aggregate="system"}[5m]) / (rate(L3_Cache_Hits{${m(instance)},aggregate="system"}[5m]) + rate(L3_Cache_Misses{${m(instance)},aggregate="system"}[5m])) * 100`,
+
+  pcmDRAMReads: (instance: string) =>
+    `rate(DRAM_Reads{${m(instance)},aggregate="system"}[5m])`,
+
+  pcmDRAMWrites: (instance: string) =>
+    `rate(DRAM_Writes{${m(instance)},aggregate="system"}[5m])`,
+
   // ── System / Uptime ──
   uptime: (instance: string, hostIp?: string) =>
     `time() - node_boot_time_seconds{${ne(instance, hostIp)}}` +

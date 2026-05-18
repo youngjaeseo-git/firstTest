@@ -122,6 +122,11 @@ export const translations: Record<Language, Record<string, string>> = {
     "server.ipmiTemperature": "IPMI Temperatures",
     "server.powerConsumption": "Power Consumption",
     "server.fanSpeed": "Fan Speed",
+    "server.pcm": "PCM (Performance Counters)",
+    "server.pcmIPC": "Instructions Per Cycle (IPC)",
+    "server.pcmCacheHitRate": "Cache Hit Rate",
+    "server.pcmCacheOps": "Cache Operations",
+    "server.pcmMemoryBandwidth": "Memory Bandwidth (DRAM)",
 
     // ── System Health ──
     "system.health": "System Health",
@@ -557,6 +562,11 @@ export const translations: Record<Language, Record<string, string>> = {
     "server.ipmiTemperature": "IPMI 온도",
     "server.powerConsumption": "전력 소비",
     "server.fanSpeed": "팬 속도",
+    "server.pcm": "PCM (성능 카운터)",
+    "server.pcmIPC": "클럭당 명령어 수 (IPC)",
+    "server.pcmCacheHitRate": "캐시 적중률",
+    "server.pcmCacheOps": "캐시 연산",
+    "server.pcmMemoryBandwidth": "메모리 대역폭 (DRAM)",
 
     // ── System Health ──
     "system.health": "시스템 상태",
