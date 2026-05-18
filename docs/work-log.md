@@ -212,6 +212,9 @@
 - [ ] **DRAM 파트넘 자동 조회 + 워크로드 기반 일괄 지정** — dmidecode로 서버별 DIMM 파트넘 자동 수집 (textfile collector 또는 SSH), Prometheus stress 라벨로 동일 워크로드 서버 감지, 같은 DRAM 제품군 서버를 자동 그룹핑하여 테스트 구성에 일괄 할당. 사전 확인: dmidecode 출력 구조 확인 스크립트 필요
 
 ### 우선순위 중간
+- [ ] **to-prd 적용** — DRAM 인증 테스트 관리 등 큰 기능 구현 전 기획서(PRD) 작성. `/to-prd` 커맨드로 합의 내용을 기획서로 정리
+- [ ] **to-issues 적용** — TODO 항목을 GitHub Issue로 분리. `/to-issues` 커맨드로 작업 단위 쪼개기
+- [ ] **improve-codebase 적용** — check/ 스크립트 정리, 되돌린 코드 잔재 제거, 중복 코드 정리. `/improve-codebase` 커맨드로 주기적 정리
 - [ ] 메트릭 없는 서버의 상세 페이지 처리 — "이 서버에서 지원하지 않는 메트릭입니다" 안내
 - [ ] 온도 데이터 연동 — 외부 SQL DB 연결 (Grafana PDU monitoring 데이터소스)
 - [ ] 서버 상세 페이지 실시간 WebSocket 메트릭
