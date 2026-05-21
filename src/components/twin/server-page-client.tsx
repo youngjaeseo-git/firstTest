@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,25 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
 import { List, Building2, Search, GitCompareArrows, ArrowUpDown } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
+import { queries } from "@/lib/prometheus";
+
+type PowerState = "running" | "idle" | "off" | "unknown";
+
+function PowerStateBadge({ state }: { state: PowerState }) {
+  const styles: Record<PowerState, { bg: string; dot: string; label: string }> = {
+    running: { bg: "bg-green-500/15 text-green-400", dot: "bg-green-400", label: "Running" },
+    idle: { bg: "bg-yellow-500/15 text-yellow-400", dot: "bg-yellow-400", label: "Idle" },
+    off: { bg: "bg-gray-500/15 text-gray-500", dot: "bg-gray-500", label: "OFF" },
+    unknown: { bg: "bg-gray-800/50 text-gray-600", dot: "bg-gray-600", label: "..." },
+  };
+  const s = styles[state];
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium", s.bg)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full", s.dot, state === "running" && "animate-pulse")} />
+      {s.label}
+    </span>
+  );
+}
 
 interface ServerPageClientProps {
   rooms: Array<{
@@ -71,8 +90,76 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
   const [filterModel, setFilterModel] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterRoom, setFilterRoom] = useState("all");
+  const [filterPower, setFilterPower] = useState("all");
   const [sortKey, setSortKey] = useState<"hostname" | "ipAddress" | "model" | "status">("hostname");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const [powerStates, setPowerStates] = useState<Record<string, PowerState>>({});
+
+  const fetchPowerStates = useCallback(async () => {
+    try {
+      const [upRes, cpuRes] = await Promise.all([
+        fetch(`/api/metrics/instant?query=${encodeURIComponent(queries.allNodesUp())}`)
+          .then((r) => r.json()),
+        fetch(`/api/metrics/instant?query=${encodeURIComponent(queries.fleetCpuPerInstance())}`)
+          .then((r) => r.json()),
+      ]);
+
+      const upMap = new Map<string, boolean>();
+      for (const r of upRes?.data?.result ?? []) {
+        const inst = r.metric?.instance || "";
+        if (parseFloat(r.value?.[1] || "0") >= 1) upMap.set(inst, true);
+      }
+
+      const cpuMap = new Map<string, number>();
+      for (const r of cpuRes?.data?.result ?? []) {
+        const inst = r.metric?.instance || "";
+        cpuMap.set(inst, parseFloat(r.value?.[1] || "0"));
+      }
+
+      const states: Record<string, PowerState> = {};
+      for (const s of servers) {
+        const keys: string[] = [];
+        if (s.hostname) keys.push(s.hostname);
+        if (s.ipAddress) {
+          keys.push(s.ipAddress);
+          keys.push(`${s.ipAddress}:9100`);
+          keys.push(`${s.ipAddress}:10250`);
+        }
+
+        const isUp = keys.some((k) => upMap.has(k));
+        if (!isUp) {
+          states[s.id] = "off";
+          continue;
+        }
+
+        let maxCpu = -1;
+        for (const k of keys) {
+          const cpu = cpuMap.get(k);
+          if (cpu !== undefined && cpu > maxCpu) maxCpu = cpu;
+        }
+        cpuMap.forEach((cpu, inst) => {
+          const bare = inst.replace(/:\d+$/, "");
+          if (keys.includes(bare) && cpu > maxCpu) maxCpu = cpu;
+        });
+
+        if (maxCpu > 5) {
+          states[s.id] = "running";
+        } else {
+          states[s.id] = "idle";
+        }
+      }
+      setPowerStates(states);
+    } catch {
+      // keep existing states on error
+    }
+  }, [servers]);
+
+  useEffect(() => {
+    fetchPowerStates();
+    const timer = setInterval(fetchPowerStates, 30_000);
+    return () => clearInterval(timer);
+  }, [fetchPowerStates]);
 
   const modelOptions = useMemo(() => {
     const models = new Set(servers.map((s) => s.model).filter(Boolean) as string[]);
@@ -110,6 +197,9 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
     if (filterRoom !== "all") {
       result = result.filter((s) => s.roomName === filterRoom);
     }
+    if (filterPower !== "all") {
+      result = result.filter((s) => (powerStates[s.id] || "unknown") === filterPower);
+    }
 
     result = [...result].sort((a, b) => {
       const va = (a[sortKey] || "").toLowerCase();
@@ -119,7 +209,7 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
     });
 
     return result;
-  }, [servers, query, filterModel, filterStatus, filterRoom, sortKey, sortDir]);
+  }, [servers, query, filterModel, filterStatus, filterRoom, filterPower, powerStates, sortKey, sortDir]);
 
   const toggleSort = (key: typeof sortKey) => {
     if (sortKey === key) {
@@ -130,7 +220,7 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
     }
   };
 
-  const activeFilterCount = [filterModel !== "all", filterStatus !== "all", filterRoom !== "all"].filter(Boolean).length;
+  const activeFilterCount = [filterModel !== "all", filterStatus !== "all", filterRoom !== "all", filterPower !== "all"].filter(Boolean).length;
 
   return (
     <div className="space-y-6">
@@ -141,6 +231,22 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
             {filteredServers.length}
             {query && ` / ${servers.length}`} {t("servers.count")}
           </p>
+          {Object.keys(powerStates).length > 0 && (
+            <div className="flex items-center gap-3 mt-1">
+              <span className="flex items-center gap-1 text-xs text-green-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                {Object.values(powerStates).filter((s) => s === "running").length} Running
+              </span>
+              <span className="flex items-center gap-1 text-xs text-yellow-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
+                {Object.values(powerStates).filter((s) => s === "idle").length} Idle
+              </span>
+              <span className="flex items-center gap-1 text-xs text-gray-500">
+                <span className="h-1.5 w-1.5 rounded-full bg-gray-500" />
+                {Object.values(powerStates).filter((s) => s === "off").length} OFF
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <Link href="/servers/compare">
@@ -211,9 +317,19 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
                 <option key={r} value={r}>{r}</option>
               ))}
             </select>
+            <select
+              value={filterPower}
+              onChange={(e) => setFilterPower(e.target.value)}
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-300 focus:border-blue-500 focus:outline-none"
+            >
+              <option value="all">Power: 전체</option>
+              <option value="running">Running</option>
+              <option value="idle">Idle</option>
+              <option value="off">OFF</option>
+            </select>
             {activeFilterCount > 0 && (
               <button
-                onClick={() => { setFilterModel("all"); setFilterStatus("all"); setFilterRoom("all"); setQuery(""); }}
+                onClick={() => { setFilterModel("all"); setFilterStatus("all"); setFilterRoom("all"); setFilterPower("all"); setQuery(""); }}
                 className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-gray-400 hover:text-gray-200 hover:border-gray-600"
               >
                 초기화 ({activeFilterCount})
@@ -230,6 +346,7 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
                     <SortTh label="IP" sortKey="ipAddress" current={sortKey} dir={sortDir} onSort={toggleSort} />
                     <th className="px-4 py-3 font-medium">BMC IP</th>
                     <SortTh label="Status" sortKey="status" current={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <th className="px-4 py-3 font-medium">Power</th>
                     <th className="px-4 py-3 font-medium">CPU</th>
                     <SortTh label="System Model" sortKey="model" current={sortKey} dir={sortDir} onSort={toggleSort} />
                     <th className="px-4 py-3 font-medium">Room</th>
@@ -262,6 +379,9 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={s.status} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <PowerStateBadge state={powerStates[s.id] || "unknown"} />
                       </td>
                       <td className="px-4 py-3">
                         {s.cpuManufacturer ? (

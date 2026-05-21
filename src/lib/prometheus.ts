@@ -516,4 +516,9 @@ export const queries = {
     `avg(time() - min by(instance)(container_start_time_seconds{${caC(cluster)}}))`,
   allNodesUpFiltered: (cluster: Cluster = "all") =>
     `up{${CLUSTER_UP[cluster]}}`,
+
+  fleetCpuPerInstance: () =>
+    `(1 - avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m]))) * 100` +
+    ` or ` +
+    `sum by(instance)(rate(container_cpu_usage_seconds_total{container!=""}[5m])) / on(instance) group_left() machine_cpu_cores * 100`,
 };
