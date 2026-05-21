@@ -227,6 +227,15 @@ export function MetricChart({
         </div>
       )}
 
+      {!loading && !error && data.length === 0 && (
+        <div
+          className="flex items-center justify-center text-sm text-gray-600"
+          style={{ height }}
+        >
+          데이터 없음
+        </div>
+      )}
+
       {data.length > 0 && (
         <ResponsiveContainer width="100%" height={height}>
           <LineChart data={data}>
