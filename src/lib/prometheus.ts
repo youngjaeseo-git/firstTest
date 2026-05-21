@@ -186,7 +186,7 @@ export const queries = {
     `sum(rate(container_cpu_usage_seconds_total{${cm(instance)}}[5m])) / scalar(max(machine_cpu_cores{${m(instance)}})) * 100`,
 
   cpuPerCore: (instance: string, hostIp?: string) =>
-    `sum by(cpu)(rate(node_cpu_seconds_total{mode!="idle",${ne(instance, hostIp)}}[5m])) * 100` +
+    `(1 - avg by(cpu)(rate(node_cpu_seconds_total{mode="idle",${ne(instance, hostIp)}}[5m]))) * 100` +
     ` or ` +
     `sum by(cpu)(rate(container_cpu_usage_seconds_total{${cm(instance)},cpu!="total"}[5m])) * 100`,
 
@@ -207,6 +207,11 @@ export const queries = {
     `node_load15{${ne(instance, hostIp)}}` +
     ` or ` +
     `sum(rate(container_cpu_usage_seconds_total{${cm(instance)}}[15m]))`,
+
+  cpuCoreCount: (instance: string, hostIp?: string) =>
+    `count(node_cpu_seconds_total{mode="idle",${ne(instance, hostIp)}})` +
+    ` or ` +
+    `max(machine_cpu_cores{${m(instance)}})`,
 
   normalizedLoad: (instance: string, hostIp?: string) =>
     `node_load1{${ne(instance, hostIp)}} / count(node_cpu_seconds_total{mode="idle",${ne(instance, hostIp)}})` +

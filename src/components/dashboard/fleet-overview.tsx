@@ -117,7 +117,7 @@ const POLL_INTERVAL = 30_000; // 30s
 // Component
 // ---------------------------------------------------------------------------
 
-export function FleetOverview({ statusCounts, cluster = "all" }: { statusCounts: StatusCounts; cluster?: Cluster }) {
+export function FleetOverview({ statusCounts, cluster = "all", hostnameIpMap = {} }: { statusCounts: StatusCounts; cluster?: Cluster; hostnameIpMap?: Record<string, string> }) {
   const t = useT();
 
   // Top-5 CPU
@@ -136,14 +136,29 @@ export function FleetOverview({ statusCounts, cluster = "all" }: { statusCounts:
   const [latestPower, setLatestPower] = useState<number | null>(null);
 
   const fetchAll = useCallback(async () => {
-    // ---- Top-5 CPU ----
+    // ---- Top-5 CPU (deduplicate hostname/IP for same server) ----
     const topResults = await fetchInstant(queries.fleetTopCpu(cluster));
-    const parsed: TopCpuServer[] = topResults
+    const allEntries = topResults
       .filter((r) => r.value)
       .map((r) => ({
         instance: r.metric.instance || "unknown",
         cpuPercent: parseFloat(r.value![1]),
-      }))
+      }));
+
+    const deduped = new Map<string, TopCpuServer>();
+    for (const entry of allEntries) {
+      const rawInstance = entry.instance.replace(/:\d+$/, "");
+      const canonical = hostnameIpMap[rawInstance] || rawInstance;
+      const key = [rawInstance, canonical].sort().join("|");
+      const existing = deduped.get(key);
+      if (!existing || entry.cpuPercent > existing.cpuPercent) {
+        const displayName = /^\d+\.\d+\.\d+\.\d+/.test(rawInstance)
+          ? (hostnameIpMap[rawInstance] || rawInstance)
+          : rawInstance;
+        deduped.set(key, { instance: displayName, cpuPercent: entry.cpuPercent });
+      }
+    }
+    const parsed = Array.from(deduped.values())
       .sort((a, b) => b.cpuPercent - a.cpuPercent)
       .slice(0, 5);
     setTopCpu(parsed);
@@ -179,7 +194,7 @@ export function FleetOverview({ statusCounts, cluster = "all" }: { statusCounts:
     if (netPoints.length > 0) setLatestNet(netPoints[netPoints.length - 1].v);
     if (powerPoints.length > 0)
       setLatestPower(powerPoints[powerPoints.length - 1].v);
-  }, [cluster]);
+  }, [cluster, hostnameIpMap]);
 
   useEffect(() => {
     fetchAll();

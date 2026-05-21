@@ -31,6 +31,7 @@ export default async function DashboardPage() {
     lab3Active,
     lab3Maintenance,
     lab3Failed,
+    equipmentMapping,
   ] = await Promise.all([
     prisma.equipment.count(),
     prisma.equipment.count({ where: { status: "ACTIVE" } }),
@@ -86,6 +87,10 @@ export default async function DashboardPage() {
     prisma.equipment.count({ where: { status: "ACTIVE", ...lab3Where } }),
     prisma.equipment.count({ where: { status: { in: ["MAINTENANCE", "REPAIR"] }, ...lab3Where } }),
     prisma.equipment.count({ where: { status: "FAILED", ...lab3Where } }),
+    prisma.equipment.findMany({
+      where: { ipAddress: { not: null } },
+      select: { hostname: true, ipAddress: true },
+    }),
   ]);
 
   return (
@@ -106,6 +111,14 @@ export default async function DashboardPage() {
             lab1: { active: lab1Active, maintenance: lab1Maintenance, failed: lab1Failed },
             lab3: { active: lab3Active, maintenance: lab3Maintenance, failed: lab3Failed },
           }}
+          hostnameIpMap={Object.fromEntries(
+            equipmentMapping
+              .filter((e) => e.hostname && e.ipAddress)
+              .flatMap((e) => [
+                [e.hostname!, e.ipAddress!],
+                [e.ipAddress!, e.hostname!],
+              ])
+          )}
         />
 
         {/* Summary Cards with hover overlay */}

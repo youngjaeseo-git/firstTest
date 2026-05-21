@@ -99,6 +99,7 @@ export function ServerDetailClient({ instance, hostIp }: Props) {
             { label: "1m avg", query: queries.loadAvg1(instance, hostIp), color: "#f59e0b" },
             { label: "5m avg", query: queries.loadAvg5(instance, hostIp), color: "#ef4444" },
             { label: "15m avg", query: queries.loadAvg15(instance, hostIp), color: "#8b5cf6" },
+            { label: "CPU Cores", query: queries.cpuCoreCount(instance, hostIp), color: "#4b5563" },
           ]}
           durationMin={duration.value}
           step={duration.step}

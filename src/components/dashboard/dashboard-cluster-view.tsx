@@ -19,8 +19,10 @@ interface ClusterStatusCounts {
 
 export function DashboardClusterView({
   statusCounts,
+  hostnameIpMap = {},
 }: {
   statusCounts: ClusterStatusCounts;
+  hostnameIpMap?: Record<string, string>;
 }) {
   const [cluster, setCluster] = useState<Cluster>("all");
 
@@ -30,6 +32,7 @@ export function DashboardClusterView({
       <FleetOverview
         statusCounts={statusCounts[cluster]}
         cluster={cluster}
+        hostnameIpMap={hostnameIpMap}
       />
     </>
   );
