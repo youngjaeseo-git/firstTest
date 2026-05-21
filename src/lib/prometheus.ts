@@ -386,7 +386,7 @@ export const queries = {
 
   // ── PCM (Intel Performance Counter Monitor) ──
   pcmIPC: (instance: string) =>
-    `sum(rate(Instructions_Retired_Any{${m(instance)}}[5m])) / sum(rate(Clock_unhalted_ref{${m(instance)}}[5m]))`,
+    `sum(rate(Instructions_Retired_Any{${m(instance)}}[5m])) / sum(rate(Clock_Unhalted_Ref{${m(instance)}}[5m]))`,
 
   pcmL2HitRate: (instance: string) =>
     `sum(rate(L2_Cache_Hits{${m(instance)}}[5m])) / (sum(rate(L2_Cache_Hits{${m(instance)}}[5m])) + sum(rate(L2_Cache_Misses{${m(instance)}}[5m]))) * 100`,
