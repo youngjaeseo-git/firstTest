@@ -22,6 +22,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "nav.alerts": "Alerts",
     "nav.capacity": "Capacity",
     "nav.reports": "Reports",
+    "nav.memory": "Memory",
     "nav.settings": "Settings",
 
     // ── Header ──
@@ -228,6 +229,21 @@ export const translations: Record<Language, Record<string, string>> = {
     "memory.value": "Value",
     "memory.apply": "Apply",
     "memory.applyToEmpty": "Apply to Empty Slots",
+
+    // ── Memory Inventory ──
+    "memoryInv.title": "Memory Inventory",
+    "memoryInv.description": "Overview of memory (DIMM) status across all servers",
+    "memoryInv.totalServers": "Total Servers",
+    "memoryInv.totalDimms": "DIMMs Installed",
+    "memoryInv.totalCapacity": "Total Capacity",
+    "memoryInv.mostCommonType": "Most Common Type",
+    "memoryInv.filterPlaceholder": "Filter by hostname or IP...",
+    "memoryInv.hostname": "Hostname",
+    "memoryInv.ipAddress": "IP Address",
+    "memoryInv.totalMemory": "Total Memory",
+    "memoryInv.slots": "Slots (Populated / Total)",
+    "memoryInv.memType": "Memory Type",
+    "memoryInv.noSlots": "No memory slots configured for this server.",
 
     // ── Alerts ──
     "alerts.title": "Alerts",
@@ -462,6 +478,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "nav.alerts": "알림",
     "nav.capacity": "용량 관리",
     "nav.reports": "리포트",
+    "nav.memory": "메모리",
     "nav.settings": "설정",
 
     // ── Header ──
@@ -668,6 +685,21 @@ export const translations: Record<Language, Record<string, string>> = {
     "memory.value": "값",
     "memory.apply": "적용",
     "memory.applyToEmpty": "빈 슬롯에 적용",
+
+    // ── Memory Inventory ──
+    "memoryInv.title": "메모리 현황",
+    "memoryInv.description": "전체 서버의 메모리(DIMM) 상태 요약",
+    "memoryInv.totalServers": "전체 서버",
+    "memoryInv.totalDimms": "장착된 DIMM",
+    "memoryInv.totalCapacity": "총 용량",
+    "memoryInv.mostCommonType": "주요 메모리 유형",
+    "memoryInv.filterPlaceholder": "호스트명 또는 IP로 필터...",
+    "memoryInv.hostname": "호스트명",
+    "memoryInv.ipAddress": "IP 주소",
+    "memoryInv.totalMemory": "총 메모리",
+    "memoryInv.slots": "슬롯 (장착 / 전체)",
+    "memoryInv.memType": "메모리 유형",
+    "memoryInv.noSlots": "이 서버에 메모리 슬롯이 설정되지 않았습니다.",
 
     // ── Alerts ──
     "alerts.title": "알림",
