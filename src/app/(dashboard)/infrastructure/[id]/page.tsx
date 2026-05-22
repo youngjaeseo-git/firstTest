@@ -11,6 +11,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { getSessionUser, canControlPower } from "@/lib/rbac";
+import { PowerStateIndicator } from "@/components/metrics/power-state-indicator";
 import { PowerConsoleCard } from "@/components/equipment/power-console-card";
 import { RefreshHwButton } from "@/components/equipment/refresh-hw-button";
 import { EquipmentHistory } from "@/components/equipment/equipment-history";
@@ -84,7 +85,10 @@ export default async function EquipmentDetailPage({
           </div>
           <div>
             <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Status</p>
-            <div className="mt-1"><StatusBadge status={equipment.status} /></div>
+            <div className="mt-1 flex items-center gap-2">
+              <StatusBadge status={equipment.status} />
+              <PowerStateIndicator hostname={equipment.hostname} ipAddress={equipment.ipAddress} />
+            </div>
           </div>
           <div>
             <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Model</p>

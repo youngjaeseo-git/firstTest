@@ -148,14 +148,17 @@ export function FleetOverview({ statusCounts, cluster = "all", hostnameIpMap = {
     const deduped = new Map<string, TopCpuServer>();
     for (const entry of allEntries) {
       const rawInstance = entry.instance.replace(/:\d+$/, "");
-      const canonical = hostnameIpMap[rawInstance] || rawInstance;
-      const key = [rawInstance, canonical].sort().join("|");
-      const existing = deduped.get(key);
+      const mappedName = hostnameIpMap[rawInstance];
+      const normalizedKey = mappedName
+        ? [rawInstance, mappedName].sort().join("|")
+        : rawInstance;
+      const existing = deduped.get(normalizedKey);
       if (!existing || entry.cpuPercent > existing.cpuPercent) {
-        const displayName = /^\d+\.\d+\.\d+\.\d+/.test(rawInstance)
-          ? (hostnameIpMap[rawInstance] || rawInstance)
-          : rawInstance;
-        deduped.set(key, { instance: displayName, cpuPercent: entry.cpuPercent });
+        let displayName = rawInstance;
+        if (/^\d+\.\d+\.\d+\.\d+$/.test(rawInstance) && mappedName) {
+          displayName = mappedName;
+        }
+        deduped.set(normalizedKey, { instance: displayName, cpuPercent: entry.cpuPercent });
       }
     }
     const parsed = Array.from(deduped.values())

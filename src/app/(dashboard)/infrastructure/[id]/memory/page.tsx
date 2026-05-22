@@ -134,7 +134,7 @@ export default async function MemoryDetailPage({
           populated: m.populated,
           capacityGb: m.capacityGb,
           memoryType: m.memoryType,
-        }))} />
+        }))} cpuCount={cpuCount} />
       </Card>
 
       {/* Per-Socket Accordion */}

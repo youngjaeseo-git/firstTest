@@ -11,6 +11,7 @@ import { PowerConsoleCard } from "@/components/equipment/power-console-card";
 import { RefreshHwButton } from "@/components/equipment/refresh-hw-button";
 import { BmcSensorsCard } from "@/components/equipment/bmc-sensors-card";
 import { MemorySlotDiagram } from "@/components/memory/memory-slot-diagram";
+import { PowerStateIndicator } from "@/components/metrics/power-state-indicator";
 import { getSessionUser, canControlPower } from "@/lib/rbac";
 
 export default async function ServerDetailPage({
@@ -85,7 +86,10 @@ export default async function ServerDetailPage({
             </div>
             <div>
               <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Status</p>
-              <div className="mt-1"><StatusBadge status={equipment.status} /></div>
+              <div className="mt-1 flex items-center gap-2">
+                <StatusBadge status={equipment.status} />
+                <PowerStateIndicator hostname={equipment.hostname} ipAddress={equipment.ipAddress} />
+              </div>
             </div>
             <div>
               <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Model</p>
@@ -192,7 +196,7 @@ export default async function ServerDetailPage({
                 populated: m.populated,
                 capacityGb: m.capacityGb,
                 memoryType: m.memoryType,
-              }))} />
+              }))} cpuCount={equipment.cpus.length} />
             </div>
           );
         })()}
