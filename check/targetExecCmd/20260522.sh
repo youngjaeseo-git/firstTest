@@ -77,3 +77,22 @@ for t in sorted(ne, key=lambda x: x['labels'].get('instance','')):
     print(f'  {inst:30s} {health:5s}  {err[:60] if err else \"\"}')
 if not ne: print('  NO node-exporter targets')
 "
+
+echo ""
+echo "=== 11. NE 중복 원인: hostname instance가 있는 job 확인 ==="
+curl -s "$PROM/api/v1/query" --data-urlencode 'query=up{instance=~"s121x13ae015.*"}' | python3 -c "
+import sys,json
+d=json.loads(sys.stdin.read())
+r=d.get('data',{}).get('result',[])
+for item in r:
+    print(f'  job={item[\"metric\"].get(\"job\",\"?\")} instance={item[\"metric\"][\"instance\"]} up={item[\"value\"][1]}')
+if not r: print('  NO DATA')
+"
+
+echo ""
+echo "=== 12. timeout 서버 직접 curl 테스트 (013, 061) ==="
+echo "013:"
+timeout 3 curl -s -o /dev/null -w "status=%{http_code} time=%{time_total}s" http://10.144.38.113:9100/metrics 2>&1 || echo "TIMEOUT/FAIL"
+echo ""
+echo "061:"
+timeout 3 curl -s -o /dev/null -w "status=%{http_code} time=%{time_total}s" http://10.144.38.61:9100/metrics 2>&1 || echo "TIMEOUT/FAIL"
