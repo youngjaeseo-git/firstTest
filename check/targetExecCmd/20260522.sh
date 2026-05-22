@@ -34,3 +34,46 @@ for item in r:
     print(f'  job={item[\"metric\"].get(\"job\",\"?\")} instance={item[\"metric\"][\"instance\"]} up={item[\"value\"][1]}')
 if not r: print('  NO DATA')
 "
+
+echo ""
+echo "=== 8. 전체 node-exporter UP/DOWN 상태 ==="
+curl -s "$PROM/api/v1/query" --data-urlencode 'query=up{job="node-exporter"}' | python3 -c "
+import sys,json
+d=json.loads(sys.stdin.read())
+r=d.get('data',{}).get('result',[])
+for item in sorted(r, key=lambda x: x['metric']['instance']):
+    inst=item['metric']['instance']
+    val=item['value'][1]
+    status='UP' if val=='1' else 'DOWN'
+    print(f'  {inst:30s} {status}')
+if not r: print('  NO DATA')
+"
+
+echo ""
+echo "=== 9. 전체 cAdvisor UP/DOWN 상태 ==="
+curl -s "$PROM/api/v1/query" --data-urlencode 'query=up{job="kubernetes-cadvisor"}' | python3 -c "
+import sys,json
+d=json.loads(sys.stdin.read())
+r=d.get('data',{}).get('result',[])
+for item in sorted(r, key=lambda x: x['metric']['instance']):
+    inst=item['metric']['instance']
+    val=item['value'][1]
+    status='UP' if val=='1' else 'DOWN'
+    print(f'  {inst:30s} {status}')
+if not r: print('  NO DATA')
+"
+
+echo ""
+echo "=== 10. Prometheus scrape 에러 (node-exporter) ==="
+curl -s "$PROM/api/v1/targets" | python3 -c "
+import sys,json
+d=json.loads(sys.stdin.read())
+targets=d.get('data',{}).get('activeTargets',[])
+ne=[t for t in targets if t.get('labels',{}).get('job')=='node-exporter']
+for t in sorted(ne, key=lambda x: x['labels'].get('instance','')):
+    inst=t['labels'].get('instance','?')
+    health=t.get('health','?')
+    err=t.get('lastError','')
+    print(f'  {inst:30s} {health:5s}  {err[:60] if err else \"\"}')
+if not ne: print('  NO node-exporter targets')
+"
