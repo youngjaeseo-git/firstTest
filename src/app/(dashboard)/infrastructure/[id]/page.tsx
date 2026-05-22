@@ -14,7 +14,6 @@ import { getSessionUser, canControlPower } from "@/lib/rbac";
 import { PowerConsoleCard } from "@/components/equipment/power-console-card";
 import { RefreshHwButton } from "@/components/equipment/refresh-hw-button";
 import { EquipmentHistory } from "@/components/equipment/equipment-history";
-import { ServerDetailClient } from "@/components/metrics/server-detail-client";
 
 export default async function EquipmentDetailPage({
   params,
@@ -33,7 +32,6 @@ export default async function EquipmentDetailPage({
       cpus: { orderBy: { socketIndex: "asc" } },
       memories: { orderBy: { slotIndex: "asc" } },
       networkPorts: true,
-      prometheusTarget: true,
     },
   });
 
@@ -129,22 +127,21 @@ export default async function EquipmentDetailPage({
         />
       )}
 
-      {/* Prometheus Metrics */}
-      {(() => {
-        const instance =
-          equipment.prometheusInstance ||
-          equipment.prometheusTarget?.instance ||
-          null;
-        return instance ? (
-          <ServerDetailClient instance={instance} hostIp={equipment.ipAddress || undefined} />
-        ) : (
-          <Card>
-            <p className="text-sm text-gray-500">
-              Prometheus 연결 정보가 없습니다. Discovery에서 타겟을 등록하면 메트릭이 표시됩니다.
-            </p>
-          </Card>
-        );
-      })()}
+      {/* Link to monitoring page for servers */}
+      {equipment.type === "SERVER" && (
+        <div className="rounded-xl border border-blue-600/20 bg-blue-500/5 p-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-blue-300">실시간 모니터링</p>
+            <p className="text-xs text-blue-400/60 mt-0.5">CPU, Memory, Network, 온도 등 Prometheus 메트릭</p>
+          </div>
+          <Link
+            href={`/servers/${equipment.id}`}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          >
+            모니터링 →
+          </Link>
+        </div>
+      )}
 
       {/* Collapsible sections */}
       <Accordion type="multiple" defaultValue={["basic", "cpu", "memory"]}>

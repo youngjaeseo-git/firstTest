@@ -6,10 +6,11 @@ import { prisma } from "@/lib/db";
 import { ServerDetailClient } from "@/components/metrics/server-detail-client";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { StatusBadge } from "@/components/ui/badge";
+import { StatusBadge, Badge } from "@/components/ui/badge";
 import { PowerConsoleCard } from "@/components/equipment/power-console-card";
 import { RefreshHwButton } from "@/components/equipment/refresh-hw-button";
 import { BmcSensorsCard } from "@/components/equipment/bmc-sensors-card";
+import { MemorySlotDiagram } from "@/components/memory/memory-slot-diagram";
 import { getSessionUser, canControlPower } from "@/lib/rbac";
 
 export default async function ServerDetailPage({
@@ -69,13 +70,7 @@ export default async function ServerDetailPage({
                 href={`/infrastructure/${equipment.id}`}
                 className="rounded-lg border border-gray-700/60 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800/80 hover:border-gray-600 transition-all"
               >
-                Equipment Detail
-              </Link>
-              <Link
-                href={`/infrastructure/${equipment.id}/memory`}
-                className="rounded-lg border border-gray-700/60 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800/80 hover:border-gray-600 transition-all"
-              >
-                Memory Detail
+                자산 관리
               </Link>
             </div>
           </div>
@@ -144,6 +139,63 @@ export default async function ServerDetailPage({
         {equipment.bmcIpAddress && (
           <BmcSensorsCard equipmentId={equipment.id} />
         )}
+
+        {/* Memory Summary */}
+        {equipment.memories.length > 0 && (() => {
+          const populated = equipment.memories.filter((m) => m.populated);
+          const memCapacity = populated.reduce((s, m) => s + (m.capacityGb || 0), 0);
+          const memTypes = Array.from(new Set(populated.map((m) => m.memoryType).filter(Boolean)));
+          const manufacturers = Array.from(new Set(populated.map((m) => m.manufacturer).filter(Boolean)));
+          const maxSpeed = Math.max(...populated.map((m) => m.speedMhz || 0), 0);
+          return (
+            <div className="rounded-xl border border-gray-800/80 bg-gray-900/80 p-5 backdrop-blur-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Memory</h3>
+                <Link
+                  href={`/infrastructure/${equipment.id}/memory`}
+                  className="rounded-lg border border-gray-700/60 px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 hover:border-gray-600 transition-all"
+                >
+                  상세 / 편집 →
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-5">
+                <div>
+                  <p className="text-[11px] text-gray-500">Total Capacity</p>
+                  <p className="mt-1 text-lg font-bold text-blue-400">{memCapacity} GB</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-gray-500">DIMM Slots</p>
+                  <p className="mt-1 text-gray-200">
+                    <span className="text-green-400 font-bold">{populated.length}</span>
+                    <span className="text-gray-500"> / {equipment.memories.length}</span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-gray-500">Type</p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {memTypes.length > 0
+                      ? memTypes.map((t) => <Badge key={t} variant="info">{t}</Badge>)
+                      : <span className="text-gray-500">-</span>}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[11px] text-gray-500">Manufacturer</p>
+                  <p className="mt-1 text-gray-200 text-xs">{manufacturers.join(", ") || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-gray-500">Max Speed</p>
+                  <p className="mt-1 text-gray-200">{maxSpeed > 0 ? `${maxSpeed} MHz` : "-"}</p>
+                </div>
+              </div>
+              <MemorySlotDiagram memories={equipment.memories.map((m) => ({
+                slotName: m.slotName,
+                populated: m.populated,
+                capacityGb: m.capacityGb,
+                memoryType: m.memoryType,
+              }))} />
+            </div>
+          );
+        })()}
 
         {/* Metric charts */}
         {instance ? (
