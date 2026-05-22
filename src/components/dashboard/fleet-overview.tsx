@@ -136,32 +136,33 @@ export function FleetOverview({ statusCounts, cluster = "all", hostnameIpMap = {
   const [latestPower, setLatestPower] = useState<number | null>(null);
 
   const fetchAll = useCallback(async () => {
-    // ---- Top-5 CPU (deduplicate hostname/IP for same server) ----
-    const topResults = await fetchInstant(queries.fleetTopCpu(cluster));
-    const allEntries = topResults
-      .filter((r) => r.value)
-      .map((r) => ({
-        instance: r.metric.instance || "unknown",
-        cpuPercent: parseFloat(r.value![1]),
-      }));
+    // ---- Top-5 CPU: NE(IP:port) + cAdvisor(hostname), dedup ----
+    const [neResults, caResults] = await Promise.all([
+      fetchInstant(queries.fleetTopCpu(cluster)),
+      fetchInstant(queries.fleetTopCpuCadvisor(cluster)),
+    ]);
 
-    const deduped = new Map<string, TopCpuServer>();
-    for (const entry of allEntries) {
-      const rawInstance = entry.instance.replace(/:\d+$/, "");
-      const mappedName = hostnameIpMap[rawInstance];
-      const normalizedKey = mappedName
-        ? [rawInstance, mappedName].sort().join("|")
-        : rawInstance;
-      const existing = deduped.get(normalizedKey);
-      if (!existing || entry.cpuPercent > existing.cpuPercent) {
-        let displayName = rawInstance;
-        if (/^\d+\.\d+\.\d+\.\d+$/.test(rawInstance) && mappedName) {
-          displayName = mappedName;
-        }
-        deduped.set(normalizedKey, { instance: displayName, cpuPercent: entry.cpuPercent });
-      }
+    const seenIps = new Set<string>();
+    const deduped: TopCpuServer[] = [];
+
+    for (const r of neResults) {
+      if (!r.value) continue;
+      const ip = (r.metric.instance || "").replace(/:\d+$/, "");
+      seenIps.add(ip);
+      const displayName = hostnameIpMap[ip] || ip;
+      deduped.push({ instance: displayName, cpuPercent: parseFloat(r.value[1]) });
     }
-    const parsed = Array.from(deduped.values())
+
+    for (const r of caResults) {
+      if (!r.value) continue;
+      const hostname = r.metric.instance || "";
+      const ip = hostnameIpMap[hostname];
+      if (ip && seenIps.has(ip)) continue;
+      seenIps.add(ip || hostname);
+      deduped.push({ instance: hostname, cpuPercent: parseFloat(r.value[1]) });
+    }
+
+    const parsed = deduped
       .sort((a, b) => b.cpuPercent - a.cpuPercent)
       .slice(0, 5);
     setTopCpu(parsed);
