@@ -1,6 +1,6 @@
 #!/bin/bash
-# 메모리 데이터 수집 상태 전체 확인
-# 실행: bash check/targetExecCmd/memory-debug.sh
+# 2026-05-22 실행 스크립트
+# 실행: bash check/targetExecCmd/20260522.sh
 
 DB="docker exec firsttest-db-1 psql -U dcim -d dcim -t -c"
 
