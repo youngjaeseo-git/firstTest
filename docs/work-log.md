@@ -181,7 +181,38 @@
 
 ---
 
-### 이번 주 — PCM 통합 검증 + s222hax NE 복구
+## 2026-05-22 (목)
+### 완료
+- **Infrastructure vs Servers 페이지 역할 분리** — Infrastructure=자산관리(CRUD/스펙/이력), Servers=운영모니터링(메트릭/비교). Infrastructure에서 Prometheus 차트 제거, "모니터링 →" 링크 추가
+- **서버 상세에 메모리 요약 섹션 추가** — 슬롯 다이어그램 + 요약 카드 (용량/슬롯/타입/제조사/속도), "상세/편집 →" 링크
+- **Power State (Running/Idle/OFF) 표시** — 서버 목록 + 서버 상세 + 인프라 상세에 실시간 가동 상태 배지 추가. Prometheus `up` + CPU 사용률로 판단, 30초 갱신
+- **서버 목록 Power 필터** — Running/Idle/OFF 드롭다운 필터 + 헤더 카운트 요약
+- **Load Average 차트에 CPU Cores 기준선** — 코어 수 시리즈 추가로 load 대비 비교 가능
+- **CPU 히트맵 쿼리 안정화** — `sum(non-idle)` → `1 - avg(idle rate)` 변경. idle 모드는 항상 값이 있어 워크로드 0에서도 데이터 반환
+- **Fleet TOP 중복 해결** — NE/cAdvisor 쿼리 분리, NE(IP:port) 우선 사용 후 cAdvisor(hostname) fallback. `instance=~".+:[0-9]+"` 필터로 hostname 중복 방지
+- **Fleet 집계 수치 정확도 개선** — CPU 평균, 메모리 합계, 코어 카운트에 IP:port 필터 적용하여 double-counting 방지
+- **메모리 슬롯 다이어그램 개선** — 16개/줄, Node(소켓)별 그룹, 사이즈 확대
+- **서버 상세 페이지 loading skeleton** — 페이지 진입 시 빈 화면 대신 skeleton 표시
+- **메모리 현황 페이지** — `/memory` 경로, 전체 서버 DIMM 현황 요약 + 필터 + 확장 테이블
+- **check/ 스크립트 규칙 확립** — `check/targetExecCmd/YYYYMMDD.sh` 날짜별 파일, CLAUDE.md에 규칙 문서화
+- **PowerStateIndicator 컴포넌트** — 재사용 가능한 클라이언트 컴포넌트, hostname/IP로 Prometheus 조회
+
+### 확인된 사항
+- **013 NE DOWN 원인**: `context deadline exceeded` — 마스터에서 curl도 timeout. 네트워크 경로 문제
+- **node-exporter 이중 설정 발견**: DaemonSet(monitoring) + Prometheus static_configs(IP) 공존. 같은 서버가 hostname(DaemonSet)과 IP:port(static_configs)로 이중 scrape → 메트릭 중복
+- **node-exporter DaemonSet 상태**: 43 Pod 중 Running 18, Pending 13, ImagePullBackOff 6, Evicted 2
+- **NE DOWN 서버**: 105,113(013),61,62,82-84 — timeout 3대(네트워크), dial fail 4대(NE 미설치 또는 서버 OFF)
+- **015만 메모리 데이터 있는 이유**: 5/21 최근 등록 시 BMC Redfish로 자동 수집. 나머지 서버는 HW Refresh 미실행
+- **kubernetes-pods job이 9100 포트 중복 scrape**: node-exporter Pod를 K8s Pod 자동발견으로도 수집 → 자원 낭비 (기능 문제 아님)
+
+### 이번 주 TODO
+- [ ] **node-exporter 이중 설정 정리** — DaemonSet vs static_configs 중 하나로 통일. 현재 DaemonSet이 있지만 별도 YAML 배포한 NE도 있음 → 확인 후 결정
+- [ ] **Prometheus ConfigMap 정리** — kubernetes-pods job에서 NE 중복 scrape 제거, hostname/IP 통일
+- [ ] **node-exporter DaemonSet 정상화** — Pending/ImagePullBackOff Pod 원인 파악 및 복구
+- [ ] **timeout 서버 네트워크 복구** — 013, 061, 062 서버의 Prometheus→NE 경로 점검
+- [ ] **전체 서버 HW Refresh** — BMC가 있는 서버 메모리 정보 일괄 수집
+
+### 다음 — Prometheus config 정리 + Lab-3 확장
 
 - [ ] **PCM 차트 화면 검증** — 배포 후 013 서버에서 IPC/캐시/DRAM 차트 표시 확인. 빈 차트는 메트릭 이름 수정
 - [ ] **s222hax node-exporter 복구** — Prometheus Pod 재시작 (`kubectl rollout restart`) 후 .61/.62 스크랩 정상화 확인
