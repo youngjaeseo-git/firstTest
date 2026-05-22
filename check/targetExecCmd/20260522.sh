@@ -16,5 +16,9 @@ echo "=== 3. 015 장비 등록일 / 수정일 ==="
 $DB "SELECT hostname, \"createdAt\", \"updatedAt\" FROM \"Equipment\" WHERE hostname = 's121x13ae015';"
 
 echo ""
-echo "=== 4. HW Refresh 이력 (최근 5건) ==="
-$DB "SELECT e.hostname, a.action, a.\"createdAt\" FROM \"AuditLog\" a JOIN \"Equipment\" e ON a.\"equipmentId\" = e.id WHERE a.action LIKE '%refresh%' OR a.action LIKE '%bmc%' OR a.action LIKE '%redfish%' ORDER BY a.\"createdAt\" DESC LIMIT 5;"
+echo "=== 4. HW Refresh 이력 (최근 10건) ==="
+$DB "SELECT e.hostname, a.action, a.\"createdAt\" FROM \"AuditLog\" a JOIN \"Equipment\" e ON a.\"entityId\" = e.id WHERE a.action LIKE '%REFRESH%' OR a.action LIKE '%refresh%' ORDER BY a.\"createdAt\" DESC LIMIT 10;"
+
+echo ""
+echo "=== 5. 013 관련 모든 AuditLog ==="
+$DB "SELECT a.action, a.\"createdAt\" FROM \"AuditLog\" a JOIN \"Equipment\" e ON a.\"entityId\" = e.id WHERE e.hostname = 's121x13ae013' ORDER BY a.\"createdAt\" DESC LIMIT 5;"
