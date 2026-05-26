@@ -42,7 +42,7 @@ export function MemorySlotDiagram({
                   (rowIdx + 1) * slotsPerRow
                 );
                 return (
-                  <div key={rowIdx} className="flex flex-wrap gap-1.5">
+                  <div key={rowIdx} className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.min(rowSlots.length, slotsPerRow)}, 3rem)` }}>
                     {rowSlots.map((slot) => (
                       <div
                         key={slot.slotName}

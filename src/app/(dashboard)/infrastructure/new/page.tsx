@@ -817,7 +817,7 @@ export default function NewEquipmentPage() {
                 <p className="mb-2 text-sm text-gray-400">
                   Click to toggle populated (green = populated)
                 </p>
-                <div className="flex flex-wrap gap-1">
+                <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(16, 4rem)" }}>
                   {memories.map((mem, i) => (
                     <button
                       key={i}
@@ -825,7 +825,7 @@ export default function NewEquipmentPage() {
                       onClick={() =>
                         updateMemory(i, "populated", !mem.populated)
                       }
-                      className={`h-8 w-16 rounded text-xs font-mono ${
+                      className={`h-8 rounded text-xs font-mono ${
                         mem.populated
                           ? "bg-green-700 text-green-100"
                           : "bg-gray-800 text-gray-500"
