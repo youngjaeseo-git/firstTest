@@ -42,10 +42,10 @@ export async function fetchDashboardMetrics(
       totalTxResult,
     ] = await Promise.allSettled([
       instantQuery(queries.fleetAvgCpu(cluster)),
-      instantQuery('avg(Package_Joules_Consumed{type="thermal"} or vector(0))'),
+      instantQuery(queries.fleetAvgTemp()),
       instantQuery(queries.allNodesUpFiltered(cluster)),
       instantQuery(queries.fleetAvgUptime(cluster)),
-      instantQuery(queries.fleetTotalPower(cluster)),
+      instantQuery(queries.fleetTotalPower()),
       instantQuery(queries.fleetAvgMemory(cluster)),
       instantQuery(queries.fleetTotalNetworkRx(cluster)),
       instantQuery(queries.fleetTotalNetworkTx(cluster)),

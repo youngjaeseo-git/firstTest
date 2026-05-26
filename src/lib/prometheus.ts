@@ -476,8 +476,10 @@ export const queries = {
 
   // ── Dashboard fleet-wide aggregations (node-exporter first, cAdvisor fallback) ──
   // All fleet queries accept optional cluster filter
-  fleetTotalPower: (_cluster: Cluster = "all") =>
-    `sum(rate(Package_Joules_Consumed[5m]))`,
+  fleetAvgTemp: () =>
+    `avg(node_hwmon_temp_celsius)`,
+  fleetTotalPower: () =>
+    `sum(node_hmon_power_average_watt) or sum(rate(Package_Joules_Consumed[5m]))`,
   fleetAvgMemory: (cluster: Cluster = "all") =>
     `(1 - sum(node_memory_MemAvailable_bytes{${neC(cluster)}}) / sum(node_memory_MemTotal_bytes{${neC(cluster)}})) * 100` +
     ` or ` +
@@ -522,4 +524,9 @@ export const queries = {
     `(1 - avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m]))) * 100` +
     ` or ` +
     `sum by(instance)(rate(container_cpu_usage_seconds_total{container!=""}[5m])) / on(instance) group_left() machine_cpu_cores * 100`,
+
+  workloadPods: () =>
+    `kube_pod_info{namespace!~"kube-system|monitoring|calico-system|calico-apiserver|tigera-operator"}`,
+  workloadPodCreated: () =>
+    `kube_pod_created{namespace!~"kube-system|monitoring|calico-system|calico-apiserver|tigera-operator"}`,
 };

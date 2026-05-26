@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/i18n-context";
 import { queries } from "@/lib/prometheus";
 import type { Cluster } from "@/lib/prometheus";
+import { ActiveWorkloads } from "@/components/dashboard/active-workloads";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -172,7 +173,7 @@ export function FleetOverview({ statusCounts, cluster = "all", hostnameIpMap = {
       fetchRange(queries.fleetAvgCpu(cluster)),
       fetchRange(queries.fleetAvgMemory(cluster)),
       fetchRange(queries.fleetTotalNetworkRx(cluster)),
-      fetchRange(queries.fleetTotalPower(cluster)),
+      fetchRange(queries.fleetTotalPower()),
     ]);
 
     const toSpark = (
@@ -373,6 +374,13 @@ export function FleetOverview({ statusCounts, cluster = "all", hostnameIpMap = {
             )}
           </Card>
         </motion.div>
+      </div>
+
+      {/* ─── Section: Active Workloads ─────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <ActiveWorkloads />
+        </div>
       </div>
 
       {/* ─── Section: Fleet Sparklines ──────────────────────────────── */}
