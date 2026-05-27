@@ -77,6 +77,19 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+const BAR_PALETTE = [
+  { bg: "bg-blue-500/70", text: "text-blue-100", hex: "#3b82f6" },
+  { bg: "bg-emerald-500/70", text: "text-emerald-100", hex: "#10b981" },
+  { bg: "bg-violet-500/70", text: "text-violet-100", hex: "#8b5cf6" },
+  { bg: "bg-amber-500/70", text: "text-amber-100", hex: "#f59e0b" },
+  { bg: "bg-rose-500/70", text: "text-rose-100", hex: "#f43f5e" },
+  { bg: "bg-cyan-500/70", text: "text-cyan-100", hex: "#06b6d4" },
+  { bg: "bg-pink-500/70", text: "text-pink-100", hex: "#ec4899" },
+  { bg: "bg-orange-500/70", text: "text-orange-100", hex: "#f97316" },
+  { bg: "bg-teal-500/70", text: "text-teal-100", hex: "#14b8a6" },
+  { bg: "bg-indigo-500/70", text: "text-indigo-100", hex: "#6366f1" },
+];
+
 /* ─── Helpers ─── */
 async function fetchInstant(
   query: string,
@@ -399,51 +412,116 @@ function HistoryCalendarTab({
     });
   });
 
-  const dateProjectMap: Record<string, EvalProject[]> = {};
+  const colorMap: Record<string, number> = {};
+  let colorIdx = 0;
   mergedProjects.forEach((p) => {
+    const key = p.namespace || p.id;
+    if (!(key in colorMap)) {
+      colorMap[key] = colorIdx % BAR_PALETTE.length;
+      colorIdx++;
+    }
+  });
+
+  interface ProjectSpan {
+    project: EvalProject;
+    startDate: Date;
+    endDate: Date;
+    colorIndex: number;
+  }
+  const projectSpans: ProjectSpan[] = mergedProjects.map((p) => {
     const start = p.startDate ? new Date(p.startDate) : new Date(p.createdAt);
     const end = p.endDate ? new Date(p.endDate) : (
       p.status === "COMPLETED" || p.status === "CANCELLED" ? start : today
     );
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    return {
+      project: p,
+      startDate: start,
+      endDate: end,
+      colorIndex: colorMap[p.namespace || p.id] ?? 0,
+    };
+  });
 
-    const cursor = new Date(start);
-    cursor.setHours(0, 0, 0, 0);
-    const endDate = new Date(end);
-    endDate.setHours(23, 59, 59, 999);
-
-    while (cursor <= endDate) {
+  const dateProjectMap: Record<string, EvalProject[]> = {};
+  projectSpans.forEach(({ project, startDate, endDate }) => {
+    const cursor = new Date(startDate);
+    const endMs = endDate.getTime();
+    while (cursor.getTime() <= endMs) {
       const key = toDateKey(cursor);
       if (!dateProjectMap[key]) dateProjectMap[key] = [];
-      if (!dateProjectMap[key].some((ep) => ep.id === p.id)) {
-        dateProjectMap[key].push(p);
+      if (!dateProjectMap[key].some((ep) => ep.id === project.id)) {
+        dateProjectMap[key].push(project);
       }
       cursor.setDate(cursor.getDate() + 1);
     }
   });
 
-  const cells: { day: number; dateKey: string; isToday: boolean; isCurrentMonth: boolean }[] = [];
+  interface DayCell {
+    day: number;
+    dateKey: string;
+    date: Date;
+    isToday: boolean;
+    isCurrentMonth: boolean;
+  }
+  const cells: DayCell[] = [];
   for (let i = 0; i < firstDay; i++) {
     const prevMonthDays = getDaysInMonth(year, month - 1);
     const d = prevMonthDays - firstDay + i + 1;
     const dt = new Date(year, month - 1, d);
-    cells.push({ day: d, dateKey: toDateKey(dt), isToday: false, isCurrentMonth: false });
+    cells.push({ day: d, dateKey: toDateKey(dt), date: dt, isToday: false, isCurrentMonth: false });
   }
   for (let d = 1; d <= daysInMonth; d++) {
     const dt = new Date(year, month, d);
     const key = toDateKey(dt);
-    cells.push({
-      day: d,
-      dateKey: key,
-      isToday: key === toDateKey(today),
-      isCurrentMonth: true,
-    });
+    cells.push({ day: d, dateKey: key, date: dt, isToday: key === toDateKey(today), isCurrentMonth: true });
   }
   const remaining = 7 - (cells.length % 7);
   if (remaining < 7) {
     for (let d = 1; d <= remaining; d++) {
       const dt = new Date(year, month + 1, d);
-      cells.push({ day: d, dateKey: toDateKey(dt), isToday: false, isCurrentMonth: false });
+      cells.push({ day: d, dateKey: toDateKey(dt), date: dt, isToday: false, isCurrentMonth: false });
     }
+  }
+
+  const weeks: DayCell[][] = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    weeks.push(cells.slice(i, i + 7));
+  }
+
+  interface WeekBar {
+    project: EvalProject;
+    startCol: number;
+    span: number;
+    colorIndex: number;
+    isStart: boolean;
+    isEnd: boolean;
+  }
+  function getBarsForWeek(week: DayCell[]): WeekBar[] {
+    const weekStart = week[0].date.getTime();
+    const weekEnd = week[6].date.getTime();
+    const bars: WeekBar[] = [];
+
+    projectSpans.forEach(({ project, startDate, endDate, colorIndex }) => {
+      const pStart = startDate.getTime();
+      const pEnd = endDate.getTime();
+      if (pEnd < weekStart || pStart > weekEnd) return;
+
+      const startCol = pStart <= weekStart ? 0 : Math.round((pStart - weekStart) / 86400000);
+      const endCol = pEnd >= weekEnd ? 6 : Math.round((pEnd - weekStart) / 86400000);
+      const span = endCol - startCol + 1;
+
+      bars.push({
+        project,
+        startCol: Math.max(0, Math.min(6, startCol)),
+        span: Math.max(1, Math.min(7 - Math.max(0, startCol), span)),
+        colorIndex,
+        isStart: pStart >= weekStart && pStart <= weekEnd,
+        isEnd: pEnd >= weekStart && pEnd <= weekEnd,
+      });
+    });
+
+    return bars;
   }
 
   const selectedProjects = selectedDate ? (dateProjectMap[selectedDate] || []) : [];
@@ -471,12 +549,17 @@ function HistoryCalendarTab({
     <div className="space-y-4">
       {/* Legend */}
       <div className="flex flex-wrap gap-3 text-xs">
-        {Object.entries(STATUS_COLORS).map(([status, sc]) => (
-          <span key={status} className="flex items-center gap-1.5 text-gray-400">
-            <span className={cn("h-2 w-4 rounded-sm", sc.bg)} />
-            {status.replace("_", " ")}
-          </span>
-        ))}
+        {mergedProjects.map((p) => {
+          const ci = colorMap[p.namespace || p.id] ?? 0;
+          const palette = BAR_PALETTE[ci];
+          return (
+            <span key={p.id} className="flex items-center gap-1.5 text-gray-400">
+              <span className="h-2.5 w-5 rounded-sm" style={{ backgroundColor: palette.hex, opacity: 0.7 }} />
+              <span className="font-mono text-[11px]">{p.namespace || p.title}</span>
+              {p.id.startsWith("live-") && <span className="text-[9px] text-blue-400">(LIVE)</span>}
+            </span>
+          );
+        })}
       </div>
 
       {/* Calendar */}
@@ -509,60 +592,95 @@ function HistoryCalendarTab({
           ))}
         </div>
 
-        {/* Day cells */}
-        <div className="grid grid-cols-7">
-          {cells.map((cell, idx) => {
-            const dayProjects = dateProjectMap[cell.dateKey] || [];
-            const hasProjects = dayProjects.length > 0;
-            const isSelected = selectedDate === cell.dateKey;
+        {/* Week rows */}
+        {weeks.map((week, weekIdx) => {
+          const bars = getBarsForWeek(week);
+          const maxBars = Math.min(bars.length, 4);
 
-            return (
-              <button
-                key={idx}
-                onClick={() => setSelectedDate(isSelected ? null : cell.dateKey)}
-                className={cn(
-                  "relative flex flex-col items-center min-h-[72px] border border-gray-800/40 p-1 transition-colors",
-                  cell.isCurrentMonth ? "bg-gray-900/30" : "bg-gray-900/10",
-                  isSelected && "bg-blue-900/20 border-blue-500/40",
-                  !isSelected && hasProjects && "hover:bg-gray-800/40",
-                  !isSelected && !hasProjects && "hover:bg-gray-900/50",
-                )}
-              >
-                <span
-                  className={cn(
-                    "text-xs font-medium mb-1",
-                    !cell.isCurrentMonth && "text-gray-700",
-                    cell.isCurrentMonth && !cell.isToday && "text-gray-400",
-                    cell.isToday && "rounded-full bg-blue-500 text-white w-5 h-5 flex items-center justify-center text-[10px]",
-                  )}
-                >
-                  {cell.day}
-                </span>
-                {hasProjects && (
-                  <div className="flex flex-col gap-0.5 w-full px-0.5">
-                    {dayProjects.slice(0, 3).map((p) => {
-                      const sc = STATUS_COLORS[p.status] || STATUS_COLORS.PLANNED;
-                      return (
-                        <div
-                          key={p.id}
-                          className={cn("rounded-sm px-1 py-px text-[8px] font-medium truncate", sc.bg, "bg-opacity-30", sc.text)}
-                          title={`${p.title} (${p.status})`}
-                        >
-                          {p.namespace || p.title}
-                        </div>
-                      );
-                    })}
-                    {dayProjects.length > 3 && (
-                      <span className="text-[8px] text-gray-500 text-center">
-                        +{dayProjects.length - 3}
+          return (
+            <div key={weekIdx}>
+              {/* Day numbers */}
+              <div className="grid grid-cols-7">
+                {week.map((cell, dayIdx) => {
+                  const isSelected = selectedDate === cell.dateKey;
+                  return (
+                    <button
+                      key={dayIdx}
+                      onClick={() => setSelectedDate(isSelected ? null : cell.dateKey)}
+                      className={cn(
+                        "relative h-7 border-x border-t border-gray-800/40 flex items-start justify-center pt-1",
+                        cell.isCurrentMonth ? "bg-gray-900/30" : "bg-gray-900/10",
+                        isSelected && "bg-blue-900/20 border-blue-500/40",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "text-xs font-medium leading-none",
+                          !cell.isCurrentMonth && "text-gray-700",
+                          cell.isCurrentMonth && !cell.isToday && "text-gray-400",
+                          cell.isToday && "rounded-full bg-blue-500 text-white w-5 h-5 flex items-center justify-center text-[10px]",
+                        )}
+                      >
+                        {cell.day}
                       </span>
-                    )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Event bars */}
+              <div className="relative grid grid-cols-7 border-x border-b border-gray-800/40" style={{ minHeight: `${Math.max(maxBars * 20 + 4, 24)}px` }}>
+                {week.map((cell, dayIdx) => {
+                  const isSelected = selectedDate === cell.dateKey;
+                  return (
+                    <div
+                      key={dayIdx}
+                      className={cn(
+                        "border-r border-gray-800/40 last:border-r-0",
+                        cell.isCurrentMonth ? "bg-gray-900/30" : "bg-gray-900/10",
+                        isSelected && "bg-blue-900/20",
+                      )}
+                    />
+                  );
+                })}
+                {bars.slice(0, 4).map((bar, barIdx) => {
+                  const palette = BAR_PALETTE[bar.colorIndex];
+                  const leftPct = (bar.startCol / 7) * 100;
+                  const widthPct = (bar.span / 7) * 100;
+                  return (
+                    <div
+                      key={`${bar.project.id}-${weekIdx}`}
+                      className={cn(
+                        "absolute h-[16px] flex items-center px-1.5 text-[9px] font-medium cursor-pointer transition-opacity hover:opacity-100",
+                        palette.bg,
+                        palette.text,
+                        bar.isStart && "rounded-l-md ml-0.5",
+                        bar.isEnd && "rounded-r-md mr-0.5",
+                        !bar.isStart && !bar.isEnd && "opacity-80",
+                      )}
+                      style={{
+                        top: `${barIdx * 20 + 2}px`,
+                        left: `${leftPct}%`,
+                        width: `calc(${widthPct}% - ${(bar.isStart ? 2 : 0) + (bar.isEnd ? 2 : 0)}px)`,
+                      }}
+                      title={`${bar.project.namespace || bar.project.title} (${bar.project.status})`}
+                      onClick={() => setSelectedDate(week[bar.startCol].dateKey)}
+                    >
+                      {bar.isStart && (
+                        <span className="truncate">{bar.project.namespace || bar.project.title}</span>
+                      )}
+                    </div>
+                  );
+                })}
+                {bars.length > 4 && (
+                  <div className="absolute bottom-0 right-1 text-[9px] text-gray-500">
+                    +{bars.length - 4}
                   </div>
                 )}
-              </button>
-            );
-          })}
-        </div>
+              </div>
+            </div>
+          );
+        })}
       </Card>
 
       {/* Selected date detail */}
