@@ -38,7 +38,16 @@ fi
 
 echo ""
 echo "=== 3. DB 마이그레이션 ==="
-export DATABASE_URL="postgresql://dcim:${DB_PASSWORD:-dcim_password}@localhost:${DB_PORT:-5432}/dcim?schema=public"
+DB_CONTAINER=$(docker compose ps -q db 2>/dev/null)
+REAL_PASSWORD=$(docker inspect "$DB_CONTAINER" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep POSTGRES_PASSWORD | cut -d= -f2-)
+if [ -z "$REAL_PASSWORD" ]; then
+  REAL_PASSWORD="${DB_PASSWORD:-dcim_password}"
+fi
+REAL_PORT=$(docker compose port db 5432 2>/dev/null | cut -d: -f2)
+if [ -z "$REAL_PORT" ]; then
+  REAL_PORT="${DB_PORT:-5432}"
+fi
+export DATABASE_URL="postgresql://dcim:${REAL_PASSWORD}@localhost:${REAL_PORT}/dcim?schema=public"
 npx prisma migrate deploy 2>&1
 if [ $? -eq 0 ]; then
   echo "✅ 마이그레이션 완료"
