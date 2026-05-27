@@ -8,10 +8,12 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const status = searchParams.get("status");
   const evalType = searchParams.get("evalType");
+  const namespace = searchParams.get("namespace");
 
   const where: Record<string, unknown> = {};
   if (status) where.status = status;
   if (evalType) where.evalType = evalType;
+  if (namespace) where.namespace = namespace;
 
   const projects = await prisma.evalProject.findMany({
     where,
@@ -33,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const {
-    title, description, evalType, memoryType, manufacturer,
+    title, description, evalType, namespace: bodyNamespace, memoryType, manufacturer,
     partNumber, capacityGb, speedMhz, formFactor,
     startDate, endDate, assigneeId, phases,
   } = body;
@@ -47,6 +49,7 @@ export async function POST(req: NextRequest) {
       title,
       description,
       evalType,
+      namespace: bodyNamespace || null,
       memoryType: memoryType || null,
       manufacturer: manufacturer || null,
       partNumber: partNumber || null,

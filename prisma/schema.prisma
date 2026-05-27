@@ -386,6 +386,7 @@ model EvalProject {
   description   String?
   evalType      EvalType
   status        EvalProjectStatus @default(PLANNED)
+  namespace     String?
 
   // Memory product info
   memoryType    MemoryType?
@@ -413,6 +414,7 @@ model EvalProject {
 
   @@index([status])
   @@index([evalType])
+  @@index([namespace])
 }
 
 enum EvalType {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { FlaskConical, Clock, Server, Calendar } from "lucide-react";
@@ -252,10 +253,11 @@ export function ActiveWorkloads() {
               );
               const warningPod = g.pods.find((p) => p.health !== "running" && p.health !== "succeeded");
               return (
-                <div
+                <Link
                   key={g.namespace}
+                  href={`/workloads/${encodeURIComponent(g.namespace)}`}
                   className={cn(
-                    "group rounded-lg border px-3 py-2.5 transition-colors",
+                    "group block rounded-lg border px-3 py-2.5 transition-colors cursor-pointer",
                     g.worstHealth === "error"
                       ? "border-red-500/40 bg-red-500/5 hover:border-red-500/60"
                       : g.worstHealth === "warning"
@@ -324,7 +326,7 @@ export function ActiveWorkloads() {
                       ))}
                     </div>
                   )}
-                </div>
+                </Link>
               );
             })}
           </div>

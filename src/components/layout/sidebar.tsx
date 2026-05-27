@@ -18,6 +18,7 @@ import {
   Cpu,
   FlaskConical,
   MemoryStick,
+  Activity,
 } from "lucide-react";
 
 const navigation = [
@@ -28,6 +29,7 @@ const navigation = [
   { key: "nav.search", href: "/search", icon: Search },
   { key: "nav.memory", href: "/memory", icon: MemoryStick },
   { key: "nav.firmware", href: "/firmware", icon: Cpu },
+  { key: "nav.workloads", href: "/workloads", icon: Activity },
   { key: "nav.evaluations", href: "/evaluations", icon: FlaskConical },
   { key: "nav.alerts", href: "/alerts", icon: Bell },
   { key: "nav.capacity", href: "/capacity", icon: BarChart3 },
