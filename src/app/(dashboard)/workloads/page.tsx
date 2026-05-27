@@ -19,6 +19,11 @@ import {
   CheckCircle2,
   XCircle,
   PauseCircle,
+  X,
+  Activity,
+  ListTodo,
+  AlertTriangle,
+  Circle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { queries } from "@/lib/prometheus";
@@ -373,6 +378,7 @@ function HistoryCalendarTab({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [visibleNs, setVisibleNs] = useState<Set<string> | "all">("all");
+  const [popupProject, setPopupProject] = useState<EvalProject | null>(null);
 
   const prevMonth = () => {
     if (month === 0) { setYear(year - 1); setMonth(11); }
@@ -737,7 +743,7 @@ function HistoryCalendarTab({
                         width: `calc(${widthPct}% - ${(bar.isStart ? 2 : 0) + (bar.isEnd ? 2 : 0)}px)`,
                       }}
                       title={`${bar.project.namespace || bar.project.title} (${bar.project.status})`}
-                      onClick={() => setSelectedDate(week[bar.startCol].dateKey)}
+                      onClick={(e) => { e.stopPropagation(); setPopupProject(bar.project); }}
                     >
                       {bar.isStart && (
                         <span className="truncate">{bar.project.namespace || bar.project.title}</span>
@@ -844,6 +850,17 @@ function HistoryCalendarTab({
         </Card>
       )}
 
+      {/* Project Detail Popup */}
+      {popupProject && (
+        <ProjectPopup
+          project={popupProject}
+          colorIndex={colorMap[popupProject.namespace || popupProject.id] ?? 0}
+          onClose={() => setPopupProject(null)}
+          onDelete={(id) => { deleteProject(id); setPopupProject(null); }}
+          deleting={deleting}
+        />
+      )}
+
       {/* Project list below calendar */}
       <Card>
         <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">
@@ -906,6 +923,399 @@ function HistoryCalendarTab({
           </div>
         )}
       </Card>
+    </div>
+  );
+}
+
+/* ─── Project Detail Popup ─── */
+interface PopupDetail {
+  tasks: { id: string; title: string; status: string; priority: string; description: string | null }[];
+  results: {
+    id: string; workloadName: string; workloadConfig: string | null;
+    result: string; value: string | null; unit: string | null;
+    totalCycles: number | null; completedCycles: number | null;
+    equipment: { hostname: string | null; ipAddress: string | null } | null;
+  }[];
+  notes: { id: string; content: string; createdAt: string }[];
+  phases: { id: string; name: string; status: string }[];
+}
+
+interface PopupPod {
+  name: string;
+  node: string;
+  health: string;
+}
+
+const RESULT_STYLES: Record<string, { icon: typeof CheckCircle2; color: string }> = {
+  PASS: { icon: CheckCircle2, color: "text-green-400" },
+  FAIL: { icon: AlertTriangle, color: "text-red-400" },
+  WARNING: { icon: AlertTriangle, color: "text-amber-400" },
+  RUNNING: { icon: PlayCircle, color: "text-blue-400" },
+  PENDING: { icon: Circle, color: "text-gray-500" },
+};
+
+const TASK_STATUS_STYLES: Record<string, { icon: typeof Circle; color: string }> = {
+  TODO: { icon: Circle, color: "text-gray-500" },
+  IN_PROGRESS: { icon: PlayCircle, color: "text-blue-400" },
+  DONE: { icon: CheckCircle2, color: "text-green-500" },
+  BLOCKED: { icon: AlertTriangle, color: "text-red-400" },
+};
+
+function ProjectPopup({
+  project,
+  colorIndex,
+  onClose,
+  onDelete,
+  deleting,
+}: {
+  project: EvalProject;
+  colorIndex: number;
+  onClose: () => void;
+  onDelete: (id: string) => void;
+  deleting: string | null;
+}) {
+  const [detail, setDetail] = useState<PopupDetail | null>(null);
+  const [pods, setPods] = useState<PopupPod[]>([]);
+  const [loading, setLoading] = useState(true);
+  const isLive = project.id.startsWith("live-");
+  const palette = BAR_PALETTE[colorIndex];
+  const sc = STATUS_COLORS[project.status] || STATUS_COLORS.PLANNED;
+  const canDelete = !isLive && (project.status === "COMPLETED" || project.status === "CANCELLED");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchDetail() {
+      if (!isLive) {
+        try {
+          const res = await fetch(`/api/evaluations/${project.id}`);
+          if (res.ok && !cancelled) {
+            const data = await res.json();
+            setDetail({
+              tasks: data.tasks || [],
+              results: data.results || [],
+              notes: data.notes || [],
+              phases: data.phases || [],
+            });
+          }
+        } catch { /* ignore */ }
+      }
+
+      if (project.namespace) {
+        try {
+          const nsFilter = `namespace="${project.namespace}"`;
+          const [podRes, phaseRes, waitingRes] = await Promise.all([
+            fetchPopupInstant(`kube_pod_info{${nsFilter}}`),
+            fetchPopupInstant(`kube_pod_status_phase{${nsFilter}}==1`),
+            fetchPopupInstant(`kube_pod_container_status_waiting_reason{${nsFilter}}==1`),
+          ]);
+
+          const phaseMap: Record<string, string> = {};
+          for (const r of phaseRes) phaseMap[r.metric.pod || ""] = r.metric.phase || "";
+          const waitMap: Record<string, string> = {};
+          for (const r of waitingRes) waitMap[r.metric.pod || ""] = r.metric.reason || "";
+
+          if (!cancelled) {
+            setPods(
+              podRes.map((r) => {
+                const pod = r.metric.pod || "";
+                const phase = phaseMap[pod] || "";
+                const reason = waitMap[pod] || "";
+                let health = "running";
+                if (reason === "CrashLoopBackOff" || phase === "Failed") health = "error";
+                else if (reason === "ImagePullBackOff") health = "warning";
+                else if (phase === "Pending" || reason) health = "pending";
+                else if (phase === "Succeeded") health = "succeeded";
+                return { name: pod, node: r.metric.node || "", health };
+              }),
+            );
+          }
+        } catch { /* ignore */ }
+      }
+      if (!cancelled) setLoading(false);
+    }
+
+    fetchDetail();
+    return () => { cancelled = true; };
+  }, [project.id, project.namespace, isLive]);
+
+  const startStr = project.startDate
+    ? new Date(project.startDate).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })
+    : new Date(project.createdAt).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
+  const endStr = project.endDate
+    ? new Date(project.endDate).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })
+    : (canDelete ? "-" : "진행중");
+
+  const uniqueNodes = new Set<string>();
+  pods.forEach((p) => { if (p.node) uniqueNodes.add(p.node); });
+  const servers = detail?.results
+    ?.map((r) => r.equipment?.hostname || r.equipment?.ipAddress)
+    .filter((v, i, a) => v && a.indexOf(v) === i) || [];
+
+  const durationMs = (project.endDate ? new Date(project.endDate).getTime() : Date.now())
+    - (project.startDate ? new Date(project.startDate).getTime() : new Date(project.createdAt).getTime());
+  const durationDays = Math.max(1, Math.ceil(durationMs / 86400000));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/60" />
+      <div
+        className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-gray-700 bg-gray-900 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-800 bg-gray-900 px-5 py-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: palette.hex }} />
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-gray-100 truncate">
+                {project.namespace || project.title}
+              </h2>
+              {project.title !== project.namespace && (
+                <p className="text-xs text-gray-500 truncate">{project.title}</p>
+              )}
+            </div>
+            <span className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-medium shrink-0", sc.bg, "bg-opacity-20", sc.text)}>
+              {isLive ? "LIVE" : project.status.replace("_", " ")}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {canDelete && (
+              <button
+                onClick={() => {
+                  if (confirm(`"${project.title}" 평가를 삭제하시겠습니까?\n관련 결과, 태스크, 메모가 모두 삭제됩니다.`)) {
+                    onDelete(project.id);
+                  }
+                }}
+                disabled={deleting === project.id}
+                className="rounded-lg p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+            <button onClick={onClose} className="rounded-lg p-1.5 text-gray-500 hover:text-gray-200 hover:bg-gray-800 transition-colors">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <p className="text-sm text-gray-500">Loading...</p>
+          </div>
+        ) : (
+          <div className="p-5 space-y-5">
+            {/* Overview */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <InfoCard label="Period" value={`${durationDays}일`} sub={`${startStr} ~ ${endStr}`} />
+              <InfoCard label="Pods" value={`${pods.length}`} sub={`${uniqueNodes.size} node${uniqueNodes.size !== 1 ? "s" : ""}`} />
+              <InfoCard
+                label="Tests"
+                value={`${detail?.results?.length ?? 0}`}
+                sub={detail ? `${detail.results.filter((r) => r.result === "PASS").length} pass / ${detail.results.filter((r) => r.result === "FAIL").length} fail` : "-"}
+              />
+              <InfoCard
+                label="Tasks"
+                value={`${detail?.tasks?.length ?? 0}`}
+                sub={detail ? `${detail.tasks.filter((t) => t.status === "DONE").length} done` : "-"}
+              />
+            </div>
+
+            {/* Pods / Nodes */}
+            {pods.length > 0 && (
+              <PopupSection icon={<Activity className="h-3.5 w-3.5 text-violet-400" />} title={`Pods (${pods.length})`}>
+                <div className="space-y-1">
+                  {pods.map((p) => {
+                    const hs = HEALTH_STYLES[p.health as PodHealth] || HEALTH_STYLES.running;
+                    return (
+                      <div key={p.name} className="flex items-center gap-2 text-xs">
+                        <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", hs.dot)} />
+                        <span className="font-mono text-gray-300 truncate flex-1">{p.name}</span>
+                        <span className="font-mono text-gray-500 shrink-0">{p.node || "pending"}</span>
+                        <span className={cn("text-[10px] shrink-0", hs.text)}>{hs.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {uniqueNodes.size > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {Array.from(uniqueNodes).sort().map((n) => (
+                      <span key={n} className="rounded bg-gray-800 px-2 py-0.5 font-mono text-[10px] text-gray-400">{n}</span>
+                    ))}
+                  </div>
+                )}
+              </PopupSection>
+            )}
+
+            {/* Phases */}
+            {detail && detail.phases.length > 0 && (
+              <PopupSection icon={<FlaskConical className="h-3.5 w-3.5 text-blue-400" />} title={`Phases (${detail.phases.length})`}>
+                <div className="flex flex-wrap gap-1.5">
+                  {detail.phases.map((ph) => (
+                    <span
+                      key={ph.id}
+                      className={cn(
+                        "rounded-md border px-2.5 py-1 text-xs",
+                        ph.status === "PASSED" ? "border-green-600/40 bg-green-900/20 text-green-400" :
+                        ph.status === "FAILED" ? "border-red-600/40 bg-red-900/20 text-red-400" :
+                        ph.status === "IN_PROGRESS" ? "border-blue-600/40 bg-blue-900/20 text-blue-400" :
+                        "border-gray-700 bg-gray-800/50 text-gray-400",
+                      )}
+                    >
+                      {ph.name} <span className="text-[9px] opacity-60">({ph.status})</span>
+                    </span>
+                  ))}
+                </div>
+              </PopupSection>
+            )}
+
+            {/* Test Results / Workloads */}
+            {detail && detail.results.length > 0 && (
+              <PopupSection icon={<FlaskConical className="h-3.5 w-3.5 text-green-400" />} title={`Test Results (${detail.results.length})`}>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-gray-800 text-left text-gray-500 uppercase">
+                        <th className="pb-1.5 pr-2">Result</th>
+                        <th className="pb-1.5 pr-2">Workload</th>
+                        <th className="pb-1.5 pr-2">Server</th>
+                        <th className="pb-1.5 pr-2">Cycles</th>
+                        <th className="pb-1.5 pr-2">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.results.map((r) => {
+                        const rs = RESULT_STYLES[r.result] || RESULT_STYLES.PENDING;
+                        const RIcon = rs.icon;
+                        return (
+                          <tr key={r.id} className="border-b border-gray-800/40">
+                            <td className="py-1.5 pr-2">
+                              <span className={cn("flex items-center gap-1", rs.color)}>
+                                <RIcon className="h-3 w-3" />
+                                <span className="text-[10px] font-medium">{r.result}</span>
+                              </span>
+                            </td>
+                            <td className="py-1.5 pr-2 text-gray-200">
+                              {r.workloadName}
+                              {r.workloadConfig && <span className="ml-1 text-gray-600">{r.workloadConfig}</span>}
+                            </td>
+                            <td className="py-1.5 pr-2 font-mono text-gray-400">
+                              {r.equipment?.hostname || r.equipment?.ipAddress || "-"}
+                            </td>
+                            <td className="py-1.5 pr-2 text-gray-400">
+                              {r.totalCycles ? `${r.completedCycles || 0}/${r.totalCycles}` : "-"}
+                            </td>
+                            <td className="py-1.5 pr-2 font-mono text-gray-200">
+                              {r.value ? `${r.value} ${r.unit || ""}` : "-"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {servers.length > 0 && (
+                  <p className="mt-2 text-[10px] text-gray-500">
+                    Servers: {servers.join(", ")} ({servers.length}대)
+                  </p>
+                )}
+              </PopupSection>
+            )}
+
+            {/* Tasks */}
+            {detail && detail.tasks.length > 0 && (
+              <PopupSection icon={<ListTodo className="h-3.5 w-3.5 text-amber-400" />} title={`Tasks (${detail.tasks.length})`}>
+                <div className="space-y-1">
+                  {detail.tasks.map((t) => {
+                    const ts = TASK_STATUS_STYLES[t.status] || TASK_STATUS_STYLES.TODO;
+                    const TIcon = ts.icon;
+                    return (
+                      <div key={t.id} className="flex items-center gap-2 text-xs">
+                        <TIcon className={cn("h-3.5 w-3.5 shrink-0", ts.color)} />
+                        <span className={cn("flex-1", t.status === "DONE" ? "text-gray-500 line-through" : "text-gray-200")}>
+                          {t.title}
+                        </span>
+                        <span className={cn("text-[10px] font-medium shrink-0",
+                          t.priority === "URGENT" ? "text-red-400" :
+                          t.priority === "HIGH" ? "text-amber-400" :
+                          t.priority === "MEDIUM" ? "text-blue-400" : "text-gray-600",
+                        )}>
+                          {t.priority}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </PopupSection>
+            )}
+
+            {/* Notes preview */}
+            {detail && detail.notes.length > 0 && (
+              <PopupSection icon={<Archive className="h-3.5 w-3.5 text-gray-400" />} title={`Notes (${detail.notes.length})`}>
+                <div className="space-y-1.5">
+                  {detail.notes.slice(0, 3).map((n) => (
+                    <div key={n.id} className="rounded-md bg-gray-800/40 px-3 py-2 text-xs text-gray-300">
+                      <p className="line-clamp-2">{n.content}</p>
+                      <p className="mt-1 text-[10px] text-gray-600">{new Date(n.createdAt).toLocaleString("ko-KR")}</p>
+                    </div>
+                  ))}
+                  {detail.notes.length > 3 && (
+                    <p className="text-[10px] text-gray-500 text-center">+{detail.notes.length - 3} more</p>
+                  )}
+                </div>
+              </PopupSection>
+            )}
+
+            {/* Footer link */}
+            {project.namespace && (
+              <div className="pt-2 border-t border-gray-800">
+                <Link
+                  href={`/workloads/${encodeURIComponent(project.namespace)}`}
+                  className="flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                  onClick={onClose}
+                >
+                  상세 페이지로 이동 <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+async function fetchPopupInstant(
+  query: string,
+): Promise<{ metric: Record<string, string>; value?: [number, string] }[]> {
+  try {
+    const res = await fetch(`/api/metrics/instant?query=${encodeURIComponent(query)}`);
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json?.data?.result ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function InfoCard({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="rounded-lg border border-gray-800 bg-gray-800/30 p-3">
+      <p className="text-[10px] text-gray-500 uppercase">{label}</p>
+      <p className="text-lg font-bold text-gray-100 mt-0.5">{value}</p>
+      <p className="text-[10px] text-gray-500 mt-0.5 truncate">{sub}</p>
+    </div>
+  );
+}
+
+function PopupSection({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 mb-2">
+        {icon}
+        <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{title}</h4>
+      </div>
+      {children}
     </div>
   );
 }
