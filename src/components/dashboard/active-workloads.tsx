@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { FlaskConical, Clock, Server, Calendar } from "lucide-react";
+import { FlaskConical, Clock, Server, Calendar, MemoryStick } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { queries } from "@/lib/prometheus";
 
@@ -25,6 +25,7 @@ interface WorkloadGroup {
   pods: WorkloadPod[];
   nodes: string[];
   worstHealth: PodHealth;
+  memoryBytes: number;
 }
 
 async function fetchInstant(
@@ -48,6 +49,14 @@ function formatAge(seconds: number): string {
   if (d > 0) return `${d}d ${h}h`;
   if (h > 0) return `${h}h ${Math.floor((seconds % 3600) / 60)}m`;
   return `${Math.floor(seconds / 60)}m`;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const val = bytes / Math.pow(1024, i);
+  return `${val < 10 ? val.toFixed(1) : Math.round(val)} ${units[i]}`;
 }
 
 function formatDate(ts: number): string {
@@ -143,11 +152,12 @@ export function ActiveWorkloads() {
 
   const fetchWorkloads = useCallback(async () => {
     const now = Math.floor(Date.now() / 1000);
-    const [podResults, createdResults, phaseResults, waitingResults] = await Promise.all([
+    const [podResults, createdResults, phaseResults, waitingResults, memResults] = await Promise.all([
       fetchInstant(queries.workloadPods()),
       fetchInstant(queries.workloadPodCreated()),
       fetchInstant(queries.workloadPodPhase()),
       fetchInstant(queries.workloadPodWaitingReason()),
+      fetchInstant(queries.workloadMemoryByNamespace()),
     ]);
 
     const createdMap: Record<string, number> = {};
@@ -168,6 +178,12 @@ export function ActiveWorkloads() {
       waitingMap[key] = r.metric.reason || "";
     }
 
+    const memMap: Record<string, number> = {};
+    for (const r of memResults) {
+      const ns = r.metric.namespace || "";
+      if (ns && r.value) memMap[ns] = parseFloat(r.value[1]);
+    }
+
     const nsMap: Record<string, WorkloadGroup> = {};
     const allNodes = new Set<string>();
 
@@ -184,7 +200,7 @@ export function ActiveWorkloads() {
       const health = podHealthFromPhaseAndReason(phase, waitingReason);
 
       if (!nsMap[ns]) {
-        nsMap[ns] = { namespace: ns, pods: [], nodes: [], worstHealth: "running" };
+        nsMap[ns] = { namespace: ns, pods: [], nodes: [], worstHealth: "running", memoryBytes: 0 };
       }
       nsMap[ns].pods.push({ name: pod, node, ageSeconds: age, createdDate, phase, waitingReason, health });
       if (node) allNodes.add(node);
@@ -202,6 +218,7 @@ export function ActiveWorkloads() {
       });
       g.nodes = uniqueNodes;
       g.worstHealth = worstHealth(g.pods);
+      g.memoryBytes = memMap[g.namespace] || 0;
     });
 
     const sorted = groupList.sort(
@@ -312,6 +329,13 @@ export function ActiveWorkloads() {
                       <span className="text-gray-500">Duration</span>
                       {formatAge(oldestPod.ageSeconds)}
                     </span>
+                    {g.memoryBytes > 0 && (
+                      <span className="flex items-center gap-1">
+                        <MemoryStick className="h-3 w-3 text-blue-400" />
+                        <span className="text-gray-500">Memory</span>
+                        <span className="text-blue-400 font-medium">{formatBytes(g.memoryBytes)}</span>
+                      </span>
+                    )}
                   </div>
 
                   {g.nodes.length > 0 && (
