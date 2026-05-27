@@ -562,7 +562,7 @@ function HistoryCalendarTab({
       {/* Namespace Filter */}
       <div className="flex flex-wrap items-center gap-2">
         <button
-          onClick={() => setVisibleNs("all")}
+          onClick={() => setVisibleNs(visibleNs === "all" ? new Set<string>() : "all")}
           className={cn(
             "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors",
             visibleNs === "all"
@@ -593,8 +593,7 @@ function HistoryCalendarTab({
               const newSet = new Set(visibleNs);
               if (newSet.has(ns)) {
                 newSet.delete(ns);
-                if (newSet.size === 0) setVisibleNs("all");
-                else setVisibleNs(newSet);
+                setVisibleNs(newSet);
               } else {
                 newSet.add(ns);
                 if (newSet.size === allNamespaces.length) setVisibleNs("all");
