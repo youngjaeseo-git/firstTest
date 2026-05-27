@@ -17,12 +17,20 @@ interface ClusterStatusCounts {
   lab3: StatusCounts;
 }
 
+export interface PlatformStat {
+  platform: string;
+  total: number;
+  active: number;
+}
+
 export function DashboardClusterView({
   statusCounts,
   hostnameIpMap = {},
+  platformStats = [],
 }: {
   statusCounts: ClusterStatusCounts;
   hostnameIpMap?: Record<string, string>;
+  platformStats?: PlatformStat[];
 }) {
   const [cluster, setCluster] = useState<Cluster>("all");
 
@@ -33,6 +41,7 @@ export function DashboardClusterView({
         statusCounts={statusCounts[cluster]}
         cluster={cluster}
         hostnameIpMap={hostnameIpMap}
+        platformStats={platformStats}
       />
     </>
   );

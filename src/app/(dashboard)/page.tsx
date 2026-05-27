@@ -32,6 +32,7 @@ export default async function DashboardPage() {
     lab3Maintenance,
     lab3Failed,
     equipmentMapping,
+    allEquipmentForPlatform,
   ] = await Promise.all([
     prisma.equipment.count(),
     prisma.equipment.count({ where: { status: "ACTIVE" } }),
@@ -91,7 +92,38 @@ export default async function DashboardPage() {
       where: { ipAddress: { not: null } },
       select: { hostname: true, ipAddress: true },
     }),
+    prisma.equipment.findMany({
+      where: { type: "SERVER" },
+      select: { hostname: true, model: true, status: true },
+    }),
   ]);
+
+  function detectPlatform(hostname: string | null, model: string | null): string {
+    const h = (hostname || "").toLowerCase();
+    const m = (model || "").toLowerCase();
+    if (m.includes("ampere") || m.includes("altra") || h.includes("ampere")) return "Ampere";
+    if (m.includes("srf") || h.includes("srf")) return "SRF";
+    if (m.includes("gnr-ap") || m.includes("gnrap") || h.includes("gnrap") || h.match(/s\d+hax/)) return "GNR-AP";
+    if (m.includes("gnr-sp") || m.includes("gnrsp") || h.includes("gnrsp") || h.match(/s\d+hx/)) return "GNR-SP";
+    if (m.includes("spr") || h.match(/s\d+x13/)) return "SPR";
+    if (m.includes("emr")) return "EMR";
+    return "Other";
+  }
+
+  const platformOrder = ["SPR", "GNR-AP", "GNR-SP", "SRF", "Ampere", "EMR", "Other"];
+  const platformCounts: Record<string, { total: number; active: number }> = {};
+  platformOrder.forEach((p) => { platformCounts[p] = { total: 0, active: 0 }; });
+
+  allEquipmentForPlatform.forEach((e) => {
+    const platform = detectPlatform(e.hostname, e.model);
+    if (!platformCounts[platform]) platformCounts[platform] = { total: 0, active: 0 };
+    platformCounts[platform].total++;
+    if (e.status === "ACTIVE") platformCounts[platform].active++;
+  });
+
+  const platformStats = platformOrder
+    .filter((p) => platformCounts[p].total > 0)
+    .map((p) => ({ platform: p, ...platformCounts[p] }));
 
   return (
     <PageTransition>
@@ -119,6 +151,7 @@ export default async function DashboardPage() {
                 [e.ipAddress!, e.hostname!],
               ])
           )}
+          platformStats={platformStats}
         />
 
         {/* Summary Cards with hover overlay */}

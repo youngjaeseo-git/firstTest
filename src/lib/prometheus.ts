@@ -513,6 +513,10 @@ export const queries = {
     `topk(10, (1 - avg by(instance)(rate(node_cpu_seconds_total{mode="idle",${neC(cluster)},instance=~".+:[0-9]+"}[5m]))) * 100)`,
   fleetTopCpuCadvisor: (cluster: Cluster = "all") =>
     `topk(10, sum by(instance)(rate(container_cpu_usage_seconds_total{${caC(cluster)}}[5m])) / on(instance) group_left() machine_cpu_cores * 100)`,
+  fleetTopMemory: (cluster: Cluster = "all") =>
+    `topk(10, (1 - node_memory_MemAvailable_bytes{${neC(cluster)},instance=~".+:[0-9]+"} / node_memory_MemTotal_bytes{${neC(cluster)},instance=~".+:[0-9]+"}) * 100)`,
+  fleetTopMemoryCadvisor: (cluster: Cluster = "all") =>
+    `topk(10, sum by(instance)(container_memory_working_set_bytes{${caC(cluster)}}) / on(instance) group_left() machine_memory_bytes * 100)`,
   fleetAvgUptime: (cluster: Cluster = "all") =>
     `avg(time() - node_boot_time_seconds{${neC(cluster)}})` +
     ` or ` +
