@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { Cpu, Thermometer, Clock, Wifi, WifiOff, Zap, Database, Network } from "lucide-react";
+import { Cpu, Thermometer, Clock, Wifi, WifiOff, Zap, Database, Network, MemoryStick } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/i18n-context";
 import type { Cluster } from "@/lib/prometheus";
@@ -40,6 +40,7 @@ const cardVariants = {
 
 export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Cluster; onClusterChange: (c: Cluster) => void }) {
   const t = useT();
+  const [memTemp, setMemTemp] = useState<{ avgMemTemp: number | null; serverCount: number }>({ avgMemTemp: null, serverCount: 0 });
   const sourceRef = useRef<EventSource | null>(null);
   const [data, setData] = useState<MetricData>({
     avgCpu: null,
@@ -90,6 +91,17 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
       sourceRef.current = null;
     };
   }, [cluster]);
+
+  useEffect(() => {
+    const fetchMemTemp = () =>
+      fetch("/api/metrics/memory-temp")
+        .then((r) => r.json())
+        .then((j) => setMemTemp({ avgMemTemp: j.avgMemTemp, serverCount: j.serverCount }))
+        .catch(() => {});
+    fetchMemTemp();
+    const timer = setInterval(fetchMemTemp, 60_000);
+    return () => clearInterval(timer);
+  }, []);
 
   if (data.error && data.avgCpu === null) {
     return (
@@ -206,15 +218,35 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
           <Card className="border-orange-500/30 bg-gradient-to-br from-orange-600/10 via-orange-600/5 to-transparent hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/5">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-400">{t("dashboard.avgTemperature")}</p>
-              <div className="rounded-xl bg-orange-500/15 p-1.5">
-                <Thermometer className="h-4 w-4 text-orange-400" />
+              <div className="flex items-center gap-1">
+                <div className="rounded-xl bg-orange-500/15 p-1.5">
+                  <Thermometer className="h-4 w-4 text-orange-400" />
+                </div>
               </div>
             </div>
-            <p className="mt-2 text-2xl font-bold text-gray-100">
-              {data.avgTemp !== null ? `${data.avgTemp.toFixed(1)}` : "-"}
-              <span className="text-lg text-gray-500">°C</span>
-            </p>
-            <p className="mt-1 text-xs text-gray-500">{t("dashboard.avgTemperature.sub")}</p>
+            <div className="mt-2 flex items-baseline gap-3">
+              <div>
+                <p className="text-2xl font-bold text-gray-100">
+                  {data.avgTemp !== null ? `${data.avgTemp.toFixed(1)}` : "-"}
+                  <span className="text-lg text-gray-500">°C</span>
+                </p>
+                <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                  <Cpu className="h-3 w-3" />
+                  CPU
+                </p>
+              </div>
+              <div className="h-8 w-px bg-gray-700" />
+              <div>
+                <p className="text-2xl font-bold text-gray-100">
+                  {memTemp.avgMemTemp !== null ? `${memTemp.avgMemTemp.toFixed(1)}` : "-"}
+                  <span className="text-lg text-gray-500">°C</span>
+                </p>
+                <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                  <MemoryStick className="h-3 w-3" />
+                  DIMM
+                </p>
+              </div>
+            </div>
           </Card>
         </motion.div>
 
