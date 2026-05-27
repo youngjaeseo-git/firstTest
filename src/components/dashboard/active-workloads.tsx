@@ -37,11 +37,12 @@ function formatAge(seconds: number): string {
 
 function formatDate(ts: number): string {
   const d = new Date(ts * 1000);
+  const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   const hh = String(d.getHours()).padStart(2, "0");
   const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${m}/${day} ${hh}:${mm}`;
+  return `${y}-${m}-${day} ${hh}:${mm}`;
 }
 
 const cardVariants = {
@@ -127,7 +128,7 @@ export function ActiveWorkloads() {
               <FlaskConical className="h-4 w-4 text-violet-400" />
             </div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300">
-              Active Workloads
+              Active Workloads <span className="font-normal normal-case text-gray-500">(Namespace)</span>
             </h3>
           </div>
           <div className="flex items-center gap-3 text-xs text-gray-500">
@@ -163,19 +164,27 @@ export function ActiveWorkloads() {
                       <span className="rounded bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-400">
                         {g.pods.length} pod{g.pods.length > 1 ? "s" : ""}
                       </span>
-                      <span className="rounded bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-400">
-                        {g.nodes.length} node{g.nodes.length !== 1 ? "s" : ""}
-                      </span>
+                      {g.nodes.length > 0 ? (
+                        <span className="rounded bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-400">
+                          {g.nodes.length} node{g.nodes.length !== 1 ? "s" : ""}
+                        </span>
+                      ) : (
+                        <span className="rounded bg-yellow-700/50 px-1.5 py-0.5 text-[10px] text-yellow-400">
+                          Pending
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   <div className="mt-2 flex items-center gap-4 text-[11px] text-gray-400">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3 text-gray-500" />
+                      <span className="text-gray-500">Started</span>
                       {oldestPod.createdDate || "-"}
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3 text-gray-500" />
+                      <span className="text-gray-500">Duration</span>
                       {formatAge(oldestPod.ageSeconds)}
                     </span>
                   </div>
