@@ -537,6 +537,4 @@ export const queries = {
     `kube_pod_status_phase{namespace!~"kube-system|monitoring|calico-system|calico-apiserver|tigera-operator"}==1`,
   workloadPodWaitingReason: () =>
     `kube_pod_container_status_waiting_reason{namespace!~"kube-system|monitoring|calico-system|calico-apiserver|tigera-operator"}==1`,
-  workloadMemoryByNamespace: () =>
-    `sum by (namespace) (container_memory_working_set_bytes{namespace!~"kube-system|monitoring|calico-system|calico-apiserver|tigera-operator",container!=""})`,
 };

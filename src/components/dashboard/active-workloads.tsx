@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { FlaskConical, Clock, Server, Calendar, MemoryStick } from "lucide-react";
+import { FlaskConical, Clock, Server, Calendar, Thermometer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { queries } from "@/lib/prometheus";
 
@@ -20,12 +20,17 @@ interface WorkloadPod {
   health: PodHealth;
 }
 
+interface NodeTemp {
+  node: string;
+  temp: number;
+}
+
 interface WorkloadGroup {
   namespace: string;
   pods: WorkloadPod[];
   nodes: string[];
   worstHealth: PodHealth;
-  memoryBytes: number;
+  nodeTemps: NodeTemp[];
 }
 
 async function fetchInstant(
@@ -49,14 +54,6 @@ function formatAge(seconds: number): string {
   if (d > 0) return `${d}d ${h}h`;
   if (h > 0) return `${h}h ${Math.floor((seconds % 3600) / 60)}m`;
   return `${Math.floor(seconds / 60)}m`;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const val = bytes / Math.pow(1024, i);
-  return `${val < 10 ? val.toFixed(1) : Math.round(val)} ${units[i]}`;
 }
 
 function formatDate(ts: number): string {
@@ -152,12 +149,12 @@ export function ActiveWorkloads() {
 
   const fetchWorkloads = useCallback(async () => {
     const now = Math.floor(Date.now() / 1000);
-    const [podResults, createdResults, phaseResults, waitingResults, memResults] = await Promise.all([
+    const [podResults, createdResults, phaseResults, waitingResults, nodeTempData] = await Promise.all([
       fetchInstant(queries.workloadPods()),
       fetchInstant(queries.workloadPodCreated()),
       fetchInstant(queries.workloadPodPhase()),
       fetchInstant(queries.workloadPodWaitingReason()),
-      fetchInstant(queries.workloadMemoryByNamespace()),
+      fetch("/api/metrics/node-temps").then((r) => r.ok ? r.json() : {}).catch(() => ({})) as Promise<Record<string, number>>,
     ]);
 
     const createdMap: Record<string, number> = {};
@@ -178,12 +175,6 @@ export function ActiveWorkloads() {
       waitingMap[key] = r.metric.reason || "";
     }
 
-    const memMap: Record<string, number> = {};
-    for (const r of memResults) {
-      const ns = r.metric.namespace || "";
-      if (ns && r.value) memMap[ns] = parseFloat(r.value[1]);
-    }
-
     const nsMap: Record<string, WorkloadGroup> = {};
     const allNodes = new Set<string>();
 
@@ -200,7 +191,7 @@ export function ActiveWorkloads() {
       const health = podHealthFromPhaseAndReason(phase, waitingReason);
 
       if (!nsMap[ns]) {
-        nsMap[ns] = { namespace: ns, pods: [], nodes: [], worstHealth: "running", memoryBytes: 0 };
+        nsMap[ns] = { namespace: ns, pods: [], nodes: [], worstHealth: "running", nodeTemps: [] };
       }
       nsMap[ns].pods.push({ name: pod, node, ageSeconds: age, createdDate, phase, waitingReason, health });
       if (node) allNodes.add(node);
@@ -218,7 +209,9 @@ export function ActiveWorkloads() {
       });
       g.nodes = uniqueNodes;
       g.worstHealth = worstHealth(g.pods);
-      g.memoryBytes = memMap[g.namespace] || 0;
+      g.nodeTemps = uniqueNodes
+        .map((n) => ({ node: n, temp: nodeTempData[n] ?? -1 }))
+        .filter((nt) => nt.temp >= 0);
     });
 
     const sorted = groupList.sort(
@@ -329,16 +322,45 @@ export function ActiveWorkloads() {
                       <span className="text-gray-500">Duration</span>
                       {formatAge(oldestPod.ageSeconds)}
                     </span>
-                    {g.memoryBytes > 0 && (
-                      <span className="flex items-center gap-1">
-                        <MemoryStick className="h-3 w-3 text-blue-400" />
-                        <span className="text-gray-500">Memory</span>
-                        <span className="text-blue-400 font-medium">{formatBytes(g.memoryBytes)}</span>
-                      </span>
-                    )}
                   </div>
 
-                  {g.nodes.length > 0 && (
+                  {g.nodeTemps.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                        <Thermometer className="h-3 w-3" />
+                        <span>Node Temperature</span>
+                      </div>
+                      {g.nodeTemps.map((nt) => {
+                        const pct = Math.min(Math.max((nt.temp / 100) * 100, 0), 100);
+                        const color =
+                          nt.temp >= 80 ? "bg-red-500" :
+                          nt.temp >= 65 ? "bg-orange-500" :
+                          nt.temp >= 50 ? "bg-yellow-500" :
+                          "bg-green-500";
+                        return (
+                          <div key={nt.node} className="flex items-center gap-2">
+                            <span className="w-[110px] truncate font-mono text-[10px] text-gray-400">{nt.node}</span>
+                            <div className="flex-1 h-3 rounded-sm bg-gray-800 overflow-hidden">
+                              <div
+                                className={cn("h-full rounded-sm transition-all", color)}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className={cn(
+                              "w-10 text-right font-mono text-[10px] font-medium",
+                              nt.temp >= 80 ? "text-red-400" :
+                              nt.temp >= 65 ? "text-orange-400" :
+                              "text-gray-300",
+                            )}>
+                              {nt.temp.toFixed(1)}°
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {g.nodeTemps.length === 0 && g.nodes.length > 0 && (
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       {g.nodes.map((n) => (
                         <span
