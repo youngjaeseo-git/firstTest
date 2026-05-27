@@ -4,12 +4,26 @@ import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { FlaskConical, Clock, Server, Calendar } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { queries } from "@/lib/prometheus";
+
+type PodHealth = "running" | "pending" | "warning" | "error" | "succeeded";
+
+interface WorkloadPod {
+  name: string;
+  node: string;
+  ageSeconds: number;
+  createdDate: string;
+  phase: string;
+  waitingReason: string;
+  health: PodHealth;
+}
 
 interface WorkloadGroup {
   namespace: string;
-  pods: { name: string; node: string; ageSeconds: number; createdDate: string }[];
+  pods: WorkloadPod[];
   nodes: string[];
+  worstHealth: PodHealth;
 }
 
 async function fetchInstant(
@@ -45,6 +59,73 @@ function formatDate(ts: number): string {
   return `${y}-${m}-${day} ${hh}:${mm}`;
 }
 
+const HEALTH_PRIORITY: Record<PodHealth, number> = {
+  error: 4,
+  warning: 3,
+  pending: 2,
+  succeeded: 1,
+  running: 0,
+};
+
+function podHealthFromPhaseAndReason(phase: string, waitingReason: string): PodHealth {
+  if (waitingReason === "CrashLoopBackOff" || waitingReason === "CreateContainerError" || phase === "Failed") {
+    return "error";
+  }
+  if (waitingReason === "ImagePullBackOff" || waitingReason === "ErrImagePull" || waitingReason === "CreateContainerConfigError") {
+    return "warning";
+  }
+  if (phase === "Pending" || waitingReason) {
+    return "pending";
+  }
+  if (phase === "Succeeded") {
+    return "succeeded";
+  }
+  return "running";
+}
+
+function worstHealth(pods: WorkloadPod[]): PodHealth {
+  let worst: PodHealth = "running";
+  pods.forEach((p) => {
+    if (HEALTH_PRIORITY[p.health] > HEALTH_PRIORITY[worst]) {
+      worst = p.health;
+    }
+  });
+  return worst;
+}
+
+const HEALTH_STYLES: Record<PodHealth, { dot: string; text: string; badge: string; label: string }> = {
+  running: {
+    dot: "bg-green-500",
+    text: "text-green-400",
+    badge: "bg-green-700/40 text-green-300",
+    label: "Running",
+  },
+  pending: {
+    dot: "bg-yellow-500",
+    text: "text-yellow-400",
+    badge: "bg-yellow-700/40 text-yellow-300",
+    label: "Pending",
+  },
+  warning: {
+    dot: "bg-orange-500",
+    text: "text-orange-400",
+    badge: "bg-orange-700/40 text-orange-300",
+    label: "Warning",
+  },
+  error: {
+    dot: "bg-red-500",
+    text: "text-red-400",
+    badge: "bg-red-700/40 text-red-300",
+    label: "Error",
+  },
+  succeeded: {
+    dot: "bg-gray-500",
+    text: "text-gray-400",
+    badge: "bg-gray-700/40 text-gray-400",
+    label: "Completed",
+  },
+};
+
 const cardVariants = {
   hidden: { opacity: 0, y: 12 },
   visible: {
@@ -61,15 +142,29 @@ export function ActiveWorkloads() {
 
   const fetchWorkloads = useCallback(async () => {
     const now = Math.floor(Date.now() / 1000);
-    const [podResults, createdResults] = await Promise.all([
+    const [podResults, createdResults, phaseResults, waitingResults] = await Promise.all([
       fetchInstant(queries.workloadPods()),
       fetchInstant(queries.workloadPodCreated()),
+      fetchInstant(queries.workloadPodPhase()),
+      fetchInstant(queries.workloadPodWaitingReason()),
     ]);
 
     const createdMap: Record<string, number> = {};
     for (const r of createdResults) {
       const key = `${r.metric.namespace}/${r.metric.pod}`;
       if (r.value) createdMap[key] = parseFloat(r.value[1]);
+    }
+
+    const phaseMap: Record<string, string> = {};
+    for (const r of phaseResults) {
+      const key = `${r.metric.namespace}/${r.metric.pod}`;
+      phaseMap[key] = r.metric.phase || "";
+    }
+
+    const waitingMap: Record<string, string> = {};
+    for (const r of waitingResults) {
+      const key = `${r.metric.namespace}/${r.metric.pod}`;
+      waitingMap[key] = r.metric.reason || "";
     }
 
     const nsMap: Record<string, WorkloadGroup> = {};
@@ -83,11 +178,14 @@ export function ActiveWorkloads() {
       const created = createdMap[key];
       const age = created ? now - created : 0;
       const createdDate = created ? formatDate(created) : "";
+      const phase = phaseMap[key] || "Unknown";
+      const waitingReason = waitingMap[key] || "";
+      const health = podHealthFromPhaseAndReason(phase, waitingReason);
 
       if (!nsMap[ns]) {
-        nsMap[ns] = { namespace: ns, pods: [], nodes: [] };
+        nsMap[ns] = { namespace: ns, pods: [], nodes: [], worstHealth: "running" };
       }
-      nsMap[ns].pods.push({ name: pod, node, ageSeconds: age, createdDate });
+      nsMap[ns].pods.push({ name: pod, node, ageSeconds: age, createdDate, phase, waitingReason, health });
       if (node) allNodes.add(node);
     }
 
@@ -102,10 +200,11 @@ export function ActiveWorkloads() {
         }
       });
       g.nodes = uniqueNodes;
+      g.worstHealth = worstHealth(g.pods);
     });
 
     const sorted = groupList.sort(
-      (a, b) => b.pods.length - a.pods.length,
+      (a, b) => HEALTH_PRIORITY[b.worstHealth] - HEALTH_PRIORITY[a.worstHealth] || b.pods.length - a.pods.length,
     );
 
     setGroups(sorted);
@@ -147,18 +246,33 @@ export function ActiveWorkloads() {
         ) : (
           <div className="space-y-3">
             {groups.map((g) => {
+              const style = HEALTH_STYLES[g.worstHealth];
               const oldestPod = g.pods.reduce((a, b) =>
                 a.ageSeconds > b.ageSeconds ? a : b,
               );
+              const warningPod = g.pods.find((p) => p.health !== "running" && p.health !== "succeeded");
               return (
                 <div
                   key={g.namespace}
-                  className="group rounded-lg border border-gray-800 bg-gray-800/30 px-3 py-2.5 transition-colors hover:border-violet-500/30"
+                  className={cn(
+                    "group rounded-lg border px-3 py-2.5 transition-colors",
+                    g.worstHealth === "error"
+                      ? "border-red-500/40 bg-red-500/5 hover:border-red-500/60"
+                      : g.worstHealth === "warning"
+                        ? "border-orange-500/40 bg-orange-500/5 hover:border-orange-500/60"
+                        : g.worstHealth === "pending"
+                          ? "border-yellow-500/30 bg-yellow-500/5 hover:border-yellow-500/50"
+                          : "border-gray-800 bg-gray-800/30 hover:border-violet-500/30",
+                  )}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-violet-500 animate-pulse" />
-                      <span className="font-mono text-sm font-medium text-violet-300">
+                      <span className={cn(
+                        "h-2 w-2 rounded-full",
+                        style.dot,
+                        g.worstHealth === "running" && "animate-pulse",
+                      )} />
+                      <span className={cn("font-mono text-sm font-medium", style.text)}>
                         {g.namespace}
                       </span>
                       <span className="rounded bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-400">
@@ -173,8 +287,17 @@ export function ActiveWorkloads() {
                           Pending
                         </span>
                       )}
+                      <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-medium", style.badge)}>
+                        {style.label}
+                      </span>
                     </div>
                   </div>
+
+                  {warningPod && warningPod.waitingReason && (
+                    <div className="mt-1.5 text-[10px] text-orange-400">
+                      {warningPod.waitingReason}: {warningPod.name}
+                    </div>
+                  )}
 
                   <div className="mt-2 flex items-center gap-4 text-[11px] text-gray-400">
                     <span className="flex items-center gap-1">

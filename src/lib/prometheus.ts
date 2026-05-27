@@ -529,4 +529,8 @@ export const queries = {
     `kube_pod_info{namespace!~"kube-system|monitoring|calico-system|calico-apiserver|tigera-operator"}`,
   workloadPodCreated: () =>
     `kube_pod_created{namespace!~"kube-system|monitoring|calico-system|calico-apiserver|tigera-operator"}`,
+  workloadPodPhase: () =>
+    `kube_pod_status_phase{namespace!~"kube-system|monitoring|calico-system|calico-apiserver|tigera-operator"}==1`,
+  workloadPodWaitingReason: () =>
+    `kube_pod_container_status_waiting_reason{namespace!~"kube-system|monitoring|calico-system|calico-apiserver|tigera-operator"}==1`,
 };
