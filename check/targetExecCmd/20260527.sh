@@ -81,3 +81,31 @@ for p in sorted(r, key=lambda x: x['metric'].get('chip',''))[:30]:
 echo ""
 echo "-- 5c. 메모리 관련 이름을 가진 메트릭 검색 --"
 curl -s "$PROM/api/v1/label/__name__/values" 2>/dev/null | tr ',' '\n' | grep -i -E 'dimm|mem.*temp|thermal.*mem' | head -10
+
+echo ""
+echo "=== 6. Redfish Thermal 센서 이름에 DIMM/메모리 포함 여부 ==="
+echo "아래 명령어는 BMC에 직접 접근합니다 (서버 1대 샘플)"
+echo "BMC_IP, BMC_USER, BMC_PASS를 환경변수로 설정하거나 직접 수정하세요"
+BMC_IP="${BMC_IP:-192.168.10.11}"
+BMC_USER="${BMC_USER:-admin}"
+BMC_PASS="${BMC_PASS:-admin}"
+echo "Target BMC: $BMC_IP"
+curl -sk -u "${BMC_USER}:${BMC_PASS}" --connect-timeout 5 -m 10 "https://${BMC_IP}/redfish/v1/Chassis/1/Thermal" 2>/dev/null | python3 -c "
+import json,sys
+try:
+  d = json.loads(sys.stdin.read())
+  temps = d.get('Temperatures',[])
+  print(f'Total temperature sensors: {len(temps)}')
+  dimm_sensors = [t for t in temps if any(kw in (t.get('Name','') or '').upper() for kw in ['DIMM','MEMORY','MEM ','DDR'])]
+  print(f'DIMM/Memory sensors: {len(dimm_sensors)}')
+  if dimm_sensors:
+    for t in dimm_sensors[:5]:
+      print(f'  Name={t.get(\"Name\",\"?\")} Reading={t.get(\"ReadingCelsius\",\"?\")}C')
+    print('  ...(showing first 5)')
+  else:
+    print('  No DIMM sensors found. All sensor names:')
+    for t in temps:
+      print(f'  - {t.get(\"Name\",\"?\")} = {t.get(\"ReadingCelsius\",\"?\")}C')
+except Exception as e:
+  print(f'Error: {e}')
+" 2>/dev/null
