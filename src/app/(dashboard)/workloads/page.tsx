@@ -262,7 +262,7 @@ export default function WorkloadsPage() {
         )}
 
         {tab === "history" && (
-          <HistoryCalendarTab projects={allProjects} onUpdate={fetchProjects} />
+          <HistoryCalendarTab projects={allProjects} liveGroups={groups} onUpdate={fetchProjects} />
         )}
       </div>
     </PageTransition>
@@ -346,9 +346,11 @@ function ActiveTab({ groups, loading }: { groups: WorkloadGroup[]; loading: bool
 /* ─── History Calendar Tab ─── */
 function HistoryCalendarTab({
   projects,
+  liveGroups,
   onUpdate,
 }: {
   projects: EvalProject[];
+  liveGroups: WorkloadGroup[];
   onUpdate: () => void;
 }) {
   const { toast } = useToast();
@@ -377,8 +379,28 @@ function HistoryCalendarTab({
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
 
+  const projectNamespaces = new Set(projects.map((p) => p.namespace).filter(Boolean));
+  const mergedProjects: EvalProject[] = [...projects];
+  liveGroups.forEach((g) => {
+    if (projectNamespaces.has(g.namespace)) return;
+    const oldestPod = g.pods.reduce((a, b) => (a.ageSeconds > b.ageSeconds ? a : b), g.pods[0]);
+    const startTs = oldestPod?.createdDate
+      ? new Date(oldestPod.createdDate + "T00:00:00")
+      : today;
+    mergedProjects.push({
+      id: `live-${g.namespace}`,
+      title: g.namespace,
+      status: "IN_PROGRESS",
+      namespace: g.namespace,
+      startDate: startTs.toISOString(),
+      endDate: null,
+      createdAt: startTs.toISOString(),
+      _count: { results: 0, tasks: 0, notes: 0 },
+    });
+  });
+
   const dateProjectMap: Record<string, EvalProject[]> = {};
-  projects.forEach((p) => {
+  mergedProjects.forEach((p) => {
     const start = p.startDate ? new Date(p.startDate) : new Date(p.createdAt);
     const end = p.endDate ? new Date(p.endDate) : (
       p.status === "COMPLETED" || p.status === "CANCELLED" ? start : today
@@ -563,8 +585,9 @@ function HistoryCalendarTab({
           ) : (
             <div className="space-y-2">
               {selectedProjects.map((p) => {
+                const isLive = p.id.startsWith("live-");
                 const sc = STATUS_COLORS[p.status] || STATUS_COLORS.PLANNED;
-                const canDelete = p.status === "COMPLETED" || p.status === "CANCELLED";
+                const canDelete = !isLive && (p.status === "COMPLETED" || p.status === "CANCELLED");
                 const startStr = p.startDate
                   ? new Date(p.startDate).toLocaleDateString("ko-KR")
                   : new Date(p.createdAt).toLocaleDateString("ko-KR");
@@ -597,12 +620,14 @@ function HistoryCalendarTab({
                     </Link>
 
                     <div className="flex items-center gap-3 shrink-0 ml-3">
-                      <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                        <span>{p._count.results} results</span>
-                        <span>{p._count.tasks} tasks</span>
-                      </div>
+                      {!isLive && (
+                        <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                          <span>{p._count.results} results</span>
+                          <span>{p._count.tasks} tasks</span>
+                        </div>
+                      )}
                       <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", sc.bg, "bg-opacity-20", sc.text)}>
-                        {p.status.replace("_", " ")}
+                        {isLive ? "LIVE" : p.status.replace("_", " ")}
                       </span>
                       {canDelete && (
                         <button
@@ -631,15 +656,16 @@ function HistoryCalendarTab({
       {/* Project list below calendar */}
       <Card>
         <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">
-          전체 평가 목록 ({projects.length})
+          전체 워크로드 목록 ({mergedProjects.length})
         </h3>
-        {projects.length === 0 ? (
+        {mergedProjects.length === 0 ? (
           <p className="text-sm text-gray-500 text-center py-6">등록된 평가가 없습니다.</p>
         ) : (
           <div className="space-y-1.5">
-            {projects.map((p) => {
+            {mergedProjects.map((p) => {
+              const isLive = p.id.startsWith("live-");
               const sc = STATUS_COLORS[p.status] || STATUS_COLORS.PLANNED;
-              const canDelete = p.status === "COMPLETED" || p.status === "CANCELLED";
+              const canDelete = !isLive && (p.status === "COMPLETED" || p.status === "CANCELLED");
               const startStr = p.startDate
                 ? new Date(p.startDate).toLocaleDateString("ko-KR")
                 : new Date(p.createdAt).toLocaleDateString("ko-KR");
@@ -662,10 +688,10 @@ function HistoryCalendarTab({
                     {startStr}{endStr && ` ~ ${endStr}`}
                   </span>
                   <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0", sc.bg, "bg-opacity-20", sc.text)}>
-                    {p.status.replace("_", " ")}
+                    {isLive ? "LIVE" : p.status.replace("_", " ")}
                   </span>
                   <span className="text-[10px] text-gray-600 shrink-0 w-16 text-right">
-                    {p._count.results}r {p._count.tasks}t
+                    {isLive ? "" : `${p._count.results}r ${p._count.tasks}t`}
                   </span>
                   {canDelete ? (
                     <button
