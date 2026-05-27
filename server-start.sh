@@ -37,7 +37,18 @@ else
 fi
 
 echo ""
-echo "=== 3. 개발 서버 시작 ==="
+echo "=== 3. DB 마이그레이션 ==="
+export DATABASE_URL="postgresql://dcim:${DB_PASSWORD:-dcim_password}@localhost:${DB_PORT:-5432}/dcim?schema=public"
+npx prisma migrate deploy 2>&1
+if [ $? -eq 0 ]; then
+  echo "✅ 마이그레이션 완료"
+else
+  echo "⚠️  마이그레이션 실패 (신규 마이그레이션이 없을 수 있음)"
+fi
+npx prisma generate 2>&1 | tail -1
+
+echo ""
+echo "=== 4. 개발 서버 시작 ==="
 echo "    http://$(hostname -I | awk '{print $1}'):${PORT}"
 echo "    종료: Ctrl+C"
 echo ""
