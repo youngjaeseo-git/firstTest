@@ -372,6 +372,7 @@ function HistoryCalendarTab({
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [visibleNs, setVisibleNs] = useState<Set<string> | "all">("all");
 
   const prevMonth = () => {
     if (month === 0) { setYear(year - 1); setMonth(11); }
@@ -428,7 +429,14 @@ function HistoryCalendarTab({
     endDate: Date;
     colorIndex: number;
   }
-  const projectSpans: ProjectSpan[] = mergedProjects.map((p) => {
+  const allNamespaces: string[] = [];
+  const nsSet = new Set<string>();
+  mergedProjects.forEach((p) => {
+    const ns = p.namespace || p.id;
+    if (!nsSet.has(ns)) { nsSet.add(ns); allNamespaces.push(ns); }
+  });
+
+  const allProjectSpans: ProjectSpan[] = mergedProjects.map((p) => {
     const start = p.startDate ? new Date(p.startDate) : new Date(p.createdAt);
     const end = p.endDate ? new Date(p.endDate) : (
       p.status === "COMPLETED" || p.status === "CANCELLED" ? start : today
@@ -442,6 +450,10 @@ function HistoryCalendarTab({
       colorIndex: colorMap[p.namespace || p.id] ?? 0,
     };
   });
+
+  const projectSpans = visibleNs === "all"
+    ? allProjectSpans
+    : allProjectSpans.filter((ps) => visibleNs.has(ps.project.namespace || ps.project.id));
 
   const dateProjectMap: Record<string, EvalProject[]> = {};
   projectSpans.forEach(({ project, startDate, endDate }) => {
@@ -547,17 +559,79 @@ function HistoryCalendarTab({
 
   return (
     <div className="space-y-4">
-      {/* Legend */}
-      <div className="flex flex-wrap gap-3 text-xs">
-        {mergedProjects.map((p) => {
-          const ci = colorMap[p.namespace || p.id] ?? 0;
+      {/* Namespace Filter */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setVisibleNs("all")}
+          className={cn(
+            "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors",
+            visibleNs === "all"
+              ? "border-blue-500/50 bg-blue-500/15 text-blue-300"
+              : "border-gray-700 bg-gray-800/50 text-gray-400 hover:border-gray-600",
+          )}
+        >
+          <span className={cn(
+            "h-3 w-3 rounded-sm border flex items-center justify-center",
+            visibleNs === "all" ? "border-blue-400 bg-blue-500" : "border-gray-600",
+          )}>
+            {visibleNs === "all" && <span className="text-[8px] text-white font-bold">✓</span>}
+          </span>
+          ALL
+        </button>
+        {allNamespaces.map((ns) => {
+          const ci = colorMap[ns] ?? 0;
           const palette = BAR_PALETTE[ci];
+          const isChecked = visibleNs === "all" || (typeof visibleNs !== "string" && visibleNs.has(ns));
+          const isLive = mergedProjects.some((p) => (p.namespace || p.id) === ns && p.id.startsWith("live-"));
+
+          const toggle = () => {
+            if (visibleNs === "all") {
+              const newSet = new Set(allNamespaces);
+              newSet.delete(ns);
+              setVisibleNs(newSet);
+            } else {
+              const newSet = new Set(visibleNs);
+              if (newSet.has(ns)) {
+                newSet.delete(ns);
+                if (newSet.size === 0) setVisibleNs("all");
+                else setVisibleNs(newSet);
+              } else {
+                newSet.add(ns);
+                if (newSet.size === allNamespaces.length) setVisibleNs("all");
+                else setVisibleNs(newSet);
+              }
+            }
+          };
+
           return (
-            <span key={p.id} className="flex items-center gap-1.5 text-gray-400">
-              <span className="h-2.5 w-5 rounded-sm" style={{ backgroundColor: palette.hex, opacity: 0.7 }} />
-              <span className="font-mono text-[11px]">{p.namespace || p.title}</span>
-              {p.id.startsWith("live-") && <span className="text-[9px] text-blue-400">(LIVE)</span>}
-            </span>
+            <button
+              key={ns}
+              onClick={toggle}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors",
+                isChecked
+                  ? "border-opacity-50 bg-opacity-15 text-opacity-100"
+                  : "border-gray-700 bg-gray-800/50 text-gray-600 opacity-50",
+              )}
+              style={{
+                borderColor: isChecked ? palette.hex + "80" : undefined,
+                backgroundColor: isChecked ? palette.hex + "20" : undefined,
+              }}
+            >
+              <span
+                className="h-3 w-3 rounded-sm border flex items-center justify-center"
+                style={{
+                  borderColor: isChecked ? palette.hex : "#4b5563",
+                  backgroundColor: isChecked ? palette.hex : "transparent",
+                }}
+              >
+                {isChecked && <span className="text-[8px] text-white font-bold">✓</span>}
+              </span>
+              <span className="font-mono text-[11px]" style={{ color: isChecked ? palette.hex : undefined }}>
+                {ns}
+              </span>
+              {isLive && <span className="text-[9px] text-blue-400">(LIVE)</span>}
+            </button>
           );
         })}
       </div>
