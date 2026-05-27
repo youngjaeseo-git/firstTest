@@ -42,12 +42,12 @@ export function MemorySlotDiagram({
                   (rowIdx + 1) * slotsPerRow
                 );
                 return (
-                  <div key={rowIdx} className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.min(rowSlots.length, slotsPerRow)}, 3rem)` }}>
+                  <div key={rowIdx} className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.min(rowSlots.length, slotsPerRow)}, 1fr)` }}>
                     {rowSlots.map((slot) => (
                       <div
                         key={slot.slotName}
                         className={cn(
-                          "group relative flex h-14 w-12 flex-col items-center justify-center rounded-md border text-[10px] transition-colors",
+                          "group relative flex h-14 flex-col items-center justify-center rounded-md border text-[10px] transition-colors",
                           slot.populated
                             ? "border-green-600 bg-green-600/15 text-green-300 hover:bg-green-600/25"
                             : "border-gray-700 bg-gray-800/50 text-gray-600 hover:bg-gray-800"

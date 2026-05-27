@@ -3,13 +3,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { FlaskConical, Clock, Server } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { FlaskConical, Clock, Server, Calendar } from "lucide-react";
 import { queries } from "@/lib/prometheus";
 
 interface WorkloadGroup {
   namespace: string;
-  pods: { name: string; node: string; ageSeconds: number }[];
+  pods: { name: string; node: string; ageSeconds: number; createdDate: string }[];
   nodes: string[];
 }
 
@@ -29,17 +28,20 @@ async function fetchInstant(
 }
 
 function formatAge(seconds: number): string {
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-  return `${Math.floor(seconds / 86400)}d`;
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${Math.floor((seconds % 3600) / 60)}m`;
+  return `${Math.floor(seconds / 60)}m`;
 }
 
-function shortenHostname(node: string): string {
-  const m = node.match(/(\d{3})$/);
-  if (m) return m[1];
-  const m2 = node.match(/ae(\d+)/);
-  if (m2) return m2[1].padStart(3, "0");
-  return node.length > 12 ? node.slice(-6) : node;
+function formatDate(ts: number): string {
+  const d = new Date(ts * 1000);
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${m}/${day} ${hh}:${mm}`;
 }
 
 const cardVariants = {
@@ -79,11 +81,12 @@ export function ActiveWorkloads() {
       const key = `${ns}/${pod}`;
       const created = createdMap[key];
       const age = created ? now - created : 0;
+      const createdDate = created ? formatDate(created) : "";
 
       if (!nsMap[ns]) {
         nsMap[ns] = { namespace: ns, pods: [], nodes: [] };
       }
-      nsMap[ns].pods.push({ name: pod, node, ageSeconds: age });
+      nsMap[ns].pods.push({ name: pod, node, ageSeconds: age, createdDate });
       if (node) allNodes.add(node);
     }
 
@@ -130,9 +133,9 @@ export function ActiveWorkloads() {
           <div className="flex items-center gap-3 text-xs text-gray-500">
             <span className="flex items-center gap-1">
               <Server className="h-3 w-3" />
-              {totalNodes} nodes
+              {totalNodes} node{totalNodes !== 1 ? "s" : ""}
             </span>
-            <span>{totalPods} pods</span>
+            <span>{totalPods} pod{totalPods !== 1 ? "s" : ""}</span>
           </div>
         </div>
 
@@ -143,9 +146,8 @@ export function ActiveWorkloads() {
         ) : (
           <div className="space-y-3">
             {groups.map((g) => {
-              const oldestAge = Math.max(
-                ...g.pods.map((p) => p.ageSeconds),
-                0,
+              const oldestPod = g.pods.reduce((a, b) =>
+                a.ageSeconds > b.ageSeconds ? a : b,
               );
               return (
                 <div
@@ -161,34 +163,35 @@ export function ActiveWorkloads() {
                       <span className="rounded bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-400">
                         {g.pods.length} pod{g.pods.length > 1 ? "s" : ""}
                       </span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[10px] text-gray-500">
-                      <Clock className="h-3 w-3" />
-                      {formatAge(oldestAge)}
+                      <span className="rounded bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-400">
+                        {g.nodes.length} node{g.nodes.length !== 1 ? "s" : ""}
+                      </span>
                     </div>
                   </div>
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <span className="text-[10px] text-gray-500">Nodes:</span>
-                    <div className="flex flex-wrap gap-1">
+
+                  <div className="mt-2 flex items-center gap-4 text-[11px] text-gray-400">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3 text-gray-500" />
+                      {oldestPod.createdDate || "-"}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3 text-gray-500" />
+                      {formatAge(oldestPod.ageSeconds)}
+                    </span>
+                  </div>
+
+                  {g.nodes.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
                       {g.nodes.map((n) => (
                         <span
                           key={n}
-                          className={cn(
-                            "rounded bg-gray-700/80 px-1.5 py-0.5 font-mono text-[10px]",
-                            "text-gray-300",
-                          )}
-                          title={n}
+                          className="rounded bg-gray-700/80 px-1.5 py-0.5 font-mono text-[10px] text-gray-300"
                         >
-                          {shortenHostname(n)}
+                          {n}
                         </span>
                       ))}
-                      {g.nodes.length === 0 && (
-                        <span className="text-[10px] text-gray-600">
-                          pending
-                        </span>
-                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
               );
             })}
