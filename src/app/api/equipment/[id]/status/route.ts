@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser, canChangeStatus } from "@/lib/rbac";
+import { logAudit } from "@/lib/audit";
 
 export async function PATCH(
   req: NextRequest,
@@ -31,14 +32,12 @@ export async function PATCH(
     data: { status },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: "STATUS_CHANGE",
-      entityType: "Equipment",
-      entityId: id,
-      changes: { status: { old: oldStatus, new: status }, note },
-    },
+  await logAudit({
+    userId: user.id,
+    action: "STATUS_CHANGE",
+    entityType: "Equipment",
+    entityId: id,
+    changes: { status: { from: oldStatus, to: status }, note },
   });
 
   return NextResponse.json(updated);

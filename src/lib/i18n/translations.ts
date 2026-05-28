@@ -24,6 +24,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "nav.capacity": "Capacity",
     "nav.reports": "Reports",
     "nav.memory": "Memory",
+    "nav.history": "Audit Log",
     "nav.settings": "Settings",
 
     // ── Header ──
@@ -481,6 +482,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "nav.capacity": "용량 관리",
     "nav.reports": "리포트",
     "nav.memory": "메모리",
+    "nav.history": "감사 로그",
     "nav.settings": "설정",
 
     // ── Header ──

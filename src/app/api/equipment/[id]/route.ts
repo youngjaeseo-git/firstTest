@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser, canEdit, canDelete } from "@/lib/rbac";
+import { logAudit, diffShallow } from "@/lib/audit";
 
 export async function GET(
   _req: NextRequest,
@@ -41,6 +42,8 @@ export async function PUT(
   const body = await req.json();
   const { cpus, memories, ...equipmentData } = body;
 
+  const before = await prisma.equipment.findUnique({ where: { id } });
+
   const equipment = await prisma.$transaction(async (tx) => {
     if (cpus) {
       await tx.equipmentCpu.deleteMany({ where: { equipmentId: id } });
@@ -61,6 +64,25 @@ export async function PUT(
     });
   });
 
+  if (before) {
+    const changes = diffShallow(
+      before as unknown as Record<string, unknown>,
+      equipment as unknown as Record<string, unknown>,
+    );
+    const changedKeys = Object.keys(changes).filter(
+      (k) => !["updatedAt", "createdAt"].includes(k),
+    );
+    if (changedKeys.length > 0) {
+      await logAudit({
+        userId: user.id,
+        action: "UPDATE",
+        entityType: "Equipment",
+        entityId: id,
+        changes: Object.fromEntries(changedKeys.map((k) => [k, changes[k]])),
+      });
+    }
+  }
+
   return NextResponse.json(equipment);
 }
 
@@ -77,6 +99,20 @@ export async function DELETE(
     );
   }
 
+  const equipment = await prisma.equipment.findUnique({
+    where: { id },
+    select: { hostname: true, ipAddress: true, serialNumber: true, type: true },
+  });
+
   await prisma.equipment.delete({ where: { id } });
+
+  await logAudit({
+    userId: user.id,
+    action: "DELETE",
+    entityType: "Equipment",
+    entityId: id,
+    changes: equipment ? { ...equipment } : undefined,
+  });
+
   return NextResponse.json({ success: true });
 }

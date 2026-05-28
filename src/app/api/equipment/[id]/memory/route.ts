@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionUser } from "@/lib/rbac";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(
   _req: NextRequest,
@@ -38,12 +38,14 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role: string }).role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { memories } = await req.json();
+
+  const beforeCount = await prisma.equipmentMemory.count({ where: { equipmentId: id } });
 
   await prisma.equipmentMemory.deleteMany({
     where: { equipmentId: id },
@@ -59,12 +61,29 @@ export async function PUT(
     });
   }
 
-  const totalGb = (memories || [])
-    .filter((m: { populated: boolean }) => m.populated)
-    .reduce((sum: number, m: { capacityGb?: number }) => sum + (m.capacityGb || 0), 0);
+  const populatedSlots = (memories || []).filter((m: { populated: boolean }) => m.populated);
+  const totalGb = populatedSlots.reduce(
+    (sum: number, m: { capacityGb?: number }) => sum + (m.capacityGb || 0),
+    0,
+  );
   await prisma.equipment.update({
     where: { id },
     data: { totalMemoryGB: Math.round(totalGb) },
+  });
+
+  await logAudit({
+    userId: user.id,
+    action: "UPDATE",
+    entityType: "Equipment",
+    entityId: id,
+    changes: {
+      memoryConfig: {
+        slotsBefore: beforeCount,
+        slotsAfter: memories?.length || 0,
+        populated: populatedSlots.length,
+        totalCapacityGb: Math.round(totalGb),
+      },
+    },
   });
 
   return NextResponse.json({ success: true });

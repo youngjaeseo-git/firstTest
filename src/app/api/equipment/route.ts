@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser, canEdit } from "@/lib/rbac";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -57,6 +58,20 @@ export async function POST(req: NextRequest) {
       memories: memories ? { create: memories } : undefined,
     },
     include: { cpus: true, memories: true, rack: true },
+  });
+
+  await logAudit({
+    userId: user.id,
+    action: "CREATE",
+    entityType: "Equipment",
+    entityId: equipment.id,
+    changes: {
+      hostname: equipment.hostname,
+      ipAddress: equipment.ipAddress,
+      type: equipment.type,
+      manufacturer: equipment.manufacturer,
+      model: equipment.model,
+    },
   });
 
   return NextResponse.json(equipment, { status: 201 });
