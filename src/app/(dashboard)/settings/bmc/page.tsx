@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm";
 import { RefreshCw, Power, Zap, ChevronLeft, CheckSquare, Square, Minus, Pencil, Save, X } from "lucide-react";
 
 interface EquipmentItem {
@@ -49,6 +50,7 @@ type TabMode = "operations" | "ip-mapping";
 
 export default function BmcManagementPage() {
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [tab, setTab] = useState<TabMode>("operations");
   const [allEquipment, setAllEquipment] = useState<EquipmentItem[]>([]);
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
@@ -142,9 +144,11 @@ export default function BmcManagementPage() {
       toast({ type: "warning", title: "자동 설정할 서버 없음", message: "BMC IP가 비어있고 Host IP가 있는 서버가 없습니다." });
       return;
     }
-    const confirmed = window.confirm(
-      `${targets.length}대 서버에 BMC IP를 자동 설정합니다 (192.168.10.{마지막옥텟}). 계속하시겠습니까?`
-    );
+    const confirmed = await confirm({
+      title: "BMC IP 자동 설정",
+      message: `${targets.length}대 서버에 BMC IP를 자동 설정합니다 (192.168.10.마지막옥텟). 계속하시겠습니까?`,
+      confirmLabel: "설정",
+    });
     if (!confirmed) return;
 
     setSavingIp(true);
@@ -218,9 +222,12 @@ export default function BmcManagementPage() {
 
   const bulkPowerAction = async (resetType: ResetType) => {
     if (selected.size === 0 || !reason.trim()) return;
-    const confirmed = window.confirm(
-      `${selected.size}대의 서버에 "${resetType}" 명령을 실행합니다. 계속하시겠습니까?`
-    );
+    const confirmed = await confirm({
+      title: "전원 명령 실행",
+      message: `${selected.size}대의 서버에 "${resetType}" 명령을 실행합니다. 계속하시겠습니까?`,
+      variant: "danger",
+      confirmLabel: "실행",
+    });
     if (!confirmed) return;
 
     setRunning(true);

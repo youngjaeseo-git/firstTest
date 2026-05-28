@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useConfirm } from "@/components/ui/confirm";
 import { useT } from "@/lib/i18n/i18n-context";
 
 interface Target {
@@ -26,6 +27,7 @@ interface SyncResult {
 
 export default function DiscoveryPage() {
   const t = useT();
+  const confirm = useConfirm();
   const [targets, setTargets] = useState<Target[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<SyncResult | null>(null);
@@ -103,7 +105,14 @@ export default function DiscoveryPage() {
   }
 
   async function handleUnregister(targetId: string) {
-    if (!confirm(t("discovery.unregisterConfirm"))) return;
+    const ok = await confirm({
+      title: t("discovery.unregister"),
+      message: t("discovery.unregisterConfirm"),
+      variant: "danger",
+      confirmLabel: t("discovery.unregister"),
+      cancelLabel: t("common.cancel"),
+    });
+    if (!ok) return;
     setUnregistering(targetId);
     try {
       const res = await fetch("/api/discovery/unregister", {

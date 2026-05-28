@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge, SeverityBadge } from "@/components/ui/badge";
+import { useConfirm } from "@/components/ui/confirm";
 import { useT } from "@/lib/i18n/i18n-context";
 
 interface AlertRule {
@@ -76,6 +77,7 @@ const PRESETS = [
 
 export default function AlertRulesPage() {
   const t = useT();
+  const confirm = useConfirm();
   const [rules, setRules] = useState<AlertRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -161,7 +163,14 @@ export default function AlertRulesPage() {
   }
 
   async function deleteRule(id: string) {
-    if (!confirm(t("alerts.confirmDelete"))) return;
+    const ok = await confirm({
+      title: t("common.delete"),
+      message: t("alerts.confirmDelete"),
+      variant: "danger",
+      confirmLabel: t("common.delete"),
+      cancelLabel: t("common.cancel"),
+    });
+    if (!ok) return;
     await fetch(`/api/alert-rules/${id}`, { method: "DELETE" });
     await loadRules();
   }

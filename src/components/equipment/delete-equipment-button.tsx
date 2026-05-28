@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { Trash2 } from "lucide-react";
 
 interface DeleteEquipmentButtonProps {
@@ -15,6 +16,7 @@ export function DeleteEquipmentButton({
   equipmentName,
 }: DeleteEquipmentButtonProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [reason, setReason] = useState("");
@@ -29,14 +31,23 @@ export function DeleteEquipmentButton({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.error || "삭제에 실패했습니다.");
+        toast({
+          type: "error",
+          title: "삭제 실패",
+          message: data.error || "장비를 삭제하지 못했습니다.",
+        });
         setDeleting(false);
         return;
       }
+      toast({ type: "success", title: `${equipmentName} 삭제됨` });
       router.push("/infrastructure");
       router.refresh();
     } catch {
-      alert("서버와 통신 중 오류가 발생했습니다.");
+      toast({
+        type: "error",
+        title: "삭제 실패",
+        message: "서버와 통신 중 오류가 발생했습니다.",
+      });
       setDeleting(false);
     }
   }

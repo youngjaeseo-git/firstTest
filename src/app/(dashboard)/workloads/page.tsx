@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/ui/page-transition";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm";
 import {
   FlaskConical,
   Clock,
@@ -372,6 +373,7 @@ function HistoryCalendarTab({
   onUpdate: () => void;
 }) {
   const { toast } = useToast();
+  const confirm = useConfirm();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -828,11 +830,15 @@ function HistoryCalendarTab({
                       </span>
                       {canDelete && (
                         <button
-                          onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation();
-                            if (confirm(`"${p.title}" 평가를 삭제하시겠습니까?\n관련 결과, 태스크, 메모가 모두 삭제됩니다.`)) {
-                              deleteProject(p.id);
-                            }
+                            const ok = await confirm({
+                              title: "평가 삭제",
+                              message: `"${p.title}" 평가를 삭제하시겠습니까?\n관련 결과, 태스크, 메모가 모두 삭제됩니다.`,
+                              variant: "danger",
+                              confirmLabel: "삭제",
+                            });
+                            if (ok) deleteProject(p.id);
                           }}
                           disabled={deleting === p.id}
                           className="rounded p-1 text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
@@ -903,10 +909,14 @@ function HistoryCalendarTab({
                   </span>
                   {canDelete ? (
                     <button
-                      onClick={() => {
-                        if (confirm(`"${p.title}" 평가를 삭제하시겠습니까?`)) {
-                          deleteProject(p.id);
-                        }
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: "평가 삭제",
+                          message: `"${p.title}" 평가를 삭제하시겠습니까?`,
+                          variant: "danger",
+                          confirmLabel: "삭제",
+                        });
+                        if (ok) deleteProject(p.id);
                       }}
                       disabled={deleting === p.id}
                       className="text-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
@@ -974,6 +984,7 @@ function ProjectPopup({
   onDelete: (id: string) => void;
   deleting: string | null;
 }) {
+  const confirm = useConfirm();
   const [detail, setDetail] = useState<PopupDetail | null>(null);
   const [pods, setPods] = useState<PopupPod[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1082,10 +1093,14 @@ function ProjectPopup({
           <div className="flex items-center gap-2 shrink-0">
             {canDelete && (
               <button
-                onClick={() => {
-                  if (confirm(`"${project.title}" 평가를 삭제하시겠습니까?\n관련 결과, 태스크, 메모가 모두 삭제됩니다.`)) {
-                    onDelete(project.id);
-                  }
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: "평가 삭제",
+                    message: `"${project.title}" 평가를 삭제하시겠습니까?\n관련 결과, 태스크, 메모가 모두 삭제됩니다.`,
+                    variant: "danger",
+                    confirmLabel: "삭제",
+                  });
+                  if (ok) onDelete(project.id);
                 }}
                 disabled={deleting === project.id}
                 className="rounded-lg p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
