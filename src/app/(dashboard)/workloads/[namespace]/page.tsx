@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/ui/page-transition";
 import { useToast } from "@/components/ui/toast";
+import { EmptyState } from "@/components/ui/states";
 import {
   ChevronLeft,
   FlaskConical,
@@ -407,9 +408,7 @@ function PodsTab({ pods, nodes }: { pods: PodInfo[]; nodes: string[] }) {
           <Activity className="h-4 w-4 text-gray-400" /> Pods ({pods.length})
         </h3>
         {pods.length === 0 ? (
-          <p className="text-gray-500 text-sm text-center py-8">
-            이 네임스페이스에 파드가 없습니다.
-          </p>
+          <EmptyState className="py-8" icon={false} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
@@ -630,7 +629,7 @@ function EvaluationTab({
         )}
 
         {project.results.length === 0 ? (
-          <p className="text-gray-500 text-sm text-center py-6">아직 테스트 결과가 없습니다.</p>
+          <EmptyState icon={false} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
@@ -916,7 +915,7 @@ function TasksTab({
       )}
 
       {tasks.length === 0 && !adding ? (
-        <Card><p className="text-gray-500 text-sm text-center py-6">아직 태스크가 없습니다.</p></Card>
+        <Card><EmptyState icon={false} /></Card>
       ) : (
         statusGroups.map((sg) => {
           const groupTasks = tasks.filter((t) => t.status === sg.status);
@@ -1038,7 +1037,7 @@ function NotesTab({
       </Card>
 
       {notes.length === 0 ? (
-        <Card><p className="text-gray-500 text-sm text-center py-6">아직 메모가 없습니다.</p></Card>
+        <Card><EmptyState icon={false} /></Card>
       ) : (
         <div className="space-y-2">
           {notes.map((n) => (
@@ -1070,11 +1069,7 @@ function HistoryTab({ projects }: { projects: Project[] }) {
   if (projects.length === 0) {
     return (
       <Card>
-        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-          <Archive className="h-8 w-8 mb-3 text-gray-600" />
-          <p className="text-sm">완료된 평가 이력이 없습니다.</p>
-          <p className="text-xs text-gray-600 mt-1">평가가 완료되면 여기에 표시됩니다.</p>
-        </div>
+        <EmptyState className="py-12" />
       </Card>
     );
   }

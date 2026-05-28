@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { EmptyState } from "@/components/ui/states";
 import {
   ChevronLeft, FlaskConical, Zap, Calendar, Plus, Trash2,
   CheckCircle2, Circle, AlertTriangle, PlayCircle, Clock,
@@ -328,7 +329,7 @@ function OverviewTab({ project, onUpdate }: { project: Project; onUpdate: () => 
         )}
 
         {project.results.length === 0 ? (
-          <p className="text-gray-500 text-sm">아직 테스트 결과가 없습니다.</p>
+          <EmptyState icon={false} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
@@ -936,7 +937,7 @@ function TasksTab({ projectId, tasks, phases, onUpdate }: {
       )}
 
       {tasks.length === 0 && !adding ? (
-        <Card><p className="text-gray-500 text-sm text-center py-6">아직 태스크가 없습니다.</p></Card>
+        <Card><EmptyState icon={false} /></Card>
       ) : (
         statusGroups.map((sg) => {
           const groupTasks = tasks.filter((t) => t.status === sg.status);
@@ -1029,7 +1030,7 @@ function NotesTab({ projectId, notes, onUpdate }: {
       </Card>
 
       {notes.length === 0 ? (
-        <Card><p className="text-gray-500 text-sm text-center py-6">아직 노트가 없습니다.</p></Card>
+        <Card><EmptyState icon={false} /></Card>
       ) : (
         <div className="space-y-2">
           {notes.map((n) => (

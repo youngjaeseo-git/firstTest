@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/states";
 import { LiveCapacityMetrics } from "@/components/capacity/live-capacity-metrics";
 
 export default async function CapacityPage() {
@@ -220,9 +221,7 @@ export default async function CapacityPage() {
               </div>
             );
           })}
-          {rooms.length === 0 && (
-            <p className="text-sm text-gray-500">Room 데이터가 없습니다.</p>
-          )}
+          {rooms.length === 0 && <EmptyState icon={false} className="py-2" />}
         </div>
       </Card>
 
@@ -296,11 +295,8 @@ export default async function CapacityPage() {
               ))}
               {rackDetails.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-12 text-center text-gray-500"
-                  >
-                    랙 데이터가 없습니다.
+                  <td colSpan={6} className="px-4 py-8">
+                    <EmptyState icon={false} />
                   </td>
                 </tr>
               )}

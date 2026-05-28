@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/ui/page-transition";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm";
+import { EmptyState } from "@/components/ui/states";
 import {
   FlaskConical,
   Clock,
@@ -297,10 +298,7 @@ function ActiveTab({ groups, loading }: { groups: WorkloadGroup[]; loading: bool
   if (groups.length === 0) {
     return (
       <Card>
-        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-          <FlaskConical className="h-8 w-8 mb-3 text-gray-600" />
-          <p className="text-sm">현재 실행 중인 워크로드가 없습니다.</p>
-        </div>
+        <EmptyState className="py-12" />
       </Card>
     );
   }
@@ -780,7 +778,7 @@ function HistoryCalendarTab({
           </h3>
 
           {selectedProjects.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">이 날짜에 평가가 없습니다.</p>
+            <EmptyState className="py-4" icon={false} />
           ) : (
             <div className="space-y-2">
               {selectedProjects.map((p) => {
@@ -873,7 +871,7 @@ function HistoryCalendarTab({
           전체 워크로드 목록 ({mergedProjects.length})
         </h3>
         {mergedProjects.length === 0 ? (
-          <p className="text-sm text-gray-500 text-center py-6">등록된 평가가 없습니다.</p>
+          <EmptyState icon={false} />
         ) : (
           <div className="space-y-1.5">
             {mergedProjects.map((p) => {
