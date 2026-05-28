@@ -474,10 +474,14 @@ export async function getSystemHwInfo(
                 architecture: p.ProcessorArchitecture || p.InstructionSet || null,
               });
             }
-          } catch {}
+          } catch (err) {
+            console.warn("[redfish] failed to parse processor member", err);
+          }
         }
       }
-    } catch {}
+    } catch (err) {
+      console.warn("[redfish] failed to fetch processor collection", err);
+    }
   }
 
   const memories: RedfishMemoryInfo[] = [];
@@ -518,10 +522,14 @@ export async function getSystemHwInfo(
                 voltage: null,
               });
             }
-          } catch {}
+          } catch (err) {
+            console.warn("[redfish] failed to parse memory member", err);
+          }
         }
       }
-    } catch {}
+    } catch (err) {
+      console.warn("[redfish] failed to fetch memory collection", err);
+    }
   }
 
   const networkInterfaces: RedfishNicInfo[] = [];
@@ -556,10 +564,14 @@ export async function getSystemHwInfo(
                 ipv4Address: n.IPv4Addresses?.[0]?.Address || null,
               });
             }
-          } catch {}
+          } catch (err) {
+            console.warn("[redfish] failed to parse network interface member", err);
+          }
         }
       }
-    } catch {}
+    } catch (err) {
+      console.warn("[redfish] failed to fetch network interface collection", err);
+    }
   }
 
   return {
@@ -619,7 +631,9 @@ export async function getSensorsData(
         });
       }
     }
-  } catch {}
+  } catch (err) {
+    console.warn("[redfish] failed to fetch thermal data", err);
+  }
 
   try {
     const powerRes = await bmcRequest<PowerResponse>(
@@ -646,7 +660,9 @@ export async function getSensorsData(
         };
       }
     }
-  } catch {}
+  } catch (err) {
+    console.warn("[redfish] failed to fetch power data", err);
+  }
 
   return { temperatures, fans, powerSupplies, powerControl };
 }

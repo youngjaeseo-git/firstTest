@@ -50,7 +50,9 @@ export default function DiscoveryPage() {
         const data = await res.json();
         setTargets(data.targets || []);
       }
-    } catch {}
+    } catch (err) {
+      console.error("[Discovery] failed to load targets", err);
+    }
   }
 
   async function handleSync() {

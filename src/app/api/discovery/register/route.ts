@@ -135,7 +135,9 @@ export async function POST(req: Request) {
         osImage = metric.os_image || null;
         kernelVersion = metric.kernel_version || null;
       }
-    } catch {}
+    } catch (err) {
+      console.warn("[discovery] kube_node_info enrichment failed", err);
+    }
   }
 
   try {
@@ -145,14 +147,18 @@ export async function POST(req: Request) {
         parseFloat(memResult.data.result[0].value[1]) / (1024 * 1024 * 1024)
       );
     }
-  } catch {}
+  } catch (err) {
+    console.warn("[discovery] machine_memory_bytes enrichment failed", err);
+  }
 
   try {
     const cpuResult = await instantQuery(`max(machine_cpu_cores{${matcher}})`);
     if (cpuResult.data?.result?.[0]?.value?.[1]) {
       cpuCores = parseInt(cpuResult.data.result[0].value[1], 10);
     }
-  } catch {}
+  } catch (err) {
+    console.warn("[discovery] machine_cpu_cores enrichment failed", err);
+  }
 
   let isUp = target.health === "up";
   if (!isUp) {
@@ -163,7 +169,9 @@ export async function POST(req: Request) {
           (r: { value?: [number, string] }) => r.value?.[1] === "1",
         );
       }
-    } catch {}
+    } catch (err) {
+      console.warn("[discovery] up{} status query failed", err);
+    }
   }
 
   // --- Redfish HW info (if BMC reachable) ---

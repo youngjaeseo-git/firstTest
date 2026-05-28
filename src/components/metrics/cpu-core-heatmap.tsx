@@ -68,7 +68,9 @@ export function CpuCoreHeatmap({ instance, hostIp }: { instance: string; hostIp?
           return;
         }
       }
-    } catch {}
+    } catch (err) {
+      console.warn("[CpuCoreHeatmap] per-core query failed, falling back to per-pod", err);
+    }
 
     // Fallback: per-pod CPU
     try {
@@ -91,7 +93,9 @@ export function CpuCoreHeatmap({ instance, hostIp }: { instance: string; hostIp?
         setMode("pods");
         return;
       }
-    } catch {}
+    } catch (err) {
+      console.warn("[CpuCoreHeatmap] per-pod query failed", err);
+    }
 
     setMode("pods");
   }, [instance]);

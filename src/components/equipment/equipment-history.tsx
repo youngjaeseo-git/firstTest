@@ -141,6 +141,7 @@ export function EquipmentHistory({ equipmentId }: { equipmentId: string }) {
   const [formReason, setFormReason] = useState("");
   const [formTicket, setFormTicket] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const loadHistory = () => {
     setLoading(true);
@@ -164,6 +165,7 @@ export function EquipmentHistory({ equipmentId }: { equipmentId: string }) {
   const handleSubmit = async () => {
     if (formReason.trim().length < 3) return;
     setSubmitting(true);
+    setFormError(null);
     try {
       const res = await fetch(`/api/equipment/${equipmentId}/history`, {
         method: "POST",
@@ -179,8 +181,13 @@ export function EquipmentHistory({ equipmentId }: { equipmentId: string }) {
         setFormTicket("");
         setShowForm(false);
         loadHistory();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setFormError(data.error || t("common.serverError"));
       }
-    } catch {}
+    } catch {
+      setFormError(t("common.serverError"));
+    }
     setSubmitting(false);
   };
 
@@ -248,6 +255,9 @@ export function EquipmentHistory({ equipmentId }: { equipmentId: string }) {
               className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-100"
             />
           </div>
+          {formError && (
+            <p className="text-sm text-red-400">{formError}</p>
+          )}
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setShowForm(false)}
