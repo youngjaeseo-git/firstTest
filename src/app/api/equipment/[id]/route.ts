@@ -87,7 +87,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -97,6 +97,14 @@ export async function DELETE(
       { error: "Forbidden — ADMIN 권한 필요" },
       { status: 403 },
     );
+  }
+
+  let reason: string | undefined;
+  try {
+    const body = await req.json();
+    reason = body.reason;
+  } catch {
+    // no body is fine
   }
 
   const equipment = await prisma.equipment.findUnique({
@@ -112,6 +120,7 @@ export async function DELETE(
     entityType: "Equipment",
     entityId: id,
     changes: equipment ? { ...equipment } : undefined,
+    reason,
   });
 
   return NextResponse.json({ success: true });

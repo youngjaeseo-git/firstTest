@@ -15,6 +15,7 @@ import { PowerStateIndicator } from "@/components/metrics/power-state-indicator"
 import { PowerConsoleCard } from "@/components/equipment/power-console-card";
 import { RefreshHwButton } from "@/components/equipment/refresh-hw-button";
 import { EquipmentHistory } from "@/components/equipment/equipment-history";
+import { DeleteEquipmentButton } from "@/components/equipment/delete-equipment-button";
 
 export default async function EquipmentDetailPage({
   params,
@@ -69,9 +70,15 @@ export default async function EquipmentDetailPage({
             <Button variant="outline">Memory 상세</Button>
           </Link>
           {user?.role === "ADMIN" && (
-            <Link href={`/infrastructure/${equipment.id}/edit`}>
-              <Button>편집</Button>
-            </Link>
+            <>
+              <Link href={`/infrastructure/${equipment.id}/edit`}>
+                <Button>편집</Button>
+              </Link>
+              <DeleteEquipmentButton
+                equipmentId={equipment.id}
+                equipmentName={equipment.hostname || equipment.serialNumber || "장비"}
+              />
+            </>
           )}
         </div>
       </div>
