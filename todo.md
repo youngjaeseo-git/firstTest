@@ -52,31 +52,30 @@
 
 ---
 
-## 2. Audit Log 커버리지 확장 (미착수)
+## 2. Audit Log 커버리지 확장 (완료 — 2026-05-28)
 
-현재 `logAudit()`는 구현되어 있지만 **Power Action 경로에만** 호출되고 있습니다.
-일관성을 위해 아래 경로에도 적용 필요:
-- [ ] `POST /api/equipment` (CREATE)
-- [ ] `PUT /api/equipment/[id]` (UPDATE with `diffShallow`)
-- [ ] `DELETE /api/equipment/[id]` (DELETE, reason 필수화 여부 결정 필요)
-- [ ] `POST /api/equipment/bulk-import` (bulk CREATE, 각 row마다 감사로그?)
-- [ ] `PATCH /api/equipment/[id]/status` (STATUS_CHANGE)
-- [ ] `POST /api/equipment/[id]/move` (RACK_MOVE, 아직 엔드포인트 없음)
+`logAudit()` 호출을 주요 장비 API 경로에 모두 적용 완료:
+- [x] `POST /api/equipment` (CREATE)
+- [x] `PUT /api/equipment/[id]` (UPDATE with `diffShallow`)
+- [x] `DELETE /api/equipment/[id]` (DELETE)
+- [x] `PUT /api/equipment/[id]/memory` (UPDATE — 메모리 구성 변경)
+- [x] `PATCH /api/equipment/[id]/status` (STATUS_CHANGE — `logAudit()` 헬퍼로 리팩터링)
 
-**결정 필요**:
-- 대량 등록(bulk-import) 시 감사 로그를 row별로 남길 것인가, 배치로 1건만 남길 것인가?
-- DELETE에서 reason을 필수로 강제할 것인가, optional로 둘 것인가?
+**미적용 (백로그)**:
+- [ ] `POST /api/equipment/bulk-import` (bulk CREATE — row별 vs 배치 결정 필요)
+- [ ] `POST /api/equipment/[id]/move` (RACK_MOVE — 엔드포인트 미구현)
 
 ---
 
-## 3. 글로벌 `/history` 페이지 (미착수)
+## 3. 글로벌 `/history` 페이지 (완료 — 2026-05-28)
 
-장비 상세 페이지의 "변경 이력" 탭만 있고, 전체 시스템 레벨 감사 로그 열람 페이지는 없음.
-
-- [ ] `/history` 사이드바 메뉴 추가 (ADMIN 전용?)
-- [ ] 날짜/유저/액션/엔티티 필터
-- [ ] 날짜별 접기 그룹 (기존 AlertsHistory 패턴 재사용)
-- [ ] CSV 내보내기
+전체 시스템 레벨 감사 로그 열람 페이지 구현 완료:
+- [x] `/history` 사이드바 메뉴 추가 (감사 로그 아이콘)
+- [x] 날짜/유저/액션/엔티티 필터 + 텍스트 검색
+- [x] 날짜별 접기 그룹 (Accordion UI)
+- [x] CSV 내보내기 (ADMIN 전용)
+- [x] 페이지네이션
+- [x] 한/영 다국어 지원
 
 ---
 
