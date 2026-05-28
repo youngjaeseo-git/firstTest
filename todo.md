@@ -99,15 +99,6 @@
 
 ---
 
-## 6. Memory Detail Page (HIGH PRIORITY - CLAUDE.md 명시)
-
-CLAUDE.md에 HIGH PRIORITY로 표기되어 있지만 현재 상태 확인 필요:
-- [ ] `/infrastructure/[id]/memory` 페이지 현황 점검
-- [ ] DIMM 슬롯별 상세, 제조사, 타입, 속도, 채널 다이어그램 완성도 확인
-- [ ] 부족한 부분 백로그화
-
----
-
 ## 7. 기타 미결정 / 백로그
 
 - [ ] **다국어** — 한국어/영어 스위처 있음, 번역 누락된 키 검수 필요
