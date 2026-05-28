@@ -12,6 +12,7 @@ import {
   Legend,
 } from "recharts";
 import { ChartSkeleton } from "@/components/ui/skeleton";
+import { EmptyState, MetricError } from "@/components/ui/states";
 
 interface Series {
   label: string;
@@ -214,26 +215,15 @@ export function MetricChart({
       </div>
 
       {error && data.length === 0 && (
-        <div
-          className="flex flex-col items-center justify-center text-sm text-gray-500"
-          style={{ height }}
-        >
-          <div className="rounded-lg bg-red-500/10 p-3 mb-2">
-            <p className="text-xs text-red-400 font-medium">{error}</p>
-          </div>
-          <p className="text-[11px] text-gray-600">
-            Check Prometheus connectivity
-          </p>
-        </div>
+        <MetricError
+          message={error}
+          hint="Check Prometheus connectivity"
+          height={height}
+        />
       )}
 
       {!loading && !error && data.length === 0 && (
-        <div
-          className="flex items-center justify-center text-sm text-gray-600"
-          style={{ height }}
-        >
-          데이터 없음
-        </div>
+        <EmptyState height={height} icon={false} />
       )}
 
       {data.length > 0 && (

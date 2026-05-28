@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState, MetricError } from "@/components/ui/states";
 import { FlaskConical, Clock, Server, Calendar, Thermometer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { queries } from "@/lib/prometheus";
@@ -146,11 +148,34 @@ export function ActiveWorkloads() {
   const [groups, setGroups] = useState<WorkloadGroup[]>([]);
   const [totalPods, setTotalPods] = useState(0);
   const [totalNodes, setTotalNodes] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const fetchWorkloads = useCallback(async () => {
     const now = Math.floor(Date.now() / 1000);
-    const [podResults, createdResults, phaseResults, waitingResults, nodeTempData] = await Promise.all([
-      fetchInstant(queries.workloadPods()),
+
+    let fetchFailed = false;
+    const podsRaw = await fetch(
+      `/api/metrics/instant?query=${encodeURIComponent(queries.workloadPods())}`,
+    )
+      .then((r) => {
+        if (!r.ok) throw new Error("workload pods query failed");
+        return r.json();
+      })
+      .catch(() => {
+        fetchFailed = true;
+        return null;
+      });
+
+    if (fetchFailed) {
+      setError(true);
+      setLoading(false);
+      return;
+    }
+
+    const podResults: { metric: Record<string, string>; value?: [number, string] }[] =
+      podsRaw?.data?.result ?? [];
+    const [createdResults, phaseResults, waitingResults, nodeTempData] = await Promise.all([
       fetchInstant(queries.workloadPodCreated()),
       fetchInstant(queries.workloadPodPhase()),
       fetchInstant(queries.workloadPodWaitingReason()),
@@ -221,6 +246,8 @@ export function ActiveWorkloads() {
     setGroups(sorted);
     setTotalPods(podResults.length);
     setTotalNodes(allNodes.size);
+    setError(false);
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -250,10 +277,16 @@ export function ActiveWorkloads() {
           </div>
         </div>
 
-        {groups.length === 0 ? (
-          <div className="flex items-center justify-center py-8">
-            <p className="text-sm text-gray-600">No active workloads</p>
+        {loading && groups.length === 0 ? (
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
           </div>
+        ) : error && groups.length === 0 ? (
+          <MetricError hint="Check Prometheus connectivity" />
+        ) : groups.length === 0 ? (
+          <EmptyState />
         ) : (
           <div className="space-y-3">
             {groups.map((g) => {
