@@ -5,18 +5,30 @@ import { instantQuery } from "@/lib/prometheus";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const [equipments, tempResult] = await Promise.all([
+  const [equipments, tempResult, unameResult] = await Promise.all([
     prisma.equipment.findMany({
       where: { hostname: { not: null }, ipAddress: { not: null } },
       select: { hostname: true, ipAddress: true },
     }),
     instantQuery(`avg by (instance) (node_hwmon_temp_celsius)`),
+    instantQuery(`node_uname_info`),
   ]);
 
   const ipToHostname: Record<string, string> = {};
+
   for (const eq of equipments) {
     if (eq.ipAddress && eq.hostname) {
       ipToHostname[eq.ipAddress] = eq.hostname;
+    }
+  }
+
+  for (const r of unameResult.data?.result ?? []) {
+    const instance = r.metric?.instance || "";
+    const nodename = r.metric?.nodename || "";
+    if (!instance || !nodename) continue;
+    const ip = instance.replace(/:.*/, "");
+    if (!ipToHostname[ip]) {
+      ipToHostname[ip] = nodename;
     }
   }
 
