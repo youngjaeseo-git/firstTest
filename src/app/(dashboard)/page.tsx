@@ -4,9 +4,18 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { DashboardSummaryCards } from "@/components/dashboard/summary-cards";
 import { DashboardClusterView } from "@/components/dashboard/dashboard-cluster-view";
 import { PageTransition } from "@/components/ui/page-transition";
+import {
+  LayoutDashboard,
+  ListChecks,
+  Bell,
+  Server,
+  Building2,
+  Radar,
+} from "lucide-react";
 
 export default async function DashboardPage() {
   const lab1Where = { ipAddress: { startsWith: "10.144.38." } };
@@ -129,11 +138,16 @@ export default async function DashboardPage() {
     <PageTransition>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Infrastructure overview and live metrics
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/5 p-2.5 ring-1 ring-blue-500/20">
+            <LayoutDashboard className="h-6 w-6 text-blue-400" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+            <p className="mt-0.5 text-sm text-gray-500">
+              Infrastructure overview and live metrics
+            </p>
+          </div>
         </div>
 
         {/* Prometheus Live Metrics + Fleet Overview (with Lab filter) */}
@@ -170,9 +184,7 @@ export default async function DashboardPage() {
 
         {/* Status Breakdown Card */}
         <Card>
-          <h3 className="mb-3 text-sm font-semibold text-gray-400 uppercase tracking-wider">
-            Status Breakdown
-          </h3>
+          <SectionHeading icon={ListChecks} title="Status Breakdown" accent="cyan" className="mb-3" />
           <div className="flex flex-wrap gap-2">
             {statusBreakdown.map((s) => (
               <div
@@ -204,39 +216,48 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <Card>
-              <h2 className="mb-4 text-base font-semibold">Quick Links</h2>
+              <SectionHeading icon={LayoutDashboard} title="Quick Links" accent="blue" />
               <div className="grid grid-cols-2 gap-3">
                 {[
                   {
                     href: "/servers",
                     title: "Servers",
                     desc: "Server monitoring & Digital Twin",
+                    icon: Server,
                   },
                   {
                     href: "/infrastructure",
                     title: "Infrastructure",
                     desc: "Equipment management",
+                    icon: Building2,
                   },
                   {
                     href: "/alerts",
                     title: "Alerts",
                     desc: "Alert management & history",
+                    icon: Bell,
                   },
                   {
                     href: "/settings/discovery",
                     title: "Discovery",
                     desc: "Prometheus target sync",
+                    icon: Radar,
                   },
                 ].map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="group rounded-xl border border-gray-700/50 p-4 transition-all duration-200 hover:border-blue-500/40 hover:bg-blue-600/5 hover:shadow-lg hover:shadow-blue-600/5"
+                    className="group flex items-start gap-3 rounded-xl border border-gray-700/50 p-4 transition-all duration-200 hover:border-blue-500/40 hover:bg-blue-600/5 hover:shadow-lg hover:shadow-blue-600/5"
                   >
-                    <p className="font-medium text-gray-200 group-hover:text-blue-300 transition-colors">
-                      {link.title}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">{link.desc}</p>
+                    <div className="rounded-lg bg-gray-800/60 p-2 transition-colors group-hover:bg-blue-500/15">
+                      <link.icon className="h-4 w-4 text-gray-400 transition-colors group-hover:text-blue-300" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-200 transition-colors group-hover:text-blue-300">
+                        {link.title}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">{link.desc}</p>
+                    </div>
                   </Link>
                 ))}
               </div>
@@ -246,14 +267,18 @@ export default async function DashboardPage() {
           {/* Recent Alerts Feed */}
           <div>
             <Card>
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-base font-semibold">Active Alerts</h2>
-                {firingAlerts > 0 && (
-                  <span className="rounded-full bg-red-500/15 px-2.5 py-0.5 text-xs font-medium text-red-400 animate-glow-pulse">
-                    {firingAlerts} active
-                  </span>
-                )}
-              </div>
+              <SectionHeading
+                icon={Bell}
+                title="Active Alerts"
+                accent={firingAlerts > 0 ? "red" : "green"}
+                right={
+                  firingAlerts > 0 ? (
+                    <span className="rounded-full bg-red-500/15 px-2.5 py-0.5 text-xs font-medium text-red-400 animate-glow-pulse">
+                      {firingAlerts} active
+                    </span>
+                  ) : undefined
+                }
+              />
               {recentAlerts.length === 0 ? (
                 <div className="rounded-lg bg-green-500/5 border border-green-500/10 px-4 py-6 text-center">
                   <p className="text-sm text-green-400 font-medium">All clear</p>

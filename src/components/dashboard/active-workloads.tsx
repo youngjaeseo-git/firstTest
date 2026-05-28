@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, MetricError } from "@/components/ui/states";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { FlaskConical, Clock, Server, Calendar, Thermometer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { queries } from "@/lib/prometheus";
@@ -259,23 +260,25 @@ export function ActiveWorkloads() {
   return (
     <motion.div variants={cardVariants} initial="hidden" animate="visible">
       <Card>
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-violet-500/15 p-1.5">
-              <FlaskConical className="h-4 w-4 text-violet-400" />
+        <SectionHeading
+          icon={FlaskConical}
+          accent="violet"
+          title={
+            <>
+              Active Workloads{" "}
+              <span className="font-normal normal-case text-gray-500">(Namespace)</span>
+            </>
+          }
+          right={
+            <div className="flex items-center gap-3 text-xs text-gray-500">
+              <span className="flex items-center gap-1">
+                <Server className="h-3 w-3" />
+                {totalNodes} node{totalNodes !== 1 ? "s" : ""}
+              </span>
+              <span>{totalPods} pod{totalPods !== 1 ? "s" : ""}</span>
             </div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300">
-              Active Workloads <span className="font-normal normal-case text-gray-500">(Namespace)</span>
-            </h3>
-          </div>
-          <div className="flex items-center gap-3 text-xs text-gray-500">
-            <span className="flex items-center gap-1">
-              <Server className="h-3 w-3" />
-              {totalNodes} node{totalNodes !== 1 ? "s" : ""}
-            </span>
-            <span>{totalPods} pod{totalPods !== 1 ? "s" : ""}</span>
-          </div>
-        </div>
+          }
+        />
 
         {loading && groups.length === 0 ? (
           <div className="space-y-2">
