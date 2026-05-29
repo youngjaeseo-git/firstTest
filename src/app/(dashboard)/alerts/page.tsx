@@ -4,8 +4,10 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { AlertsPageClient } from "@/components/alerts/alerts-page-client";
 import { PageTransition } from "@/components/ui/page-transition";
+import { Bell } from "lucide-react";
 
 export default async function AlertsPage() {
   const alerts = await prisma.alert.findMany({
@@ -17,20 +19,20 @@ export default async function AlertsPage() {
   return (
     <PageTransition>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Alerts</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Alert management and history
-            </p>
-          </div>
-          <Link
-            href="/alerts/rules"
-            className="rounded-lg border border-gray-700/60 bg-gray-800/60 px-4 py-2 text-sm font-medium text-gray-200 hover:border-blue-500/50 hover:text-blue-300 transition-all"
-          >
-            Manage Rules
-          </Link>
-        </div>
+        <PageHeader
+          icon={Bell}
+          title="Alerts"
+          subtitle="Alert management and history"
+          accent="red"
+          right={
+            <Link
+              href="/alerts/rules"
+              className="rounded-lg border border-gray-700/60 bg-gray-800/60 px-4 py-2 text-sm font-medium text-gray-200 hover:border-blue-500/50 hover:text-blue-300 transition-all"
+            >
+              Manage Rules
+            </Link>
+          }
+        />
 
         <Suspense
           fallback={<Card className="p-8 text-center text-gray-500">Loading...</Card>}

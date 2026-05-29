@@ -5,9 +5,11 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/i18n-context";
 import {
+  Layers,
   HardDrive,
   Building2,
   Server,
@@ -339,12 +341,12 @@ export function RacksPageClient({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("nav.racks")}</h1>
-        <p className="text-sm text-gray-400">
-          {t("rack.title")} - {t("common.total")} {totalRacks}
-        </p>
-      </div>
+      <PageHeader
+        icon={Layers}
+        title={t("nav.racks")}
+        subtitle={`${t("rack.title")} - ${t("common.total")} ${totalRacks}`}
+        accent="purple"
+      />
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

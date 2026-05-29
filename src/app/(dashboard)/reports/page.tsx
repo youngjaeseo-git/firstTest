@@ -3,7 +3,9 @@ export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge, SeverityBadge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
 import { ReportActions } from "@/components/reports/report-actions";
+import { FileText } from "lucide-react";
 
 export default async function ReportsPage() {
   const now = new Date();
@@ -118,20 +120,20 @@ export default async function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Reports</h1>
-          <p className="text-sm text-gray-400">
-            인프라 현황 및 알림 통계 리포트 · 생성시각 {reportDate}
-          </p>
-        </div>
-        <ReportActions
-          equipmentData={equipmentData}
-          reportDate={reportDate}
-          periodStart={periodStart}
-          periodEnd={periodEnd}
-        />
-      </div>
+      <PageHeader
+        icon={FileText}
+        title="Reports"
+        subtitle={`인프라 현황 및 알림 통계 리포트 · 생성시각 ${reportDate}`}
+        accent="blue"
+        right={
+          <ReportActions
+            equipmentData={equipmentData}
+            reportDate={reportDate}
+            periodStart={periodStart}
+            periodEnd={periodEnd}
+          />
+        }
+      />
 
       {/* Printable report */}
       <div id="report-content" className="space-y-6">

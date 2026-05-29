@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
 import { Search, Filter, X, ChevronDown, ChevronUp } from "lucide-react";
 
 interface Facet {
@@ -112,12 +113,12 @@ export default function SearchPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold">Inventory Search</h1>
-        <p className="mt-1 text-sm text-gray-400">
-          장비, CPU, 메모리, 펌웨어를 통합 검색합니다.
-        </p>
-      </div>
+      <PageHeader
+        icon={Search}
+        title="Inventory Search"
+        subtitle="장비, CPU, 메모리, 펌웨어를 통합 검색합니다."
+        accent="gray"
+      />
 
       {/* Search bar */}
       <form onSubmit={handleSearch} className="flex gap-2">

@@ -4,7 +4,9 @@ import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/states";
+import { PageHeader } from "@/components/ui/page-header";
 import { LiveCapacityMetrics } from "@/components/capacity/live-capacity-metrics";
+import { BarChart3 } from "lucide-react";
 
 export default async function CapacityPage() {
   const [rooms, equipment] = await Promise.all([
@@ -123,12 +125,12 @@ export default async function CapacityPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Capacity Planning</h1>
-        <p className="text-sm text-gray-400">
-          전력 / 공간 / 냉각 / 컴퓨팅 용량 현황
-        </p>
-      </div>
+      <PageHeader
+        icon={BarChart3}
+        title="Capacity Planning"
+        subtitle="전력 / 공간 / 냉각 / 컴퓨팅 용량 현황"
+        accent="amber"
+      />
 
       {/* Live Prometheus metrics */}
       <LiveCapacityMetrics />

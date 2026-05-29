@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
-import { List, Building2, Search, GitCompareArrows, ArrowUpDown } from "lucide-react";
+import { List, Building2, Search, Server, GitCompareArrows, ArrowUpDown } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
 import { queries } from "@/lib/prometheus";
 
@@ -224,53 +225,57 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{t("servers.title")}</h1>
-          <p className="text-sm text-gray-400">
+      <PageHeader
+        icon={Server}
+        title={t("servers.title")}
+        subtitle={
+          <>
             {filteredServers.length}
             {query && ` / ${servers.length}`} {t("servers.count")}
-          </p>
-          {Object.keys(powerStates).length > 0 && (
-            <div className="flex items-center gap-3 mt-1">
-              <span className="flex items-center gap-1 text-xs text-green-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
-                {Object.values(powerStates).filter((s) => s === "running").length} Running
+            {Object.keys(powerStates).length > 0 && (
+              <span className="ml-3 inline-flex items-center gap-3">
+                <span className="inline-flex items-center gap-1 text-green-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                  {Object.values(powerStates).filter((s) => s === "running").length} Running
+                </span>
+                <span className="inline-flex items-center gap-1 text-yellow-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
+                  {Object.values(powerStates).filter((s) => s === "idle").length} Idle
+                </span>
+                <span className="inline-flex items-center gap-1 text-gray-500">
+                  <span className="h-1.5 w-1.5 rounded-full bg-gray-500" />
+                  {Object.values(powerStates).filter((s) => s === "off").length} OFF
+                </span>
               </span>
-              <span className="flex items-center gap-1 text-xs text-yellow-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
-                {Object.values(powerStates).filter((s) => s === "idle").length} Idle
-              </span>
-              <span className="flex items-center gap-1 text-xs text-gray-500">
-                <span className="h-1.5 w-1.5 rounded-full bg-gray-500" />
-                {Object.values(powerStates).filter((s) => s === "off").length} OFF
-              </span>
+            )}
+          </>
+        }
+        accent="green"
+        right={
+          <div className="flex items-center gap-3">
+            <Link href="/servers/compare">
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <GitCompareArrows className="h-4 w-4" />
+                {t("servers.compare")}
+              </Button>
+            </Link>
+            <div className="flex rounded-lg border border-gray-700 bg-gray-800 p-1">
+              <button
+                onClick={() => { setView("list"); setSelectedRoom(null); setSelectedRack(null); }}
+                className={cn("flex items-center gap-2 rounded-md px-3 py-1.5 text-sm", view === "list" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-200")}
+              >
+                <List className="h-4 w-4" /> {t("servers.list")}
+              </button>
+              <button
+                onClick={() => { setView("twin"); setSelectedRoom(null); setSelectedRack(null); }}
+                className={cn("flex items-center gap-2 rounded-md px-3 py-1.5 text-sm", view === "twin" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-200")}
+              >
+                <Building2 className="h-4 w-4" /> {t("servers.twin")}
+              </button>
             </div>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/servers/compare">
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
-              <GitCompareArrows className="h-4 w-4" />
-              {t("servers.compare")}
-            </Button>
-          </Link>
-          <div className="flex rounded-lg border border-gray-700 bg-gray-800 p-1">
-          <button
-            onClick={() => { setView("list"); setSelectedRoom(null); setSelectedRack(null); }}
-            className={cn("flex items-center gap-2 rounded-md px-3 py-1.5 text-sm", view === "list" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-200")}
-          >
-            <List className="h-4 w-4" /> {t("servers.list")}
-          </button>
-          <button
-            onClick={() => { setView("twin"); setSelectedRoom(null); setSelectedRack(null); }}
-            className={cn("flex items-center gap-2 rounded-md px-3 py-1.5 text-sm", view === "twin" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-200")}
-          >
-            <Building2 className="h-4 w-4" /> {t("servers.twin")}
-          </button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {view === "list" ? (
         /* LIST VIEW */

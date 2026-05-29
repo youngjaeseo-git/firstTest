@@ -8,6 +8,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { DashboardSummaryCards } from "@/components/dashboard/summary-cards";
 import { DashboardClusterView } from "@/components/dashboard/dashboard-cluster-view";
 import { PageTransition } from "@/components/ui/page-transition";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   LayoutDashboard,
   ListChecks,
@@ -137,18 +138,12 @@ export default async function DashboardPage() {
   return (
     <PageTransition>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/5 p-2.5 ring-1 ring-blue-500/20">
-            <LayoutDashboard className="h-6 w-6 text-blue-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-            <p className="mt-0.5 text-sm text-gray-500">
-              Infrastructure overview and live metrics
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={LayoutDashboard}
+          title="Dashboard"
+          subtitle="Infrastructure overview and live metrics"
+          accent="blue"
+        />
 
         {/* Prometheus Live Metrics + Fleet Overview (with Lab filter) */}
         <DashboardClusterView

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/i18n-context";
 import {
@@ -207,28 +208,21 @@ export default function AuditHistoryPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-indigo-500/15 p-2">
-            <History className="h-5 w-5 text-indigo-400" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-100">
-              {isKo ? "감사 로그" : "Audit History"}
-            </h1>
-            <p className="text-xs text-gray-500">
-              {isKo ? "시스템 전체 변경 이력" : "System-wide change history"}
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={handleExportCsv}
-          className="flex items-center gap-1.5 rounded-lg bg-gray-800 px-3 py-2 text-xs text-gray-300 hover:bg-gray-700 transition-colors"
-        >
-          <Download className="h-3.5 w-3.5" />
-          {isKo ? "CSV 내보내기" : "Export CSV"}
-        </button>
-      </div>
+      <PageHeader
+        icon={History}
+        title={isKo ? "감사 로그" : "Audit History"}
+        subtitle={isKo ? "시스템 전체 변경 이력" : "System-wide change history"}
+        accent="gray"
+        right={
+          <button
+            onClick={handleExportCsv}
+            className="flex items-center gap-1.5 rounded-lg bg-gray-800 px-3 py-2 text-xs text-gray-300 hover:bg-gray-700 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            {isKo ? "CSV 내보내기" : "Export CSV"}
+          </button>
+        }
+      />
 
       {/* Filters */}
       <Card className="space-y-3">

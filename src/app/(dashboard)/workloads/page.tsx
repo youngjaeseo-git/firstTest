@@ -5,9 +5,11 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/ui/page-transition";
+import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm";
 import { EmptyState } from "@/components/ui/states";
+import { Boxes } from "lucide-react";
 import {
   FlaskConical,
   Clock,
@@ -245,12 +247,12 @@ export default function WorkloadsPage() {
   return (
     <PageTransition>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Workloads</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            평가 워크로드 현황 및 이력 관리
-          </p>
-        </div>
+        <PageHeader
+          icon={Boxes}
+          title="Workloads"
+          subtitle="평가 워크로드 현황 및 이력 관리"
+          accent="violet"
+        />
 
         <div className="flex gap-1 border-b border-gray-800">
           {(["active", "history"] as TabKey[]).map((t) => (

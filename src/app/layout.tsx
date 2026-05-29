@@ -32,7 +32,7 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "DCIM Management",
+  title: "DC Express",
   description: "Data Center Infrastructure Management System",
 };
 

@@ -5,8 +5,10 @@ import { prisma } from "@/lib/db";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { getSessionUser } from "@/lib/rbac";
 import { PageTransition } from "@/components/ui/page-transition";
+import { Building2 } from "lucide-react";
 
 export default async function InfrastructurePage() {
   const user = await getSessionUser();
@@ -30,29 +32,29 @@ export default async function InfrastructurePage() {
   return (
     <PageTransition>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Infrastructure</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Equipment management — {equipment.length} total
-            </p>
-          </div>
-          {(user?.role === "ADMIN" || user?.role === "OPERATOR") && (
-            <div className="flex gap-2">
-              <Link href="/infrastructure/import">
-                <Button variant="outline">
-                  <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  Bulk Import
-                </Button>
-              </Link>
-              <Link href="/infrastructure/new">
-                <Button>+ Add Equipment</Button>
-              </Link>
-            </div>
-          )}
-        </div>
+        <PageHeader
+          icon={Building2}
+          title="Infrastructure"
+          subtitle={`Equipment management — ${equipment.length} total`}
+          accent="purple"
+          right={
+            (user?.role === "ADMIN" || user?.role === "OPERATOR") ? (
+              <div className="flex gap-2">
+                <Link href="/infrastructure/import">
+                  <Button variant="outline">
+                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    Bulk Import
+                  </Button>
+                </Link>
+                <Link href="/infrastructure/new">
+                  <Button>+ Add Equipment</Button>
+                </Link>
+              </div>
+            ) : undefined
+          }
+        />
 
         {/* Status summary */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">

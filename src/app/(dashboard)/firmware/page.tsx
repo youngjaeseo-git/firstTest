@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
-import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Cpu } from "lucide-react";
 
 interface FirmwareEquipment {
   id: string;
@@ -88,12 +89,12 @@ export default function FirmwarePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Firmware Management</h1>
-        <p className="mt-1 text-sm text-gray-400">
-          서버 모델별 BIOS/펌웨어 버전을 비교하고 오래된 버전을 식별합니다.
-        </p>
-      </div>
+      <PageHeader
+        icon={Cpu}
+        title="Firmware Management"
+        subtitle="서버 모델별 BIOS/펌웨어 버전을 비교하고 오래된 버전을 식별합니다."
+        accent="amber"
+      />
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

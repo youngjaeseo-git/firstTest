@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useT } from "@/lib/i18n/i18n-context";
+import { PageHeader } from "@/components/ui/page-header";
 import { ChevronDown, ChevronRight, Server, MemoryStick } from "lucide-react";
 
 interface MemorySlot {
@@ -117,15 +118,12 @@ export function MemoryInventoryClient({ servers }: Props) {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-100">
-          {t("memoryInv.title")}
-        </h1>
-        <p className="mt-1 text-sm text-gray-400">
-          {t("memoryInv.description")}
-        </p>
-      </div>
+      <PageHeader
+        icon={MemoryStick}
+        title={t("memoryInv.title")}
+        subtitle={t("memoryInv.description")}
+        accent="cyan"
+      />
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
