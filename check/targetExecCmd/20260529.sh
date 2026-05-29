@@ -1,7 +1,23 @@
 #!/bin/bash
-# 2026-05-29: hostname ↔ IP 전체 매핑 추출
-# node_uname_info에서 nodename(호스트네임)과 instance(IP:port)를 매핑
+# 2026-05-29: hostname ↔ IP 매핑 + DaemonSet/IPMI 구조 확인
 PROM="http://10.144.38.100:30003"
+
+echo "=== 0. monitoring 네임스페이스 DaemonSet 목록 ==="
+kubectl get daemonset -n monitoring -o wide 2>/dev/null || echo "kubectl 실패"
+
+echo ""
+echo "=== 0-1. IPMI 관련 Pod/DaemonSet 확인 ==="
+kubectl get pods -A 2>/dev/null | grep -i ipmi | head -5
+echo "---"
+kubectl get daemonset -A 2>/dev/null | grep -i ipmi | head -5
+
+echo ""
+echo "=== 0-2. node-exporter DaemonSet 상태 ==="
+kubectl get pods -n monitoring -l app=node-exporter --no-headers 2>/dev/null | awk '{print $3}' | sort | uniq -c | sort -rn
+
+echo ""
+echo "=== 0-3. Prometheus ConfigMap job 목록 (job_name만) ==="
+kubectl get configmap prometheus-server-conf -n monitoring -o jsonpath='{.data.prometheus\.yml}' 2>/dev/null | grep "job_name" | head -20
 
 echo "=== 1. node_uname_info hostname-IP 매핑 ==="
 curl -s "$PROM/api/v1/query?query=node_uname_info" | \
