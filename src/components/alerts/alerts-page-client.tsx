@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SeverityBadge, Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
@@ -10,8 +11,15 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
-import { X } from "lucide-react";
+import { X, Check, CheckCheck } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
+import { useToast } from "@/components/ui/toast";
+
+interface AckInfo {
+  ackedAt: string;
+  note: string | null;
+  user: { name: string | null; email: string } | null;
+}
 
 interface AlertRow {
   id: string;
@@ -22,17 +30,47 @@ interface AlertRow {
   details: string | null;
   source: string | null;
   firedAt: string;
+  acknowledgement?: AckInfo[];
 }
 
 interface AlertsPageClientProps {
   alerts: AlertRow[];
+  canAcknowledge?: boolean;
 }
 
-export function AlertsPageClient({ alerts }: AlertsPageClientProps) {
+export function AlertsPageClient({ alerts, canAcknowledge = false }: AlertsPageClientProps) {
   const t = useT();
+  const router = useRouter();
+  const { toast } = useToast();
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [severityFilter, setSeverityFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<string | null>(null);
+
+  async function handleAck(alertId: string, action: "acknowledge" | "resolve") {
+    setProcessing(alertId);
+    try {
+      const res = await fetch(`/api/alerts/${alertId}/ack`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast({ type: "error", title: t("ack.failed"), message: body.error });
+        return;
+      }
+      toast({
+        type: "success",
+        title: action === "acknowledge" ? t("ack.acknowledged") : t("ack.resolved"),
+      });
+      router.refresh();
+    } catch {
+      toast({ type: "error", title: t("common.serverError") });
+    } finally {
+      setProcessing(null);
+    }
+  }
 
   // Category counts (computed from all alerts, not filtered)
   const OTHER_LABEL = t("alerts.categoryOther");
@@ -217,7 +255,7 @@ export function AlertsPageClient({ alerts }: AlertsPageClientProps) {
                             {alert.details}
                           </p>
                         )}
-                        <div className="mt-1 flex gap-3 text-xs text-gray-500">
+                        <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-500">
                           {alert.source && <span>Source: {alert.source}</span>}
                           {alert.category && (
                             <button
@@ -230,19 +268,51 @@ export function AlertsPageClient({ alerts }: AlertsPageClientProps) {
                           <span>
                             {new Date(alert.firedAt).toLocaleTimeString()}
                           </span>
+                          {alert.acknowledgement && alert.acknowledgement.length > 0 && (
+                            <span className="text-amber-500/80">
+                              {t("ack.acknowledgedBy")}:{" "}
+                              {alert.acknowledgement[0].user?.name ||
+                                alert.acknowledgement[0].user?.email ||
+                                "?"}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <Badge
-                        variant={
-                          alert.status === "FIRING"
-                            ? "critical"
-                            : alert.status === "ACKNOWLEDGED"
-                              ? "warning"
-                              : "active"
-                        }
-                      >
-                        {alert.status}
-                      </Badge>
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <Badge
+                          variant={
+                            alert.status === "FIRING"
+                              ? "critical"
+                              : alert.status === "ACKNOWLEDGED"
+                                ? "warning"
+                                : "active"
+                          }
+                        >
+                          {alert.status}
+                        </Badge>
+                        {canAcknowledge && alert.status !== "RESOLVED" && (
+                          <div className="flex gap-1">
+                            {alert.status === "FIRING" && (
+                              <button
+                                onClick={() => handleAck(alert.id, "acknowledge")}
+                                disabled={processing === alert.id}
+                                className="flex items-center gap-1 rounded border border-amber-600/40 bg-amber-600/10 px-2 py-1 text-xs text-amber-300 hover:bg-amber-600/20 disabled:opacity-50"
+                              >
+                                <Check className="h-3 w-3" />
+                                {t("ack.acknowledge")}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleAck(alert.id, "resolve")}
+                              disabled={processing === alert.id}
+                              className="flex items-center gap-1 rounded border border-green-600/40 bg-green-600/10 px-2 py-1 text-xs text-green-300 hover:bg-green-600/20 disabled:opacity-50"
+                            >
+                              <CheckCheck className="h-3 w-3" />
+                              {t("ack.resolve")}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

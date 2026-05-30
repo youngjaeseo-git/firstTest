@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { Suspense } from "react";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { getSessionUser, canAcknowledgeAlert } from "@/lib/rbac";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { AlertsPageClient } from "@/components/alerts/alerts-page-client";
@@ -10,8 +11,11 @@ import { PageTransition } from "@/components/ui/page-transition";
 import { Bell } from "lucide-react";
 
 export default async function AlertsPage() {
+  const user = await getSessionUser();
+  const canAck = user ? canAcknowledgeAlert(user.role) : false;
+
   const alerts = await prisma.alert.findMany({
-    include: { rule: true, acknowledgement: { include: { user: true } } },
+    include: { rule: true, acknowledgement: { include: { user: { select: { name: true, email: true } } } } },
     orderBy: { firedAt: "desc" },
     take: 500,
   });
@@ -39,6 +43,7 @@ export default async function AlertsPage() {
         >
           <AlertsPageClient
             alerts={JSON.parse(JSON.stringify(alerts))}
+            canAcknowledge={canAck}
           />
         </Suspense>
       </div>

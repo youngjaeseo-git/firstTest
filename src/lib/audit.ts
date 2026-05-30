@@ -26,7 +26,8 @@ export type AuditEntityType =
   | "Room"
   | "DataCenter"
   | "User"
-  | "AlertRule";
+  | "AlertRule"
+  | "Alert";
 
 export interface AuditLogInput {
   userId: string;

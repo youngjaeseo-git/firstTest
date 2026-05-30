@@ -283,6 +283,14 @@ export const translations: Record<Language, Record<string, string>> = {
     "alerts.resolved": "Resolved",
     "alerts.acknowledged": "Acknowledged",
 
+    // ── Alert Acknowledge ──
+    "ack.acknowledge": "Acknowledge",
+    "ack.resolve": "Resolve",
+    "ack.acknowledged": "Alert acknowledged",
+    "ack.resolved": "Alert resolved",
+    "ack.acknowledgedBy": "Ack by",
+    "ack.failed": "Action failed",
+
     // ── Capacity ──
     "capacity.title": "Capacity Planning",
     "capacity.totalEquipment": "Total Equipment",
@@ -758,6 +766,14 @@ export const translations: Record<Language, Record<string, string>> = {
     "alerts.firing": "발생 중",
     "alerts.resolved": "해결됨",
     "alerts.acknowledged": "확인됨",
+
+    // ── Alert Acknowledge ──
+    "ack.acknowledge": "확인",
+    "ack.resolve": "해결",
+    "ack.acknowledged": "알림을 확인 처리했습니다",
+    "ack.resolved": "알림을 해결 처리했습니다",
+    "ack.acknowledgedBy": "확인자",
+    "ack.failed": "처리 실패",
 
     // ── Capacity ──
     "capacity.title": "용량 관리",
