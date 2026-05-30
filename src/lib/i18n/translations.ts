@@ -462,6 +462,24 @@ export const translations: Record<Language, Record<string, string>> = {
     "twin.noRoomData": "No room data.",
     "twin.clickToDetail": "Click to view details →",
 
+    // ── Prometheus Diagnostic ──
+    "diagnostic.title": "Prometheus Diagnostic",
+    "diagnostic.subtitle": "Detect configuration issues: IP-only targets, duplicate scraping, orphaned entries",
+    "diagnostic.ipOnly": "IP-Only Targets",
+    "diagnostic.ipOnlyDesc": "Targets identified only by IP address without a hostname label. Consider adding 'nodename' label in Prometheus static_configs.",
+    "diagnostic.duplicate": "Duplicate Scrapes",
+    "diagnostic.duplicateDesc": "Same IP being scraped by multiple jobs. This wastes resources and may cause metric conflicts.",
+    "diagnostic.promOrphan": "Prometheus Orphans",
+    "diagnostic.promOrphanDesc": "Targets active in Prometheus but not registered as equipment in DC Express.",
+    "diagnostic.dbOrphan": "DB Orphans",
+    "diagnostic.dbOrphanDesc": "Equipment registered in DC Express but not found in Prometheus live targets.",
+    "diagnostic.allClear": "All clear — no issues detected",
+    "diagnostic.recheck": "Re-check",
+    "diagnostic.checkedAt": "Checked at",
+    "diagnostic.liveTargets": "Live Targets",
+    "diagnostic.equipment": "Equipment",
+    "diagnostic.fetchError": "Failed to connect to Prometheus. Check the server configuration.",
+
     // ── Status labels ──
     "status.active": "Active",
     "status.maintenance": "Maintenance",
@@ -919,6 +937,24 @@ export const translations: Record<Language, Record<string, string>> = {
     "twin.clickToFloorPlan": "클릭하여 Room Floor Plan 보기 →",
     "twin.noRoomData": "Room 데이터가 없습니다.",
     "twin.clickToDetail": "클릭하여 상세보기 →",
+
+    // ── Prometheus Diagnostic ──
+    "diagnostic.title": "Prometheus 진단",
+    "diagnostic.subtitle": "설정 문제 감지: IP 전용 타겟, 중복 스크래핑, 고아 항목",
+    "diagnostic.ipOnly": "IP 전용 타겟",
+    "diagnostic.ipOnlyDesc": "호스트명 라벨 없이 IP 주소로만 식별되는 타겟입니다. Prometheus static_configs에 'nodename' 라벨 추가를 권장합니다.",
+    "diagnostic.duplicate": "중복 스크래핑",
+    "diagnostic.duplicateDesc": "동일 IP가 여러 Job에서 스크래핑되고 있습니다. 리소스 낭비와 메트릭 충돌을 유발할 수 있습니다.",
+    "diagnostic.promOrphan": "Prometheus 고아",
+    "diagnostic.promOrphanDesc": "Prometheus에는 활성 상태이나 DC Express에 장비로 등록되지 않은 타겟입니다.",
+    "diagnostic.dbOrphan": "DB 고아",
+    "diagnostic.dbOrphanDesc": "DC Express에 등록된 장비이나 Prometheus 라이브 타겟에서 발견되지 않는 항목입니다.",
+    "diagnostic.allClear": "이상 없음 — 문제가 감지되지 않았습니다",
+    "diagnostic.recheck": "재검사",
+    "diagnostic.checkedAt": "검사 시각",
+    "diagnostic.liveTargets": "라이브 타겟",
+    "diagnostic.equipment": "장비",
+    "diagnostic.fetchError": "Prometheus 연결 실패. 서버 설정을 확인하세요.",
 
     // ── Status labels ──
     "status.active": "운영중",

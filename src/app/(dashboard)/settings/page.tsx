@@ -8,6 +8,7 @@ import {
   Radar,
   Bell,
   Cpu,
+  Stethoscope,
   Settings as SettingsIcon,
 } from "lucide-react";
 
@@ -36,6 +37,13 @@ export default async function SettingsPage() {
       description: "일괄 하드웨어 정보 갱신 및 전원 제어",
       icon: Cpu,
       adminOnly: true,
+    },
+    {
+      href: "/settings/prometheus-diagnostic",
+      title: "Prometheus 진단",
+      description: "설정 문제 감지: 중복 스크래핑, 고아 타겟, IP 전용 타겟",
+      icon: Stethoscope,
+      adminOnly: false,
     },
     {
       href: "/alerts/rules",
