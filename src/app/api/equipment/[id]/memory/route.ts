@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
+import { parseBody } from "@/lib/api-validation";
+import { MemorySchema } from "@/lib/schemas/equipment";
+
+// slotIndex is reassigned server-side from array position, so it's optional on input.
+const MemoryConfigSchema = z.object({
+  memories: z.array(MemorySchema.omit({ slotIndex: true })).max(1024),
+});
 
 export async function GET(
   _req: NextRequest,
@@ -43,7 +51,9 @@ export async function PUT(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { memories } = await req.json();
+  const parsed = await parseBody(req, MemoryConfigSchema);
+  if (parsed.response) return parsed.response;
+  const { memories } = parsed.data;
 
   const beforeCount = await prisma.equipmentMemory.count({ where: { equipmentId: id } });
 
@@ -51,9 +61,9 @@ export async function PUT(
     where: { equipmentId: id },
   });
 
-  if (memories && memories.length > 0) {
+  if (memories.length > 0) {
     await prisma.equipmentMemory.createMany({
-      data: memories.map((m: Record<string, unknown>, i: number) => ({
+      data: memories.map((m, i) => ({
         ...m,
         equipmentId: id,
         slotIndex: i,
@@ -61,9 +71,9 @@ export async function PUT(
     });
   }
 
-  const populatedSlots = (memories || []).filter((m: { populated: boolean }) => m.populated);
+  const populatedSlots = memories.filter((m) => m.populated);
   const totalGb = populatedSlots.reduce(
-    (sum: number, m: { capacityGb?: number }) => sum + (m.capacityGb || 0),
+    (sum, m) => sum + (m.capacityGb || 0),
     0,
   );
   await prisma.equipment.update({

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser, canEdit, canDelete } from "@/lib/rbac";
 import { logAudit, diffShallow } from "@/lib/audit";
+import { parseBody } from "@/lib/api-validation";
+import { UpdateEquipmentSchema } from "@/lib/schemas/equipment";
 
 export async function GET(
   _req: NextRequest,
@@ -39,8 +41,9 @@ export async function PUT(
     );
   }
 
-  const body = await req.json();
-  const { cpus, memories, ...equipmentData } = body;
+  const parsed = await parseBody(req, UpdateEquipmentSchema);
+  if (parsed.response) return parsed.response;
+  const { cpus, memories: _memories, ...equipmentData } = parsed.data;
 
   const before = await prisma.equipment.findUnique({ where: { id } });
 
@@ -49,7 +52,7 @@ export async function PUT(
       await tx.equipmentCpu.deleteMany({ where: { equipmentId: id } });
       if (cpus.length > 0) {
         await tx.equipmentCpu.createMany({
-          data: cpus.map((c: Record<string, unknown>) => ({
+          data: cpus.map((c) => ({
             ...c,
             equipmentId: id,
           })),

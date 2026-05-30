@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/rbac";
+import { escapeCsv } from "@/lib/api-validation";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +17,14 @@ export async function GET(req: NextRequest) {
 
   const where: Record<string, unknown> = {};
   if (from || to) {
+    const fromDate = from ? new Date(from) : undefined;
+    const toDate = to ? new Date(to + "T23:59:59.999Z") : undefined;
+    if ((fromDate && isNaN(fromDate.getTime())) || (toDate && isNaN(toDate.getTime()))) {
+      return NextResponse.json({ error: "Invalid date parameter" }, { status: 400 });
+    }
     where.createdAt = {
-      ...(from ? { gte: new Date(from) } : {}),
-      ...(to ? { lte: new Date(to + "T23:59:59.999Z") } : {}),
+      ...(fromDate ? { gte: fromDate } : {}),
+      ...(toDate ? { lte: toDate } : {}),
     };
   }
 
@@ -33,9 +39,10 @@ export async function GET(req: NextRequest) {
   const rows = logs.map((log) => {
     const date = log.createdAt.toISOString();
     const userName = log.user?.name || log.user?.email || log.userId;
-    const changes = log.changes ? JSON.stringify(log.changes).replace(/"/g, '""') : "";
-    const reason = (log.reason || "").replace(/"/g, '""');
-    return `${date},"${userName}",${log.action},${log.entityType},${log.entityId},"${changes}","${reason}"`;
+    const changes = log.changes ? JSON.stringify(log.changes) : "";
+    return [date, userName, log.action, log.entityType, log.entityId, changes, log.reason || ""]
+      .map(escapeCsv)
+      .join(",");
   });
 
   const csv = [header, ...rows].join("\n");

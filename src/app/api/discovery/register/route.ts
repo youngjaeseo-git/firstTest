@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { parseBody } from "@/lib/api-validation";
 import { instantQuery } from "@/lib/prometheus";
 import {
   getSystemHwInfo,
@@ -76,10 +78,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { targetId } = await req.json();
-  if (!targetId) {
-    return NextResponse.json({ error: "targetId required" }, { status: 400 });
-  }
+  const parsed = await parseBody(req, z.object({ targetId: z.string().min(1) }));
+  if (parsed.response) return parsed.response;
+  const { targetId } = parsed.data;
 
   const target = await prisma.prometheusTarget.findUnique({
     where: { id: targetId },

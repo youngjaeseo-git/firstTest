@@ -1,8 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/rbac";
+import { parseBody } from "@/lib/api-validation";
 
 export const dynamic = "force-dynamic";
+
+const CreateEvalSchema = z.object({
+  title: z.string().trim().min(1).max(300),
+  description: z.string().trim().max(5000).optional().nullable(),
+  evalType: z.enum(["FIELD", "ACCELERATED"]),
+  namespace: z.string().trim().max(200).optional().nullable(),
+  memoryType: z.enum(["DDR3", "DDR4", "DDR5", "HBM", "HBM2", "HBM2E", "HBM3", "LPDDR4", "LPDDR5"]).optional().nullable(),
+  manufacturer: z.string().trim().max(100).optional().nullable(),
+  partNumber: z.string().trim().max(200).optional().nullable(),
+  capacityGb: z.coerce.number().min(0).max(65536).optional().nullable(),
+  speedMhz: z.coerce.number().int().min(0).max(100000).optional().nullable(),
+  formFactor: z.string().trim().max(50).optional().nullable(),
+  startDate: z.coerce.date().optional().nullable(),
+  endDate: z.coerce.date().optional().nullable(),
+  assigneeId: z.string().trim().max(50).optional().nullable(),
+  phases: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(200),
+        description: z.string().trim().max(2000).optional().nullable(),
+      }),
+    )
+    .max(50)
+    .optional(),
+});
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -33,37 +60,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
+  const parsed = await parseBody(req, CreateEvalSchema);
+  if (parsed.response) return parsed.response;
   const {
     title, description, evalType, namespace: bodyNamespace, memoryType, manufacturer,
     partNumber, capacityGb, speedMhz, formFactor,
     startDate, endDate, assigneeId, phases,
-  } = body;
-
-  if (!title || !evalType) {
-    return NextResponse.json({ error: "title and evalType are required" }, { status: 400 });
-  }
+  } = parsed.data;
 
   const project = await prisma.evalProject.create({
     data: {
       title,
-      description,
+      description: description || null,
       evalType,
       namespace: bodyNamespace || null,
       memoryType: memoryType || null,
       manufacturer: manufacturer || null,
       partNumber: partNumber || null,
-      capacityGb: capacityGb ? parseFloat(capacityGb) : null,
-      speedMhz: speedMhz ? parseInt(speedMhz) : null,
+      capacityGb: capacityGb ?? null,
+      speedMhz: speedMhz ?? null,
       formFactor: formFactor || null,
-      startDate: startDate ? new Date(startDate) : null,
-      endDate: endDate ? new Date(endDate) : null,
+      startDate: startDate ?? null,
+      endDate: endDate ?? null,
       createdBy: user.id,
       assigneeId: assigneeId || null,
       ...(phases && phases.length > 0
         ? {
             phases: {
-              create: phases.map((p: { name: string; description?: string }, i: number) => ({
+              create: phases.map((p, i) => ({
                 name: p.name,
                 description: p.description || null,
                 sortOrder: i,

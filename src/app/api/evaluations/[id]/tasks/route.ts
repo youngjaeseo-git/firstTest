@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/rbac";
+import { readJsonObject } from "@/lib/api-validation";
 
 export async function POST(
   req: NextRequest,
@@ -12,7 +13,9 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
+  const parsed = await readJsonObject(req);
+  if (parsed.response) return parsed.response;
+  const body = parsed.body;
   if (!body.title) {
     return NextResponse.json({ error: "title required" }, { status: 400 });
   }
@@ -20,12 +23,12 @@ export async function POST(
   const task = await prisma.evalTask.create({
     data: {
       projectId: id,
-      phaseId: body.phaseId || null,
-      title: body.title,
-      description: body.description || null,
-      priority: body.priority || "MEDIUM",
-      assigneeId: body.assigneeId || null,
-      dueDate: body.dueDate ? new Date(body.dueDate) : null,
+      phaseId: (body.phaseId as string) || null,
+      title: body.title as string,
+      description: (body.description as string) || null,
+      priority: ((body.priority as string) || "MEDIUM") as import("@prisma/client").EvalTaskPriority,
+      assigneeId: (body.assigneeId as string) || null,
+      dueDate: body.dueDate ? new Date(body.dueDate as string) : null,
       createdBy: user.id,
     },
   });
@@ -41,7 +44,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
+  const parsed = await readJsonObject(req);
+  if (parsed.response) return parsed.response;
+  const body = parsed.body;
   if (!body.taskId) {
     return NextResponse.json({ error: "taskId required" }, { status: 400 });
   }
@@ -56,10 +61,10 @@ export async function PATCH(
   }
   if ("priority" in body) data.priority = body.priority;
   if ("assigneeId" in body) data.assigneeId = body.assigneeId || null;
-  if ("dueDate" in body) data.dueDate = body.dueDate ? new Date(body.dueDate) : null;
+  if ("dueDate" in body) data.dueDate = body.dueDate ? new Date(body.dueDate as string) : null;
 
   const task = await prisma.evalTask.update({
-    where: { id: body.taskId },
+    where: { id: body.taskId as string },
     data,
   });
 

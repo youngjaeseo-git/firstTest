@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/rbac";
+import { parseBody } from "@/lib/api-validation";
+
+const NoteSchema = z.object({
+  content: z.string().trim().min(1, "content required").max(5000),
+});
 
 export async function POST(
   req: NextRequest,
@@ -12,15 +18,13 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
-  if (!body.content?.trim()) {
-    return NextResponse.json({ error: "content required" }, { status: 400 });
-  }
+  const parsed = await parseBody(req, NoteSchema);
+  if (parsed.response) return parsed.response;
 
   const note = await prisma.evalNote.create({
     data: {
       projectId: id,
-      content: body.content.trim(),
+      content: parsed.data.content,
       createdBy: user.id,
     },
   });

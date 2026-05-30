@@ -1,17 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/rbac";
 import { logAudit, type AuditAction } from "@/lib/audit";
+import { parseBody } from "@/lib/api-validation";
 
 export const dynamic = "force-dynamic";
 
-const MANUAL_ACTIONS: AuditAction[] = [
+const MANUAL_ACTIONS = [
   "MAINTENANCE_START",
   "MAINTENANCE_END",
   "STATUS_CHANGE",
   "RACK_MOVE",
   "UPDATE",
-];
+] as const satisfies readonly AuditAction[];
+
+const HistoryEntrySchema = z.object({
+  action: z.enum(MANUAL_ACTIONS),
+  reason: z.string().trim().min(3, "reason is required (min 3 chars)").max(1000),
+  ticketRef: z.string().trim().max(50).optional().nullable(),
+  changes: z.record(z.unknown()).optional(),
+});
 
 /**
  * GET /api/equipment/[id]/history
@@ -59,24 +68,10 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
-  const action = body.action as AuditAction;
-  const reason = (body.reason || "").trim();
-  const ticketRef = (body.ticketRef || "").trim() || null;
-  const changes = body.changes || {};
-
-  if (!action || !MANUAL_ACTIONS.includes(action)) {
-    return NextResponse.json(
-      { error: `action must be one of: ${MANUAL_ACTIONS.join(", ")}` },
-      { status: 400 },
-    );
-  }
-  if (reason.length < 3) {
-    return NextResponse.json(
-      { error: "reason is required (min 3 chars)" },
-      { status: 400 },
-    );
-  }
+  const parsed = await parseBody(req, HistoryEntrySchema);
+  if (parsed.response) return parsed.response;
+  const { action, reason, changes = {} } = parsed.data;
+  const ticketRef = parsed.data.ticketRef?.trim() || null;
 
   const equipment = await prisma.equipment.findUnique({ where: { id } });
   if (!equipment) {

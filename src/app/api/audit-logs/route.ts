@@ -11,8 +11,8 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = req.nextUrl;
-  const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "50");
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1") || 1);
+  const limit = Math.min(200, Math.max(1, parseInt(searchParams.get("limit") || "50") || 50));
   const action = searchParams.get("action");
   const entityType = searchParams.get("entityType");
   const userId = searchParams.get("userId");
@@ -25,9 +25,14 @@ export async function GET(req: NextRequest) {
   if (entityType) where.entityType = entityType;
   if (userId) where.userId = userId;
   if (from || to) {
+    const fromDate = from ? new Date(from) : undefined;
+    const toDate = to ? new Date(to + "T23:59:59.999Z") : undefined;
+    if ((fromDate && isNaN(fromDate.getTime())) || (toDate && isNaN(toDate.getTime()))) {
+      return NextResponse.json({ error: "Invalid date parameter" }, { status: 400 });
+    }
     where.createdAt = {
-      ...(from ? { gte: new Date(from) } : {}),
-      ...(to ? { lte: new Date(to + "T23:59:59.999Z") } : {}),
+      ...(fromDate ? { gte: fromDate } : {}),
+      ...(toDate ? { lte: toDate } : {}),
     };
   }
   if (search) {

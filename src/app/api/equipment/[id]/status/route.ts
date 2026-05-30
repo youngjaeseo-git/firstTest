@@ -1,7 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getSessionUser, canChangeStatus } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
+import { parseBody } from "@/lib/api-validation";
+
+const StatusSchema = z.object({
+  status: z.enum([
+    "PLANNED",
+    "RECEIVING",
+    "INSTALLED",
+    "ACTIVE",
+    "MAINTENANCE",
+    "REPAIR",
+    "FAILED",
+    "DECOMMISSIONED",
+    "DISPOSED",
+  ]),
+  note: z.string().trim().max(1000).optional(),
+});
 
 export async function PATCH(
   req: NextRequest,
@@ -16,7 +33,9 @@ export async function PATCH(
     );
   }
 
-  const { status, note } = await req.json();
+  const parsed = await parseBody(req, StatusSchema);
+  if (parsed.response) return parsed.response;
+  const { status, note } = parsed.data;
 
   const equipment = await prisma.equipment.findUnique({
     where: { id },

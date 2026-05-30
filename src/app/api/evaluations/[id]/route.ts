@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/rbac";
+import { readJsonObject } from "@/lib/api-validation";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
+  const parsed = await readJsonObject(req);
+  if (parsed.response) return parsed.response;
+  const body = parsed.body;
   const allowed = [
     "title", "description", "evalType", "status", "memoryType",
     "manufacturer", "partNumber", "capacityGb", "speedMhz",
@@ -61,11 +64,11 @@ export async function PATCH(
   for (const key of allowed) {
     if (key in body) {
       if (key === "startDate" || key === "endDate") {
-        data[key] = body[key] ? new Date(body[key]) : null;
+        data[key] = body[key] ? new Date(body[key] as string) : null;
       } else if (key === "capacityGb") {
-        data[key] = body[key] ? parseFloat(body[key]) : null;
+        data[key] = body[key] ? parseFloat(body[key] as string) : null;
       } else if (key === "speedMhz") {
-        data[key] = body[key] ? parseInt(body[key]) : null;
+        data[key] = body[key] ? parseInt(body[key] as string) : null;
       } else {
         data[key] = body[key] || null;
       }

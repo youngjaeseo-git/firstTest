@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/rbac";
+import { parseBody } from "@/lib/api-validation";
 
 export const dynamic = "force-dynamic";
+
+const CreateWorkloadEvalSchema = z.object({
+  title: z.string().trim().max(300).optional().nullable(),
+  description: z.string().trim().max(5000).optional().nullable(),
+  evalType: z.enum(["FIELD", "ACCELERATED"]).optional(),
+});
 
 export async function GET(
   _req: NextRequest,
@@ -45,8 +53,9 @@ export async function POST(
   }
 
   const ns = decodeURIComponent(params.namespace);
-  const body = await req.json();
-  const { title, description, evalType } = body;
+  const parsed = await parseBody(req, CreateWorkloadEvalSchema);
+  if (parsed.response) return parsed.response;
+  const { title, description, evalType } = parsed.data;
 
   const project = await prisma.evalProject.create({
     data: {

@@ -155,11 +155,20 @@ export async function POST(req: NextRequest) {
     const text = await req.text();
     rows = parseCSV(text) as unknown as BulkRow[];
   } else {
-    const body = await req.json();
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 },
+      );
+    }
+    const maybeRows = (body as { rows?: unknown })?.rows;
     if (Array.isArray(body)) {
       rows = body;
-    } else if (body.rows && Array.isArray(body.rows)) {
-      rows = body.rows;
+    } else if (Array.isArray(maybeRows)) {
+      rows = maybeRows;
     } else {
       return NextResponse.json(
         { error: "JSON body는 배열이거나 { rows: [...] } 형태여야 합니다" },

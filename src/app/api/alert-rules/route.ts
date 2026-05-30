@@ -1,9 +1,22 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { parseBody } from "@/lib/api-validation";
+
+const CreateRuleSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(1000).optional().nullable(),
+  metric: z.string().trim().min(1).max(2000),
+  condition: z.string().trim().min(1).max(200),
+  duration: z.number().int().min(0).max(86400).optional(),
+  severity: z.enum(["CRITICAL", "WARNING", "INFO"]),
+  category: z.string().trim().max(100).optional().nullable(),
+  enabled: z.boolean().optional(),
+});
 
 export async function GET() {
   const rules = await prisma.alertRule.findMany({
@@ -20,15 +33,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await req.json();
-  const { name, description, metric, condition, duration, severity, category, enabled } = body;
-
-  if (!name || !metric || !condition || !severity) {
-    return NextResponse.json(
-      { error: "name, metric, condition, severity는 필수입니다." },
-      { status: 400 }
-    );
-  }
+  const parsed = await parseBody(req, CreateRuleSchema);
+  if (parsed.response) return parsed.response;
+  const { name, description, metric, condition, duration, severity, category, enabled } =
+    parsed.data;
 
   const rule = await prisma.alertRule.create({
     data: {
@@ -36,7 +44,7 @@ export async function POST(req: NextRequest) {
       description: description || null,
       metric,
       condition,
-      duration: duration || 60,
+      duration: duration ?? 60,
       severity,
       category: category || null,
       enabled: enabled !== false,

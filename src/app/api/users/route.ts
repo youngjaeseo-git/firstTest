@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import bcrypt from "bcryptjs";
+import { parseBody } from "@/lib/api-validation";
+
+const CreateUserSchema = z.object({
+  name: z.string().trim().max(100).optional().nullable(),
+  email: z.string().trim().email("유효한 이메일 형식이 아닙니다.").max(255),
+  password: z.string().min(6, "비밀번호는 6자 이상이어야 합니다.").max(200),
+  role: z.enum(["ADMIN", "OPERATOR", "VIEWER"]).optional(),
+});
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -30,14 +39,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { name, email, password, role } = await req.json();
-
-  if (!email || !password) {
-    return NextResponse.json(
-      { error: "이메일과 비밀번호는 필수입니다." },
-      { status: 400 }
-    );
-  }
+  const parsed = await parseBody(req, CreateUserSchema);
+  if (parsed.response) return parsed.response;
+  const { name, email, password, role } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -51,7 +55,7 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.create({
     data: {
-      name,
+      name: name || null,
       email,
       password: hashedPassword,
       role: role || "VIEWER",

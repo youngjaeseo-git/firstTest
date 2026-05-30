@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser, canEdit } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
+import { parseBody } from "@/lib/api-validation";
+import { CreateEquipmentSchema } from "@/lib/schemas/equipment";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -9,8 +11,11 @@ export async function GET(req: NextRequest) {
   const type = searchParams.get("type");
   const roomId = searchParams.get("roomId");
   const search = searchParams.get("search");
-  const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "50");
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1") || 1);
+  const limit = Math.min(
+    200,
+    Math.max(1, parseInt(searchParams.get("limit") || "50") || 50),
+  );
 
   const where: Record<string, unknown> = {};
   if (status) where.status = status;
@@ -48,8 +53,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden — ADMIN 또는 OPERATOR 권한 필요" }, { status: 403 });
   }
 
-  const body = await req.json();
-  const { cpus, memories, ...equipmentData } = body;
+  const parsed = await parseBody(req, CreateEquipmentSchema);
+  if (parsed.response) return parsed.response;
+  const { cpus, memories, ...equipmentData } = parsed.data;
 
   const equipment = await prisma.equipment.create({
     data: {
