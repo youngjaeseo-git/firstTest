@@ -144,7 +144,7 @@ export function NodeOverviewCard({ instance, hostIp }: { instance: string; hostI
       cancelled = true;
       clearInterval(interval);
     };
-  }, [instance]);
+  }, [instance, hostIp]);
 
   const hasData =
     metrics.cpuCapacity !== null ||

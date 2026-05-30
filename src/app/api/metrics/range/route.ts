@@ -5,9 +5,11 @@ import { rangeQuery } from "@/lib/prometheus";
 
 export async function GET(req: NextRequest) {
   const query = req.nextUrl.searchParams.get("query");
-  const durationMin = parseInt(
+  const parsedDuration = parseInt(
     req.nextUrl.searchParams.get("duration") || "60"
   );
+  const durationMin =
+    Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : 60;
   const step = req.nextUrl.searchParams.get("step") || "30s";
 
   if (!query) {

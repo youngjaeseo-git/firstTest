@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/rbac";
-import { readJsonObject } from "@/lib/api-validation";
+import { parseBody } from "@/lib/api-validation";
+import { CreatePhaseSchema, UpdatePhaseSchema } from "@/lib/schemas/evaluation";
 
 export async function POST(
   req: NextRequest,
@@ -13,12 +14,10 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const parsed = await readJsonObject(req);
+  const parsed = await parseBody(req, CreatePhaseSchema);
   if (parsed.response) return parsed.response;
-  const body = parsed.body;
-  if (!body.name) {
-    return NextResponse.json({ error: "name required" }, { status: 400 });
-  }
+  const { name, description, startDate, endDate } = parsed.data;
+
   const maxOrder = await prisma.evalPhase.aggregate({
     where: { projectId: id },
     _max: { sortOrder: true },
@@ -27,11 +26,11 @@ export async function POST(
   const phase = await prisma.evalPhase.create({
     data: {
       projectId: id,
-      name: body.name as string,
-      description: (body.description as string) || null,
+      name,
+      description: description ?? null,
       sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
-      startDate: body.startDate ? new Date(body.startDate as string) : null,
-      endDate: body.endDate ? new Date(body.endDate as string) : null,
+      startDate: startDate ?? null,
+      endDate: endDate ?? null,
     },
   });
 
@@ -40,29 +39,18 @@ export async function POST(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const parsed = await readJsonObject(req);
+  const parsed = await parseBody(req, UpdatePhaseSchema);
   if (parsed.response) return parsed.response;
-  const body = parsed.body;
-  if (!body.phaseId) {
-    return NextResponse.json({ error: "phaseId required" }, { status: 400 });
-  }
-
-  const data: Record<string, unknown> = {};
-  if ("name" in body) data.name = body.name;
-  if ("description" in body) data.description = body.description;
-  if ("status" in body) data.status = body.status;
-  if ("startDate" in body) data.startDate = body.startDate ? new Date(body.startDate as string) : null;
-  if ("endDate" in body) data.endDate = body.endDate ? new Date(body.endDate as string) : null;
+  const { phaseId, ...data } = parsed.data;
 
   const phase = await prisma.evalPhase.update({
-    where: { id: body.phaseId as string },
+    where: { id: phaseId },
     data,
   });
 

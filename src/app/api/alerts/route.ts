@@ -6,8 +6,8 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status");
   const severity = searchParams.get("severity");
   const category = searchParams.get("category");
-  const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "100");
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1") || 1);
+  const limit = Math.min(500, Math.max(1, parseInt(searchParams.get("limit") || "100") || 100));
 
   const where: Record<string, unknown> = {};
   if (status) where.status = status;

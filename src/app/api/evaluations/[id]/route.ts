@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/rbac";
-import { readJsonObject } from "@/lib/api-validation";
+import { parseBody } from "@/lib/api-validation";
+import { UpdateProjectSchema } from "@/lib/schemas/evaluation";
 
 export const dynamic = "force-dynamic";
 
@@ -51,33 +52,12 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const parsed = await readJsonObject(req);
+  const parsed = await parseBody(req, UpdateProjectSchema);
   if (parsed.response) return parsed.response;
-  const body = parsed.body;
-  const allowed = [
-    "title", "description", "evalType", "status", "memoryType",
-    "manufacturer", "partNumber", "capacityGb", "speedMhz",
-    "formFactor", "startDate", "endDate", "assigneeId",
-  ];
-
-  const data: Record<string, unknown> = {};
-  for (const key of allowed) {
-    if (key in body) {
-      if (key === "startDate" || key === "endDate") {
-        data[key] = body[key] ? new Date(body[key] as string) : null;
-      } else if (key === "capacityGb") {
-        data[key] = body[key] ? parseFloat(body[key] as string) : null;
-      } else if (key === "speedMhz") {
-        data[key] = body[key] ? parseInt(body[key] as string) : null;
-      } else {
-        data[key] = body[key] || null;
-      }
-    }
-  }
 
   const project = await prisma.evalProject.update({
     where: { id },
-    data,
+    data: parsed.data,
   });
 
   return NextResponse.json(project);

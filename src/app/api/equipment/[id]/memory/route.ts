@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { getSessionUser } from "@/lib/rbac";
+import { getSessionUser, canEdit } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
 import { parseBody } from "@/lib/api-validation";
 import { MemorySchema } from "@/lib/schemas/equipment";
@@ -49,6 +49,9 @@ export async function PUT(
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!canEdit(user.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const parsed = await parseBody(req, MemoryConfigSchema);

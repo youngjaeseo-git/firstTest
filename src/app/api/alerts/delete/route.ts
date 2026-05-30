@@ -22,7 +22,16 @@ export async function DELETE(req: NextRequest) {
 
   const where: Record<string, unknown> = {};
   if (status) where.status = status;
-  if (before) where.firedAt = { lt: new Date(before) };
+  if (before) {
+    const beforeDate = new Date(before);
+    if (isNaN(beforeDate.getTime())) {
+      return NextResponse.json(
+        { error: "Invalid 'before' date parameter" },
+        { status: 400 },
+      );
+    }
+    where.firedAt = { lt: beforeDate };
+  }
 
   if (Object.keys(where).length === 0) {
     return NextResponse.json(

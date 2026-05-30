@@ -98,7 +98,7 @@ export function CpuCoreHeatmap({ instance, hostIp }: { instance: string; hostIp?
     }
 
     setMode("pods");
-  }, [instance]);
+  }, [instance, hostIp]);
 
   useEffect(() => {
     fetchData();
