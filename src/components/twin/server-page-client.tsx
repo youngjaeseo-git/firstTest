@@ -568,7 +568,7 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
   );
 }
 
-/* Level 2: Room Floor Plan */
+/* Level 2: Room Floor Plan — 2D spatial visualization */
 function RoomFloorPlan({
   room,
   onSelectRack,
@@ -580,17 +580,42 @@ function RoomFloorPlan({
   onBackToRooms: () => void;
   t: (key: string) => string;
 }) {
-  const groups = room.racks.reduce(
-    (acc, rack) => {
-      const label = rack.rowLabel || "Default";
-      (acc[label] = acc[label] || []).push(rack);
-      return acc;
-    },
-    {} as Record<string, typeof room.racks>,
-  );
+  const stats = useMemo(() => {
+    const totalEquipment = room.racks.reduce((s, r) => s + r.equipment.length, 0);
+    const activeEquipment = room.racks.reduce(
+      (s, r) => s + r.equipment.filter((e) => e.status === "ACTIVE").length,
+      0,
+    );
+    const failedEquipment = room.racks.reduce(
+      (s, r) => s + r.equipment.filter((e) => e.status === "FAILED" || e.status === "REPAIR").length,
+      0,
+    );
+    const totalUnits = room.racks.reduce((s, r) => s + r.totalUnits, 0);
+    const usedUnits = room.racks.reduce(
+      (s, r) => s + r.equipment.reduce((u, e) => u + (e.rackHeight || 1), 0),
+      0,
+    );
+    return { totalEquipment, activeEquipment, failedEquipment, totalUnits, usedUnits };
+  }, [room]);
+
+  const rows = useMemo(() => {
+    const rowMap = new Map<string, typeof room.racks>();
+    for (const rack of room.racks) {
+      const key = rack.rowLabel || "Default";
+      if (!rowMap.has(key)) rowMap.set(key, []);
+      rowMap.get(key)!.push(rack);
+    }
+    Array.from(rowMap.values()).forEach((racks) => {
+      racks.sort((a, b) => (a.positionX ?? a.sortOrder) - (b.positionX ?? b.sortOrder));
+    });
+    return Array.from(rowMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [room]);
+
+  const utilPercent = stats.totalUnits > 0 ? Math.round((stats.usedUnits / stats.totalUnits) * 100) : 0;
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div>
         <Breadcrumb
           items={[
@@ -599,60 +624,287 @@ function RoomFloorPlan({
           ]}
           className="mb-1"
         />
-        <h2 className="text-xl font-bold">{room.name}</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold">{room.name}</h2>
+          <span className="rounded-full bg-blue-600/20 px-2.5 py-0.5 text-xs font-medium text-blue-400">
+            {room.racks.length} Racks
+          </span>
+        </div>
       </div>
-      {Object.entries(groups).map(([label, racks]) => (
-        <div key={label}>
-          <p className="mb-2 text-sm font-medium text-gray-400">Row {label}</p>
-          <div className="flex flex-wrap gap-3">
-            {racks.map((rack) => {
-              const used = rack.equipment.length;
-              const active = rack.equipment.filter((e) => e.status === "ACTIVE").length;
-              return (
-                <button
-                  key={rack.id}
-                  onClick={() => onSelectRack(rack.id)}
-                  className="w-28 rounded-lg border border-gray-700 bg-gray-800 p-3 text-center transition-colors hover:border-blue-500 hover:bg-gray-700"
-                >
-                  <p className="text-sm font-bold text-gray-100">{rack.name}</p>
-                  <div className="mt-2 h-20 rounded border border-gray-700 bg-gray-900 p-1">
-                    <div className="flex h-full flex-col-reverse gap-px">
-                      {Array.from({ length: Math.min(rack.totalUnits, 20) }, (_, i) => {
-                        const eq = rack.equipment.find(
-                          (e) => e.rackPosition === i + 1,
-                        );
-                        return (
-                          <div
-                            key={i}
-                            title={
-                              eq
-                                ? `U${i + 1}: ${eq.hostname || eq.type} (${eq.status})`
-                                : `U${i + 1}: empty`
-                            }
-                            className={cn(
-                              "h-full min-h-[2px] rounded-sm",
-                              eq
-                                ? eq.status === "ACTIVE"
-                                  ? "bg-green-500"
-                                  : eq.status === "FAILED"
-                                    ? "bg-red-500"
-                                    : "bg-amber-500"
-                                : "bg-gray-800",
-                            )}
-                          />
-                        );
-                      })}
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <FloorStatCard label={t("twin.statRacks")} value={room.racks.length} color="text-blue-400" />
+        <FloorStatCard label={t("twin.statEquipment")} value={stats.totalEquipment} color="text-cyan-400" />
+        <FloorStatCard label={t("twin.statActive")} value={stats.activeEquipment} color="text-green-400" />
+        <FloorStatCard
+          label={t("twin.statIssues")}
+          value={stats.failedEquipment}
+          color={stats.failedEquipment > 0 ? "text-red-400" : "text-gray-500"}
+        />
+        <FloorStatCard
+          label={t("twin.statUtil")}
+          value={`${utilPercent}%`}
+          color={utilPercent > 85 ? "text-red-400" : utilPercent > 60 ? "text-amber-400" : "text-green-400"}
+        />
+      </div>
+
+      {/* Floor Plan */}
+      <Card className="p-0">
+        {/* Top bar */}
+        <div className="flex items-center justify-between border-b border-gray-800 bg-gray-900/70 px-4 py-2">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)]" />
+            <span className="font-mono text-xs tracking-wider text-gray-400">FLOOR PLAN</span>
+          </div>
+          <span className="text-xs text-gray-600">
+            {rows.length} rows · {room.racks.length} racks
+          </span>
+        </div>
+
+        {/* Floor plan area */}
+        <div
+          className="relative p-6"
+          style={{
+            background: `
+              radial-gradient(ellipse at 50% 0%, rgba(59, 130, 246, 0.03), transparent 70%),
+              linear-gradient(rgba(51, 65, 85, 0.12) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(51, 65, 85, 0.12) 1px, transparent 1px)
+            `,
+            backgroundSize: "100% 100%, 24px 24px, 24px 24px",
+          }}
+        >
+          {/* Room outline */}
+          <div className="rounded-xl border-2 border-dashed border-gray-700/50 p-5">
+            <div className="space-y-1">
+              {rows.map(([rowLabel, racks], rowIdx) => (
+                <div key={rowLabel}>
+                  {/* Aisle indicator between rows */}
+                  {rowIdx > 0 && (
+                    <div className="flex items-center gap-3 py-4">
+                      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-800/30 to-transparent" />
+                      <div className="flex items-center gap-2 rounded-full border border-cyan-900/30 bg-cyan-950/20 px-3 py-0.5">
+                        <span className="h-1 w-1 rounded-full bg-cyan-600/50" />
+                        <span className="text-[10px] font-medium tracking-[0.2em] text-cyan-700">
+                          COLD AISLE
+                        </span>
+                        <span className="h-1 w-1 rounded-full bg-cyan-600/50" />
+                      </div>
+                      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-800/30 to-transparent" />
                     </div>
+                  )}
+
+                  {/* Row header */}
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600/30 to-blue-600/10 text-xs font-bold text-blue-400 shadow-inner">
+                      {rowLabel}
+                    </span>
+                    <span className="text-xs font-medium text-gray-500">Row {rowLabel}</span>
+                    <span className="text-xs text-gray-600">
+                      · {racks.length} racks · {racks.reduce((s, r) => s + r.equipment.length, 0)} devices
+                    </span>
                   </div>
-                  <p className="mt-1 text-xs text-gray-400">
-                    {used}/{rack.totalUnits}U · {active} active
-                  </p>
-                </button>
-              );
-            })}
+
+                  {/* Rack blocks grid */}
+                  <div
+                    className="grid gap-3"
+                    style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}
+                  >
+                    {racks.map((rack) => (
+                      <FloorRackBlock
+                        key={rack.id}
+                        rack={rack}
+                        onClick={() => onSelectRack(rack.id)}
+                        t={t}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      ))}
+
+        {/* Legend bar */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-gray-800 bg-gray-900/50 px-4 py-2">
+          <span className="text-[10px] font-medium tracking-wider text-gray-600">STATUS</span>
+          {[
+            ["bg-green-500", t("status.active")],
+            ["bg-red-500", t("status.failed")],
+            ["bg-purple-500", t("status.maintenance")],
+            ["bg-orange-500", t("status.repair")],
+          ].map(([color, label]) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <span className={cn("h-2 w-2 rounded-sm", color)} />
+              <span className="text-[10px] text-gray-400">{label}</span>
+            </div>
+          ))}
+          <span className="ml-2 text-[10px] font-medium tracking-wider text-gray-600">U UTIL</span>
+          {[
+            ["bg-green-500", "<60%"],
+            ["bg-amber-500", "60-85%"],
+            ["bg-red-500", ">85%"],
+          ].map(([color, label]) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <span className={cn("h-2 w-2 rounded-full", color)} />
+              <span className="text-[10px] text-gray-400">{label}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/* Floor Plan: individual rack block */
+function FloorRackBlock({
+  rack,
+  onClick,
+  t,
+}: {
+  rack: ServerPageClientProps["rooms"][0]["racks"][0];
+  onClick: () => void;
+  t: (key: string) => string;
+}) {
+  const eqCount = rack.equipment.length;
+  const activeCount = rack.equipment.filter((e) => e.status === "ACTIVE").length;
+  const failedCount = rack.equipment.filter(
+    (e) => e.status === "FAILED" || e.status === "REPAIR",
+  ).length;
+  const usedU = rack.equipment.reduce((u, e) => u + (e.rackHeight || 1), 0);
+  const rackUtil = rack.totalUnits > 0 ? Math.round((usedU / rack.totalUnits) * 100) : 0;
+
+  const borderColor =
+    eqCount === 0
+      ? "border-gray-700/60"
+      : failedCount > 0
+        ? "border-red-500/40"
+        : rackUtil > 85
+          ? "border-red-500/40"
+          : rackUtil > 60
+            ? "border-amber-500/40"
+            : "border-green-500/40";
+
+  const glowShadow =
+    eqCount === 0
+      ? ""
+      : failedCount > 0
+        ? "shadow-[0_0_15px_rgba(239,68,68,0.08)]"
+        : rackUtil > 85
+          ? "shadow-[0_0_15px_rgba(239,68,68,0.08)]"
+          : rackUtil > 60
+            ? "shadow-[0_0_15px_rgba(245,158,11,0.08)]"
+            : "shadow-[0_0_15px_rgba(34,197,94,0.08)]";
+
+  const STATUS_COLORS: Record<string, string> = {
+    ACTIVE: "bg-green-500",
+    FAILED: "bg-red-500",
+    MAINTENANCE: "bg-purple-500",
+    REPAIR: "bg-orange-500",
+    PLANNED: "bg-blue-500",
+    DECOMMISSIONED: "bg-gray-600",
+  };
+
+  function unitStatus(pos: number): string | null {
+    const eq = rack.equipment.find(
+      (e) => e.rackPosition != null && pos >= e.rackPosition && pos < e.rackPosition + e.rackHeight,
+    );
+    return eq?.status ?? null;
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "group relative rounded-xl border-2 bg-gradient-to-b from-gray-800/80 to-gray-900/80 p-3 text-left transition-all duration-200",
+        "hover:scale-[1.03] hover:brightness-110",
+        borderColor,
+        glowShadow,
+      )}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Server className="h-3 w-3 text-gray-500" />
+          <span className="font-mono text-sm font-bold text-gray-100">{rack.name}</span>
+        </div>
+        {failedCount > 0 && (
+          <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500/90 px-1 text-[9px] font-bold text-white animate-pulse">
+            {failedCount}
+          </span>
+        )}
+      </div>
+
+      {/* Mini rack elevation */}
+      <div className="mt-2 rounded-lg border border-gray-700/50 bg-gray-950/50 p-1.5">
+        <div className="flex h-20 flex-col-reverse gap-[1px]">
+          {Array.from({ length: rack.totalUnits }, (_, i) => {
+            const status = unitStatus(i + 1);
+            return (
+              <div
+                key={i}
+                className={cn(
+                  "flex-1 rounded-[1px]",
+                  status ? STATUS_COLORS[status] || "bg-amber-500" : "bg-gray-800/40",
+                )}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Utilization bar */}
+      <div className="mt-2">
+        <div className="h-1.5 overflow-hidden rounded-full bg-gray-800">
+          <div
+            className={cn(
+              "h-full rounded-full transition-all duration-500",
+              rackUtil > 85
+                ? "bg-gradient-to-r from-red-600 to-red-400"
+                : rackUtil > 60
+                  ? "bg-gradient-to-r from-amber-600 to-amber-400"
+                  : "bg-gradient-to-r from-green-600 to-green-400",
+            )}
+            style={{ width: `${rackUtil}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Stats footer */}
+      <div className="mt-1.5 flex items-center justify-between">
+        <span className="text-[10px] text-gray-500">
+          {usedU}/{rack.totalUnits}U ({rackUtil}%)
+        </span>
+        <span className="text-[10px] font-medium text-gray-400">
+          {activeCount}
+          <span className="text-gray-600">/{eqCount}</span>
+        </span>
+      </div>
+
+      {/* Hover overlay */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl bg-blue-600/10 opacity-0 backdrop-blur-[1px] transition-opacity group-hover:opacity-100">
+        <span className="rounded-full bg-gray-900/80 px-3 py-1 text-xs font-medium text-blue-300">
+          {t("twin.viewDetail")}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+/* Floor Plan: stat card */
+function FloorStatCard({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number | string;
+  color: string;
+}) {
+  return (
+    <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-3 text-center">
+      <p className="text-[10px] font-medium uppercase tracking-wider text-gray-500">{label}</p>
+      <p className={cn("mt-0.5 text-xl font-bold", color)}>{value}</p>
     </div>
   );
 }

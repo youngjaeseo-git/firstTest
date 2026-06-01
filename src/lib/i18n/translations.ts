@@ -469,6 +469,12 @@ export const translations: Record<Language, Record<string, string>> = {
     "twin.clickToFloorPlan": "Click to view Room Floor Plan →",
     "twin.noRoomData": "No room data.",
     "twin.clickToDetail": "Click to view details →",
+    "twin.viewDetail": "View Detail →",
+    "twin.statRacks": "Racks",
+    "twin.statEquipment": "Equipment",
+    "twin.statActive": "Active",
+    "twin.statIssues": "Issues",
+    "twin.statUtil": "Utilization",
 
     // ── Prometheus Diagnostic ──
     "diagnostic.title": "Prometheus Diagnostic",
@@ -953,6 +959,12 @@ export const translations: Record<Language, Record<string, string>> = {
     "twin.clickToFloorPlan": "클릭하여 Room Floor Plan 보기 →",
     "twin.noRoomData": "Room 데이터가 없습니다.",
     "twin.clickToDetail": "클릭하여 상세보기 →",
+    "twin.viewDetail": "상세 보기 →",
+    "twin.statRacks": "랙",
+    "twin.statEquipment": "장비",
+    "twin.statActive": "가동 중",
+    "twin.statIssues": "이슈",
+    "twin.statUtil": "사용률",
 
     // ── Prometheus Diagnostic ──
     "diagnostic.title": "Prometheus 진단",
