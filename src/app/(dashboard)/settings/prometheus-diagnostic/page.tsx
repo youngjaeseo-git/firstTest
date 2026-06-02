@@ -14,6 +14,7 @@ import {
   Copy,
   Unlink,
   Link2,
+  Monitor,
 } from "lucide-react";
 
 interface DiagnosticResult {
@@ -54,6 +55,8 @@ export default function PrometheusDiagnosticPage() {
   const [data, setData] = useState<DiagnosticResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [osLoading, setOsLoading] = useState(false);
+  const [osResult, setOsResult] = useState<{ updated: number; total: number; details: { hostname: string | null; ip: string; osType: string; osVersion: string }[] } | null>(null);
 
   async function fetchDiagnostic() {
     setLoading(true);
@@ -78,6 +81,24 @@ export default function PrometheusDiagnosticPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  async function collectOsInfo() {
+    setOsLoading(true);
+    setOsResult(null);
+    try {
+      const res = await fetch("/api/discovery/os-info", { method: "POST" });
+      if (res.ok) {
+        setOsResult(await res.json());
+      } else {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error || "OS 정보 수집 실패");
+      }
+    } catch {
+      setError("OS 정보 수집 중 오류");
+    } finally {
+      setOsLoading(false);
+    }
+  }
+
   const summary = data?.summary;
 
   return (
@@ -88,14 +109,24 @@ export default function PrometheusDiagnosticPage() {
         subtitle={t("diagnostic.subtitle")}
         accent="amber"
         right={
-          <button
-            onClick={fetchDiagnostic}
-            disabled={loading}
-            className="flex items-center gap-2 rounded-lg bg-amber-600/20 px-4 py-2 text-sm font-medium text-amber-400 ring-1 ring-amber-500/30 transition-colors hover:bg-amber-600/30 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            {t("diagnostic.recheck")}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={collectOsInfo}
+              disabled={osLoading}
+              className="flex items-center gap-2 rounded-lg bg-blue-600/20 px-4 py-2 text-sm font-medium text-blue-400 ring-1 ring-blue-500/30 transition-colors hover:bg-blue-600/30 disabled:opacity-50"
+            >
+              <Monitor className={`h-4 w-4 ${osLoading ? "animate-spin" : ""}`} />
+              OS 정보 수집
+            </button>
+            <button
+              onClick={fetchDiagnostic}
+              disabled={loading}
+              className="flex items-center gap-2 rounded-lg bg-amber-600/20 px-4 py-2 text-sm font-medium text-amber-400 ring-1 ring-amber-500/30 transition-colors hover:bg-amber-600/30 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              {t("diagnostic.recheck")}
+            </button>
+          </div>
         }
       />
 
@@ -115,6 +146,43 @@ export default function PrometheusDiagnosticPage() {
               <p className="mt-1 font-mono text-xs text-red-500">{error}</p>
             </div>
           </div>
+        </Card>
+      )}
+
+      {osResult && (
+        <Card className="border-l-4 border-l-blue-500">
+          <div className="flex items-center gap-2">
+            <Monitor className="h-5 w-5 text-blue-400" />
+            <h3 className="text-base font-semibold text-gray-100">OS 정보 수집 결과</h3>
+            <Badge variant="info">{osResult.updated}개 업데이트</Badge>
+            <span className="text-xs text-gray-500">/ 전체 {osResult.total}개 타겟</span>
+          </div>
+          {osResult.details.length > 0 ? (
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-700 text-left text-xs text-gray-400">
+                    <th className="px-3 py-2">Hostname</th>
+                    <th className="px-3 py-2">IP</th>
+                    <th className="px-3 py-2">OS Type</th>
+                    <th className="px-3 py-2">OS Version</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800">
+                  {osResult.details.map((d, i) => (
+                    <tr key={i} className="hover:bg-gray-800/50">
+                      <td className="px-3 py-2 text-gray-300">{d.hostname || "-"}</td>
+                      <td className="px-3 py-2 font-mono text-xs text-gray-300">{d.ip}</td>
+                      <td className="px-3 py-2"><Badge variant="info">{d.osType}</Badge></td>
+                      <td className="px-3 py-2 font-mono text-xs text-gray-300">{d.osVersion}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-gray-500">모든 장비의 OS 정보가 이미 최신 상태입니다.</p>
+          )}
         </Card>
       )}
 

@@ -17,7 +17,10 @@ export async function GET(req: NextRequest) {
     Math.max(1, parseInt(searchParams.get("limit") || "50") || 50),
   );
 
+  const unracked = searchParams.get("unracked");
+
   const where: Record<string, unknown> = {};
+  if (unracked === "true") where.rackId = null;
   if (status) where.status = status;
   if (type) where.type = type;
   if (roomId) where.rack = { roomId };

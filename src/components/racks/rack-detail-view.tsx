@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/i18n-context";
 import {
@@ -18,6 +20,11 @@ import {
   ExternalLink,
   Eye,
   Settings2,
+  Plus,
+  GripVertical,
+  X,
+  ArrowDown,
+  ArrowUp,
 } from "lucide-react";
 
 /* ── Types ── */
@@ -73,14 +80,47 @@ const statusColor: Record<string, string> = {
   DISPOSED: "bg-gray-700/30 border-gray-700 text-gray-500",
 };
 
-/* ── Inline Rack Elevation SVG ── */
+/* ── Helper: check if position is available ── */
 
-function RackElevationInline({ rack }: { rack: RackData }) {
+function canPlace(
+  rackEquipment: EquipmentItem[],
+  position: number,
+  height: number,
+  totalUnits: number,
+  excludeId?: string,
+): boolean {
+  if (position < 1 || position + height - 1 > totalUnits) return false;
+  for (const eq of rackEquipment) {
+    if (eq.id === excludeId || eq.rackPosition === null) continue;
+    const eqTop = eq.rackPosition + eq.rackHeight - 1;
+    const newTop = position + height - 1;
+    if (position <= eqTop && newTop >= eq.rackPosition) return false;
+  }
+  return true;
+}
+
+/* ── Inline Rack Elevation with Drag & Drop ── */
+
+function RackElevationInline({
+  rack,
+  onEquipmentMoved,
+}: {
+  rack: RackData;
+  onEquipmentMoved?: () => void;
+}) {
   const t = useT();
+  const { toast } = useToast();
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [showAddPanel, setShowAddPanel] = useState(false);
+  const [unrackedEquipment, setUnrackedEquipment] = useState<EquipmentItem[]>([]);
+  const [loadingUnracked, setLoadingUnracked] = useState(false);
+  const [localEquipment, setLocalEquipment] = useState<EquipmentItem[]>(rack.equipment);
 
   const units = Array.from({ length: rack.totalUnits }, (_, i) => {
-    const pos = rack.totalUnits - i; // top to bottom
-    const eq = rack.equipment.find(
+    const pos = rack.totalUnits - i;
+    const eq = localEquipment.find(
       (e) =>
         e.rackPosition !== null &&
         pos >= e.rackPosition &&
@@ -90,20 +130,179 @@ function RackElevationInline({ rack }: { rack: RackData }) {
     return { position: pos, equipment: eq || null, isStart };
   });
 
-  // Equipment list sorted by position
-  const sortedEquipment = [...rack.equipment]
+  const sortedEquipment = [...localEquipment]
     .filter((e) => e.rackPosition !== null)
     .sort((a, b) => (b.rackPosition ?? 0) - (a.rackPosition ?? 0));
 
-  const unpositioned = rack.equipment.filter((e) => e.rackPosition === null);
+  const unpositioned = localEquipment.filter((e) => e.rackPosition === null);
+
+  const moveEquipment = useCallback(
+    async (equipmentId: string, newPosition: number) => {
+      const eq = localEquipment.find((e) => e.id === equipmentId);
+      if (!eq) return;
+
+      if (!canPlace(localEquipment, newPosition, eq.rackHeight, rack.totalUnits, eq.id)) {
+        toast({ type: "error", title: "해당 위치에 공간이 부족합니다" });
+        return;
+      }
+
+      setSaving(true);
+      setLocalEquipment((prev) =>
+        prev.map((e) => (e.id === equipmentId ? { ...e, rackPosition: newPosition } : e)),
+      );
+
+      try {
+        const res = await fetch(`/api/equipment/${equipmentId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rackPosition: newPosition }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          toast({ type: "error", title: data.error || "이동 실패" });
+          setLocalEquipment((prev) =>
+            prev.map((e) => (e.id === equipmentId ? { ...e, rackPosition: eq.rackPosition } : e)),
+          );
+        } else {
+          toast({ type: "success", title: `U${newPosition}으로 이동 완료` });
+          onEquipmentMoved?.();
+        }
+      } catch {
+        toast({ type: "error", title: "서버 통신 오류" });
+        setLocalEquipment((prev) =>
+          prev.map((e) => (e.id === equipmentId ? { ...e, rackPosition: eq.rackPosition } : e)),
+        );
+      } finally {
+        setSaving(false);
+      }
+    },
+    [localEquipment, rack.totalUnits, toast, onEquipmentMoved],
+  );
+
+  const addEquipmentToRack = useCallback(
+    async (equipmentId: string, position: number, height: number) => {
+      if (!canPlace(localEquipment, position, height, rack.totalUnits)) {
+        toast({ type: "error", title: "해당 위치에 공간이 부족합니다" });
+        return;
+      }
+
+      setSaving(true);
+      try {
+        const res = await fetch(`/api/equipment/${equipmentId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rackId: rack.id, rackPosition: position }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          toast({ type: "error", title: data.error || "배치 실패" });
+        } else {
+          const added = unrackedEquipment.find((e) => e.id === equipmentId);
+          if (added) {
+            setLocalEquipment((prev) => [...prev, { ...added, rackPosition: position }]);
+            setUnrackedEquipment((prev) => prev.filter((e) => e.id !== equipmentId));
+          }
+          toast({ type: "success", title: `U${position}에 배치 완료` });
+          onEquipmentMoved?.();
+        }
+      } catch {
+        toast({ type: "error", title: "서버 통신 오류" });
+      } finally {
+        setSaving(false);
+      }
+    },
+    [localEquipment, rack.id, rack.totalUnits, toast, unrackedEquipment, onEquipmentMoved],
+  );
+
+  const removeFromRack = useCallback(
+    async (equipmentId: string) => {
+      setSaving(true);
+      const eq = localEquipment.find((e) => e.id === equipmentId);
+      try {
+        const res = await fetch(`/api/equipment/${equipmentId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rackId: null, rackPosition: null }),
+        });
+        if (!res.ok) {
+          toast({ type: "error", title: "제거 실패" });
+        } else {
+          setLocalEquipment((prev) => prev.filter((e) => e.id !== equipmentId));
+          toast({ type: "success", title: `${eq?.hostname || "장비"} 배치 해제` });
+          onEquipmentMoved?.();
+        }
+      } catch {
+        toast({ type: "error", title: "서버 통신 오류" });
+      } finally {
+        setSaving(false);
+      }
+    },
+    [localEquipment, toast, onEquipmentMoved],
+  );
+
+  const loadUnrackedEquipment = useCallback(async () => {
+    setLoadingUnracked(true);
+    try {
+      const res = await fetch("/api/equipment?unracked=true&limit=200");
+      if (res.ok) {
+        const data = await res.json();
+        const items = (data.equipment || data).map(
+          (e: Record<string, unknown>) => ({
+            id: e.id as string,
+            hostname: e.hostname as string | null,
+            ipAddress: e.ipAddress as string | null,
+            status: e.status as string,
+            rackPosition: null,
+            rackHeight: (e.rackHeight as number) || 1,
+            type: e.type as string,
+            model: e.model as string | null,
+            manufacturer: e.manufacturer as string | null,
+          }),
+        );
+        setUnrackedEquipment(items);
+      }
+    } catch {
+      toast({ type: "error", title: "미배치 장비 로드 실패" });
+    } finally {
+      setLoadingUnracked(false);
+    }
+  }, [toast]);
+
+  const handleDragStart = (eqId: string) => {
+    setDraggingId(eqId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, position: number) => {
+    e.preventDefault();
+    setDropTarget(position);
+  };
+
+  const handleDrop = (position: number) => {
+    if (draggingId) {
+      moveEquipment(draggingId, position);
+    }
+    setDraggingId(null);
+    setDropTarget(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDropTarget(null);
+  };
+
+  const nudge = (eqId: string, direction: "up" | "down") => {
+    const eq = localEquipment.find((e) => e.id === eqId);
+    if (!eq || eq.rackPosition === null) return;
+    const newPos = direction === "up" ? eq.rackPosition + 1 : eq.rackPosition - 1;
+    moveEquipment(eqId, newPos);
+  };
 
   return (
     <div className="mt-4 rounded-lg border border-gray-700 bg-gray-900/50 p-4">
       <div className="flex flex-col gap-6 lg:flex-row">
-        {/* Left: SVG Rack Elevation */}
+        {/* Left: Interactive Rack Elevation */}
         <div className="w-full max-w-sm shrink-0">
           <div className="rounded-lg border-2 border-gray-700 bg-gradient-to-b from-gray-900 to-gray-950 p-3 shadow-xl">
-            {/* Rack top bar decoration */}
             <div className="mb-2 flex items-center justify-between border-b border-gray-700 pb-2">
               <div className="flex items-center gap-1.5">
                 <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.6)]" />
@@ -111,20 +310,30 @@ function RackElevationInline({ rack }: { rack: RackData }) {
               </div>
               <span className="font-mono text-[10px] text-gray-500">
                 {rack.name} - {rack.totalUnits}U
+                {saving && <span className="ml-2 text-blue-400">저장중...</span>}
               </span>
             </div>
             <div className="space-y-px">
               {units.map(({ position, equipment, isStart }) => (
-                <div key={position} className="flex items-stretch gap-1">
+                <div
+                  key={position}
+                  className="flex items-stretch gap-1"
+                  onDragOver={(e) => handleDragOver(e, position)}
+                  onDrop={() => handleDrop(position)}
+                >
                   <span className="w-8 text-right text-[10px] leading-6 text-gray-500">
                     U{position}
                   </span>
                   {equipment && isStart ? (
-                    <Link
-                      href={`/servers/${equipment.id}`}
-                      title={`${equipment.hostname || equipment.type} - ${equipment.status}${equipment.model ? ` - ${equipment.model}` : ""}${equipment.manufacturer ? ` - ${equipment.manufacturer}` : ""}`}
+                    <div
+                      draggable
+                      onDragStart={() => handleDragStart(equipment.id)}
+                      onDragEnd={handleDragEnd}
                       className={cn(
-                        "group/eq relative flex flex-1 items-center rounded border-2 px-2 text-xs transition-all hover:brightness-125 hover:shadow-lg",
+                        "group/eq relative flex flex-1 cursor-grab items-center rounded border-2 px-2 text-xs transition-all active:cursor-grabbing",
+                        draggingId === equipment.id
+                          ? "opacity-50 ring-2 ring-blue-500"
+                          : "hover:brightness-125 hover:shadow-lg",
                         statusColor[equipment.status] ||
                           "bg-gray-800 border-gray-700 text-gray-400",
                       )}
@@ -132,27 +341,15 @@ function RackElevationInline({ rack }: { rack: RackData }) {
                         height: `${equipment.rackHeight * 24 + (equipment.rackHeight - 1)}px`,
                       }}
                     >
+                      <GripVertical className="mr-1 h-3 w-3 shrink-0 text-gray-500" />
                       <span className="truncate font-mono">
                         {equipment.hostname || equipment.type}
                       </span>
-                      {/* Tooltip on hover */}
                       <div className="pointer-events-none absolute left-full top-0 z-50 ml-2 hidden w-56 rounded-lg border border-gray-700 bg-gray-900 p-3 text-left text-xs shadow-xl group-hover/eq:block">
                         <p className="font-semibold text-gray-100">
                           {equipment.hostname || "(unnamed)"}
                         </p>
                         <div className="mt-1 space-y-0.5 text-gray-400">
-                          <p>
-                            <span className="text-gray-500">Status:</span>{" "}
-                            <span className="text-gray-200">
-                              {equipment.status}
-                            </span>
-                          </p>
-                          <p>
-                            <span className="text-gray-500">Type:</span>{" "}
-                            <span className="text-gray-200">
-                              {equipment.type}
-                            </span>
-                          </p>
                           <p>
                             <span className="text-gray-500">Position:</span>{" "}
                             <span className="font-mono text-gray-200">
@@ -162,38 +359,31 @@ function RackElevationInline({ rack }: { rack: RackData }) {
                           {equipment.model && (
                             <p>
                               <span className="text-gray-500">Model:</span>{" "}
-                              <span className="font-mono text-blue-300">
-                                {equipment.model}
-                              </span>
-                            </p>
-                          )}
-                          {equipment.manufacturer && (
-                            <p>
-                              <span className="text-gray-500">Mfr:</span>{" "}
-                              <span className="text-gray-200">
-                                {equipment.manufacturer}
-                              </span>
+                              <span className="font-mono text-blue-300">{equipment.model}</span>
                             </p>
                           )}
                           {equipment.ipAddress && (
                             <p>
                               <span className="text-gray-500">IP:</span>{" "}
-                              <span className="font-mono text-gray-200">
-                                {equipment.ipAddress}
-                              </span>
+                              <span className="font-mono text-gray-200">{equipment.ipAddress}</span>
                             </p>
                           )}
                         </div>
-                        <p className="mt-2 text-[10px] text-blue-400">
-                          {t("common.details")} →
-                        </p>
+                        <p className="mt-2 text-[10px] text-gray-500">드래그하여 위치 변경</p>
                       </div>
-                    </Link>
+                    </div>
                   ) : equipment ? (
-                    <div className="h-0 flex-1" /> // part of multi-U equipment
+                    <div className="h-0 flex-1" />
                   ) : (
-                    <div className="flex h-6 flex-1 items-center rounded border border-gray-800 bg-gray-800/30 px-2 text-[10px] text-gray-600">
-                      empty
+                    <div
+                      className={cn(
+                        "flex h-6 flex-1 items-center rounded border px-2 text-[10px] transition-colors",
+                        dropTarget === position
+                          ? "border-blue-500 bg-blue-500/20 text-blue-400"
+                          : "border-gray-800 bg-gray-800/30 text-gray-600",
+                      )}
+                    >
+                      {dropTarget === position ? "여기에 놓기" : "empty"}
                     </div>
                   )}
                 </div>
@@ -201,27 +391,42 @@ function RackElevationInline({ rack }: { rack: RackData }) {
             </div>
           </div>
 
-          {/* Legend */}
-          <div className="mt-3 flex flex-wrap gap-3 text-xs">
-            {[
-              ["ACTIVE", "bg-green-600"],
-              ["MAINTENANCE", "bg-purple-600"],
-              ["REPAIR", "bg-orange-600"],
-              ["FAILED", "bg-red-600"],
-              ["PLANNED", "bg-blue-600"],
-            ].map(([status, color]) => (
-              <div key={status} className="flex items-center gap-1">
-                <span className={cn("h-2.5 w-2.5 rounded-sm", color)} />
-                <span className="text-gray-500">{status}</span>
-              </div>
-            ))}
+          {/* Legend + Actions */}
+          <div className="mt-3 flex items-center justify-between">
+            <div className="flex flex-wrap gap-3 text-xs">
+              {[
+                ["ACTIVE", "bg-green-600"],
+                ["MAINTENANCE", "bg-purple-600"],
+                ["FAILED", "bg-red-600"],
+              ].map(([s, color]) => (
+                <div key={s} className="flex items-center gap-1">
+                  <span className={cn("h-2.5 w-2.5 rounded-sm", color)} />
+                  <span className="text-gray-500">{s}</span>
+                </div>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => {
+                setShowAddPanel(!showAddPanel);
+                if (!showAddPanel && unrackedEquipment.length === 0) {
+                  loadUnrackedEquipment();
+                }
+              }}
+            >
+              <Plus className="mr-1 h-3 w-3" />
+              장비 추가
+            </Button>
           </div>
         </div>
 
-        {/* Right: Equipment Table */}
+        {/* Right: Equipment Table + Add Panel */}
         <div className="min-w-0 flex-1">
           <h4 className="mb-3 text-sm font-semibold text-gray-300">
-            {t("rack.title")} - {rack.equipment.length} {t("capacity.equipment").toLowerCase()}
+            {t("rack.title")} - {localEquipment.length}{" "}
+            {t("capacity.equipment").toLowerCase()}
           </h4>
 
           {sortedEquipment.length > 0 ? (
@@ -235,7 +440,6 @@ function RackElevationInline({ rack }: { rack: RackData }) {
                     <th className="px-2 py-2 font-medium">{t("common.status")}</th>
                     <th className="px-2 py-2 font-medium">{t("common.type")}</th>
                     <th className="px-2 py-2 font-medium">{t("infra.model")}</th>
-                    <th className="px-2 py-2 font-medium">{t("infra.manufacturer")}</th>
                     <th className="px-2 py-2 font-medium" />
                   </tr>
                 </thead>
@@ -246,12 +450,32 @@ function RackElevationInline({ rack }: { rack: RackData }) {
                       className="text-gray-300 transition-colors hover:bg-gray-800/40"
                     >
                       <td className="px-2 py-2 font-mono text-gray-500">
-                        U{eq.rackPosition}
-                        {eq.rackHeight > 1 && (
-                          <span className="text-gray-600">
-                            -{(eq.rackPosition ?? 0) + eq.rackHeight - 1}
+                        <div className="flex items-center gap-1">
+                          <span>
+                            U{eq.rackPosition}
+                            {eq.rackHeight > 1 && (
+                              <span className="text-gray-600">
+                                -{(eq.rackPosition ?? 0) + eq.rackHeight - 1}
+                              </span>
+                            )}
                           </span>
-                        )}
+                          <button
+                            onClick={() => nudge(eq.id, "up")}
+                            className="rounded p-0.5 text-gray-600 hover:bg-gray-700 hover:text-gray-300"
+                            title="위로 이동"
+                            disabled={saving}
+                          >
+                            <ArrowUp className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => nudge(eq.id, "down")}
+                            className="rounded p-0.5 text-gray-600 hover:bg-gray-700 hover:text-gray-300"
+                            title="아래로 이동"
+                            disabled={saving}
+                          >
+                            <ArrowDown className="h-3 w-3" />
+                          </button>
+                        </div>
                       </td>
                       <td className="px-2 py-2">
                         <Link
@@ -277,17 +501,24 @@ function RackElevationInline({ rack }: { rack: RackData }) {
                           <span className="text-gray-600">-</span>
                         )}
                       </td>
-                      <td className="px-2 py-2 text-gray-400">
-                        {eq.manufacturer || "-"}
-                      </td>
                       <td className="px-2 py-2">
-                        <Link
-                          href={`/servers/${eq.id}`}
-                          className="text-blue-400 hover:text-blue-300"
-                          title={t("common.details")}
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </Link>
+                        <div className="flex items-center gap-1">
+                          <Link
+                            href={`/servers/${eq.id}`}
+                            className="text-blue-400 hover:text-blue-300"
+                            title={t("common.details")}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Link>
+                          <button
+                            onClick={() => removeFromRack(eq.id)}
+                            className="rounded p-0.5 text-gray-600 hover:text-red-400"
+                            title="랙에서 제거"
+                            disabled={saving}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -298,26 +529,157 @@ function RackElevationInline({ rack }: { rack: RackData }) {
             <p className="text-sm text-gray-500">{t("common.noData")}</p>
           )}
 
+          {/* Unpositioned equipment in this rack */}
           {unpositioned.length > 0 && (
             <div className="mt-4">
               <p className="mb-2 text-xs font-medium text-amber-400">
-                Unpositioned ({unpositioned.length})
+                위치 미지정 ({unpositioned.length})
               </p>
               <div className="flex flex-wrap gap-2">
                 {unpositioned.map((eq) => (
-                  <Link
+                  <div
                     key={eq.id}
-                    href={`/servers/${eq.id}`}
-                    className="rounded border border-amber-800/50 bg-amber-900/20 px-2 py-1 text-xs text-amber-300 transition-colors hover:bg-amber-900/40"
+                    draggable
+                    onDragStart={() => handleDragStart(eq.id)}
+                    onDragEnd={handleDragEnd}
+                    className="flex cursor-grab items-center gap-1 rounded border border-amber-800/50 bg-amber-900/20 px-2 py-1 text-xs text-amber-300 transition-colors hover:bg-amber-900/40 active:cursor-grabbing"
                   >
+                    <GripVertical className="h-3 w-3" />
                     {eq.hostname || eq.type}
-                  </Link>
+                  </div>
                 ))}
               </div>
+              <p className="mt-1 text-[10px] text-gray-500">
+                드래그하여 랙 슬롯에 배치하세요
+              </p>
             </div>
+          )}
+
+          {/* Add Equipment Panel */}
+          {showAddPanel && (
+            <AddEquipmentPanel
+              unrackedEquipment={unrackedEquipment}
+              loading={loadingUnracked}
+              rack={rack}
+              localEquipment={localEquipment}
+              onAdd={addEquipmentToRack}
+              onClose={() => setShowAddPanel(false)}
+              saving={saving}
+            />
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ── Add Equipment Panel ── */
+
+function AddEquipmentPanel({
+  unrackedEquipment,
+  loading,
+  rack,
+  localEquipment,
+  onAdd,
+  onClose,
+  saving,
+}: {
+  unrackedEquipment: EquipmentItem[];
+  loading: boolean;
+  rack: RackData;
+  localEquipment: EquipmentItem[];
+  onAdd: (id: string, pos: number, height: number) => void;
+  onClose: () => void;
+  saving: boolean;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [targetPosition, setTargetPosition] = useState<string>("");
+
+  const selected = unrackedEquipment.find((e) => e.id === selectedId);
+
+  const firstAvailable = (): number => {
+    for (let pos = 1; pos <= rack.totalUnits; pos++) {
+      if (canPlace(localEquipment, pos, selected?.rackHeight || 1, rack.totalUnits)) return pos;
+    }
+    return 1;
+  };
+
+  const handleAdd = () => {
+    if (!selectedId) return;
+    const pos = targetPosition ? parseInt(targetPosition) : firstAvailable();
+    onAdd(selectedId, pos, selected?.rackHeight || 1);
+    setSelectedId(null);
+    setTargetPosition("");
+  };
+
+  return (
+    <div className="mt-4 rounded-lg border border-blue-800/50 bg-blue-900/10 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h5 className="text-sm font-semibold text-blue-300">미배치 장비 추가</h5>
+        <button onClick={onClose} className="text-gray-500 hover:text-gray-300">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="text-xs text-gray-500">로딩중...</p>
+      ) : unrackedEquipment.length === 0 ? (
+        <p className="text-xs text-gray-500">미배치 장비가 없습니다</p>
+      ) : (
+        <>
+          <div className="mb-3 max-h-48 space-y-1 overflow-y-auto">
+            {unrackedEquipment.map((eq) => (
+              <button
+                key={eq.id}
+                onClick={() => setSelectedId(eq.id)}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded px-3 py-2 text-left text-xs transition-colors",
+                  selectedId === eq.id
+                    ? "bg-blue-600/20 border border-blue-600 text-blue-200"
+                    : "border border-transparent text-gray-300 hover:bg-gray-800",
+                )}
+              >
+                <Server className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                <span className="font-medium">{eq.hostname || eq.type}</span>
+                {eq.ipAddress && (
+                  <span className="font-mono text-gray-500">{eq.ipAddress}</span>
+                )}
+                <StatusBadge status={eq.status} />
+                <span className="ml-auto text-gray-600">{eq.rackHeight}U</span>
+              </button>
+            ))}
+          </div>
+
+          {selectedId && (
+            <div className="flex items-center gap-3 border-t border-gray-800 pt-3">
+              <span className="text-xs text-gray-400">
+                {selected?.hostname || selected?.type}
+              </span>
+              <div className="flex items-center gap-1">
+                <label className="text-xs text-gray-500">U위치:</label>
+                <input
+                  type="number"
+                  className="w-16 rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200"
+                  value={targetPosition}
+                  onChange={(e) => setTargetPosition(e.target.value)}
+                  placeholder={`${firstAvailable()}`}
+                  min={1}
+                  max={rack.totalUnits}
+                />
+              </div>
+              <Button
+                size="sm"
+                className="text-xs"
+                onClick={handleAdd}
+                disabled={saving}
+              >
+                <Plus className="mr-1 h-3 w-3" />
+                배치
+              </Button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -334,11 +696,16 @@ export function RacksPageClient({
   roomCount,
 }: RacksClientProps) {
   const t = useT();
+  const router = useRouter();
   const [expandedRack, setExpandedRack] = useState<string | null>(null);
 
   const toggleRack = (rackId: string) => {
     setExpandedRack((prev) => (prev === rackId ? null : rackId));
   };
+
+  const handleEquipmentMoved = useCallback(() => {
+    router.refresh();
+  }, [router]);
 
   return (
     <div className="space-y-6">
@@ -349,7 +716,11 @@ export function RacksPageClient({
         accent="purple"
         right={
           <Link href="/racks/manage">
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
               <Settings2 className="h-4 w-4" />
               {t("rackManage.manage")}
             </Button>
@@ -432,7 +803,6 @@ export function RacksPageClient({
                           : "hover:border-gray-600",
                       )}
                     >
-                      {/* Rack Card Header -- clickable to expand */}
                       <div
                         className="cursor-pointer p-4"
                         onClick={() => toggleRack(rack.id)}
@@ -452,7 +822,6 @@ export function RacksPageClient({
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            {/* Digital Twin link */}
                             <Link
                               href={`/servers?rack=${rack.id}`}
                               onClick={(e) => e.stopPropagation()}
@@ -467,7 +836,6 @@ export function RacksPageClient({
                                 Digital Twin
                               </Button>
                             </Link>
-                            {/* Expand/Collapse toggle */}
                             <button
                               className="rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-700 hover:text-gray-200"
                               title={isExpanded ? "Collapse" : "Expand"}
@@ -481,7 +849,6 @@ export function RacksPageClient({
                           </div>
                         </div>
 
-                        {/* Utilization bar */}
                         <div className="mt-3">
                           <div className="flex items-center justify-between text-xs text-gray-400">
                             <span>
@@ -506,7 +873,6 @@ export function RacksPageClient({
                           </div>
                         </div>
 
-                        {/* Equipment breakdown */}
                         <div className="mt-3 flex items-center gap-3 text-xs">
                           <span className="text-gray-400">
                             {rack.equipment.length} devices
@@ -530,10 +896,12 @@ export function RacksPageClient({
                         )}
                       </div>
 
-                      {/* Expanded Detail: Rack Elevation + Equipment Table */}
                       {isExpanded && (
                         <div className="border-t border-gray-700 px-4 pb-4">
-                          <RackElevationInline rack={rack} />
+                          <RackElevationInline
+                            rack={rack}
+                            onEquipmentMoved={handleEquipmentMoved}
+                          />
                         </div>
                       )}
                     </Card>
