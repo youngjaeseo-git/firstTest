@@ -112,6 +112,15 @@ export default async function ServerDetailPage({
                 <p className="text-[10px] text-gray-500">{equipment.cpus[0].architecture}</p>
               )}
             </div>
+            {(equipment.osType || equipment.osVersion) && (
+              <div>
+                <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">OS</p>
+                <p className="mt-1 text-gray-200">{equipment.osType || "-"}</p>
+                {equipment.osVersion && (
+                  <p className="text-[10px] text-gray-500">{equipment.osVersion}</p>
+                )}
+              </div>
+            )}
             <div>
               <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Memory</p>
               <p className="mt-1 text-gray-200">{totalMemoryGb} GB</p>

@@ -246,7 +246,7 @@ function RackElevationInline({
       const res = await fetch("/api/equipment?unracked=true&limit=200");
       if (res.ok) {
         const data = await res.json();
-        const items = (data.equipment || data).map(
+        const items = (data.items || data.equipment || data).map(
           (e: Record<string, unknown>) => ({
             id: e.id as string,
             hostname: e.hostname as string | null,

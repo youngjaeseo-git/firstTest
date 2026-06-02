@@ -327,23 +327,32 @@ export function RackManageClient({ rooms: initialRooms }: Props) {
             <div className="flex items-center justify-between border-b border-gray-800 bg-gray-900/50 px-4 py-3">
               {editingRoom === room.id ? (
                 <div className="flex flex-1 items-center gap-3">
-                  <input
-                    className={cn(inputSmCls, "max-w-[200px]")}
-                    value={editRoomData.name}
-                    onChange={(e) => setEditRoomData({ ...editRoomData, name: e.target.value })}
-                  />
-                  <input
-                    className={cn(inputSmCls, "max-w-[200px]")}
-                    value={editRoomData.description}
-                    onChange={(e) => setEditRoomData({ ...editRoomData, description: e.target.value })}
-                    placeholder={t("rackManage.description")}
-                  />
-                  <input
-                    type="number"
-                    className={cn(inputSmCls, "w-20")}
-                    value={editRoomData.sortOrder}
-                    onChange={(e) => setEditRoomData({ ...editRoomData, sortOrder: parseInt(e.target.value) || 0 })}
-                  />
+                  <div>
+                    <span className="text-[10px] text-gray-500">이름</span>
+                    <input
+                      className={cn(inputSmCls, "max-w-[200px]")}
+                      value={editRoomData.name}
+                      onChange={(e) => setEditRoomData({ ...editRoomData, name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-500">설명</span>
+                    <input
+                      className={cn(inputSmCls, "max-w-[200px]")}
+                      value={editRoomData.description}
+                      onChange={(e) => setEditRoomData({ ...editRoomData, description: e.target.value })}
+                      placeholder={t("rackManage.description")}
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-500">순서 (작을수록 먼저)</span>
+                    <input
+                      type="number"
+                      className={cn(inputSmCls, "w-20")}
+                      value={editRoomData.sortOrder}
+                      onChange={(e) => setEditRoomData({ ...editRoomData, sortOrder: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
                   <button
                     onClick={() => updateRoom(room.id)}
                     disabled={busy}
@@ -366,6 +375,9 @@ export function RackManageClient({ rooms: initialRooms }: Props) {
                     {room.description && (
                       <span className="text-xs text-gray-500">— {room.description}</span>
                     )}
+                    <span className="rounded-full bg-gray-700/50 px-1.5 py-0.5 text-[10px] text-gray-500" title="표시 순서">
+                      #{room.sortOrder}
+                    </span>
                     <span className="rounded-full bg-blue-600/20 px-2 py-0.5 text-[10px] font-medium text-blue-400">
                       {room.racks.length} racks
                     </span>
