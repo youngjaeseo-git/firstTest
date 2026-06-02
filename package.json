@@ -14,6 +14,7 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed-alerts": "tsx prisma/seed-alerts.ts",
     "db:studio": "prisma studio"
   },
   "prisma": {

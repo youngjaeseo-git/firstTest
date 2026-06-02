@@ -23,10 +23,9 @@ export default async function DashboardPage() {
   const lab3Where = { ipAddress: { startsWith: "10.144.131." } };
 
   const [
-    totalEquipment,
-    activeEquipmentCount,
-    maintenanceCount,
-    failedCount,
+    statusBreakdown,
+    lab1StatusBreakdown,
+    lab3StatusBreakdown,
     maintenanceEquipmentList,
     failedEquipmentList,
     activeEquipmentList,
@@ -34,22 +33,23 @@ export default async function DashboardPage() {
     totalRooms,
     firingAlerts,
     recentAlerts,
-    statusBreakdown,
-    lab1Active,
-    lab1Maintenance,
-    lab1Failed,
-    lab3Active,
-    lab3Maintenance,
-    lab3Failed,
     equipmentMapping,
     allEquipmentForPlatform,
   ] = await Promise.all([
-    prisma.equipment.count(),
-    prisma.equipment.count({ where: { status: "ACTIVE" } }),
-    prisma.equipment.count({
-      where: { status: { in: ["MAINTENANCE", "REPAIR"] } },
+    prisma.equipment.groupBy({
+      by: ["status"],
+      _count: true,
     }),
-    prisma.equipment.count({ where: { status: "FAILED" } }),
+    prisma.equipment.groupBy({
+      by: ["status"],
+      where: lab1Where,
+      _count: true,
+    }),
+    prisma.equipment.groupBy({
+      by: ["status"],
+      where: lab3Where,
+      _count: true,
+    }),
     prisma.equipment.findMany({
       where: { status: { in: ["MAINTENANCE", "REPAIR"] } },
       select: {
@@ -88,16 +88,6 @@ export default async function DashboardPage() {
       orderBy: { firedAt: "desc" },
       take: 5,
     }),
-    prisma.equipment.groupBy({
-      by: ["status"],
-      _count: true,
-    }),
-    prisma.equipment.count({ where: { status: "ACTIVE", ...lab1Where } }),
-    prisma.equipment.count({ where: { status: { in: ["MAINTENANCE", "REPAIR"] }, ...lab1Where } }),
-    prisma.equipment.count({ where: { status: "FAILED", ...lab1Where } }),
-    prisma.equipment.count({ where: { status: "ACTIVE", ...lab3Where } }),
-    prisma.equipment.count({ where: { status: { in: ["MAINTENANCE", "REPAIR"] }, ...lab3Where } }),
-    prisma.equipment.count({ where: { status: "FAILED", ...lab3Where } }),
     prisma.equipment.findMany({
       where: { ipAddress: { not: null } },
       select: { hostname: true, ipAddress: true },
@@ -107,6 +97,30 @@ export default async function DashboardPage() {
       select: { hostname: true, model: true, status: true },
     }),
   ]);
+
+  // Derive counts from groupBy results
+  function countFromGroupBy(
+    groups: { status: string; _count: number }[],
+    statuses: string | string[],
+  ): number {
+    const arr = Array.isArray(statuses) ? statuses : [statuses];
+    return groups
+      .filter((g) => arr.includes(g.status))
+      .reduce((sum, g) => sum + g._count, 0);
+  }
+
+  const totalEquipment = statusBreakdown.reduce((sum, g) => sum + g._count, 0);
+  const activeEquipmentCount = countFromGroupBy(statusBreakdown, "ACTIVE");
+  const maintenanceCount = countFromGroupBy(statusBreakdown, ["MAINTENANCE", "REPAIR"]);
+  const failedCount = countFromGroupBy(statusBreakdown, "FAILED");
+
+  const lab1Active = countFromGroupBy(lab1StatusBreakdown, "ACTIVE");
+  const lab1Maintenance = countFromGroupBy(lab1StatusBreakdown, ["MAINTENANCE", "REPAIR"]);
+  const lab1Failed = countFromGroupBy(lab1StatusBreakdown, "FAILED");
+
+  const lab3Active = countFromGroupBy(lab3StatusBreakdown, "ACTIVE");
+  const lab3Maintenance = countFromGroupBy(lab3StatusBreakdown, ["MAINTENANCE", "REPAIR"]);
+  const lab3Failed = countFromGroupBy(lab3StatusBreakdown, "FAILED");
 
   function detectPlatform(hostname: string | null, model: string | null): string {
     const h = (hostname || "").toLowerCase();
