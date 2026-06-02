@@ -405,7 +405,8 @@ export default function EditEquipmentPage() {
                 </div>
                 <div>
                   <label className={labelClass}>U Position</label>
-                  <input type="number" className={inputClass} value={rackPosition} onChange={(e) => setRackPosition(e.target.value ? parseInt(e.target.value) : "")} min={1} max={selectedRack?.totalUnits || 42} disabled={!selectedRackId} />
+                  <input type="number" className={inputClass} value={rackPosition} onChange={(e) => setRackPosition(e.target.value ? parseInt(e.target.value) : "")} min={1} max={selectedRack?.totalUnits || 42} disabled={!selectedRackId} placeholder={selectedRackId ? `1 ~ ${selectedRack?.totalUnits || 42}` : ""} />
+                  <p className="mt-1 text-[11px] text-gray-500">1 = 랙 맨 아래, {selectedRack?.totalUnits || 42} = 맨 위</p>
                 </div>
                 <div>
                   <label className={labelClass}>Height (U)</label>

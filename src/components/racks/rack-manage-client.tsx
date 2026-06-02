@@ -397,12 +397,12 @@ export function RackManageClient({ rooms: initialRooms }: Props) {
                   <tr className="border-b border-gray-800 text-left text-xs text-gray-500">
                     <th className="px-4 py-2 font-medium">{t("rackManage.rackName")}</th>
                     <th className="px-3 py-2 font-medium">Row</th>
-                    <th className="px-3 py-2 font-medium">X</th>
-                    <th className="px-3 py-2 font-medium">Y</th>
+                    <th className="px-3 py-2 font-medium" title="평면도 가로 좌표 (왼쪽=0)">X</th>
+                    <th className="px-3 py-2 font-medium" title="평면도 세로 좌표 (위=0)">Y</th>
                     <th className="px-3 py-2 font-medium">Units</th>
                     <th className="px-3 py-2 font-medium">Power (W)</th>
-                    <th className="px-3 py-2 font-medium">{t("rackManage.sortOrder")}</th>
-                    <th className="px-3 py-2 font-medium">{t("rackManage.devices")}</th>
+                    <th className="px-3 py-2 font-medium" title="목록 표시 순서 (작을수록 먼저)">{t("rackManage.sortOrder")}</th>
+                    <th className="px-3 py-2 font-medium" title="이 랙에 배치된 장비 수">{t("rackManage.devices")}</th>
                     <th className="px-3 py-2 font-medium" />
                   </tr>
                 </thead>
