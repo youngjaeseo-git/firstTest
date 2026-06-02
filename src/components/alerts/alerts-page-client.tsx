@@ -11,7 +11,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
-import { X, Check, CheckCheck } from "lucide-react";
+import { X, Check, CheckCheck, Trash2 } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
 import { useToast } from "@/components/ui/toast";
 
@@ -36,9 +36,10 @@ interface AlertRow {
 interface AlertsPageClientProps {
   alerts: AlertRow[];
   canAcknowledge?: boolean;
+  isAdmin?: boolean;
 }
 
-export function AlertsPageClient({ alerts, canAcknowledge = false }: AlertsPageClientProps) {
+export function AlertsPageClient({ alerts, canAcknowledge = false, isAdmin = false }: AlertsPageClientProps) {
   const t = useT();
   const router = useRouter();
   const { toast } = useToast();
@@ -71,6 +72,46 @@ export function AlertsPageClient({ alerts, canAcknowledge = false }: AlertsPageC
       setProcessing(null);
     }
   }
+
+  async function handleDelete(alertId: string) {
+    if (!confirm(t("alerts.deleteConfirm"))) return;
+    setProcessing(alertId);
+    try {
+      const res = await fetch(`/api/alerts/delete?id=${alertId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast({ type: "error", title: body.error || t("common.serverError") });
+        return;
+      }
+      toast({ type: "success", title: t("alerts.deleted") });
+      router.refresh();
+    } catch {
+      toast({ type: "error", title: t("common.serverError") });
+    } finally {
+      setProcessing(null);
+    }
+  }
+
+  async function handleDeleteResolved() {
+    if (!confirm(t("alerts.deleteResolvedConfirm"))) return;
+    setBulkDeleting(true);
+    try {
+      const res = await fetch("/api/alerts/delete?status=RESOLVED", { method: "DELETE" });
+      if (!res.ok) {
+        toast({ type: "error", title: t("common.serverError") });
+        return;
+      }
+      const data = await res.json();
+      toast({ type: "success", title: `${data.deleted}${t("alerts.deletedCount")}` });
+      router.refresh();
+    } catch {
+      toast({ type: "error", title: t("common.serverError") });
+    } finally {
+      setBulkDeleting(false);
+    }
+  }
+
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Category counts (computed from all alerts, not filtered)
   const OTHER_LABEL = t("alerts.categoryOther");
@@ -206,6 +247,16 @@ export function AlertsPageClient({ alerts, canAcknowledge = false }: AlertsPageC
             {t("alerts.clearFilters")}
           </button>
         )}
+        {isAdmin && resolved > 0 && (
+          <button
+            onClick={handleDeleteResolved}
+            disabled={bulkDeleting}
+            className="ml-auto flex items-center gap-1 rounded-full border border-red-800/50 bg-red-900/20 px-3 py-1 text-xs text-red-400 transition-colors hover:bg-red-900/40 disabled:opacity-50"
+          >
+            <Trash2 className="h-3 w-3" />
+            {t("alerts.deleteResolved")}
+          </button>
+        )}
       </div>
 
       {hasActiveFilter && (
@@ -311,6 +362,15 @@ export function AlertsPageClient({ alerts, canAcknowledge = false }: AlertsPageC
                               {t("ack.resolve")}
                             </button>
                           </div>
+                        )}
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDelete(alert.id)}
+                            disabled={processing === alert.id}
+                            className="mt-1 flex items-center gap-1 rounded border border-red-800/40 bg-red-900/10 px-2 py-1 text-xs text-red-400 hover:bg-red-900/30 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
                         )}
                       </div>
                     </div>

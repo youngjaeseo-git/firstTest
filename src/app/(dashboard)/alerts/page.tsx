@@ -13,6 +13,7 @@ import { Bell } from "lucide-react";
 export default async function AlertsPage() {
   const user = await getSessionUser();
   const canAck = user ? canAcknowledgeAlert(user.role) : false;
+  const isAdmin = user?.role === "ADMIN";
 
   const alerts = await prisma.alert.findMany({
     include: { rule: true, acknowledgement: { include: { user: { select: { name: true, email: true } } } } },
@@ -44,6 +45,7 @@ export default async function AlertsPage() {
           <AlertsPageClient
             alerts={JSON.parse(JSON.stringify(alerts))}
             canAcknowledge={canAck}
+            isAdmin={isAdmin}
           />
         </Suspense>
       </div>
