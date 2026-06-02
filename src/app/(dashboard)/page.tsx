@@ -100,7 +100,7 @@ export default async function DashboardPage() {
     }),
     prisma.expiryTracker.findMany({
       where: {
-        status: "ACTIVE",
+        status: { in: ["ACTIVE", "EXPIRED"] },
         expiresAt: { lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
       },
       orderBy: { expiresAt: "asc" },

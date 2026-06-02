@@ -31,12 +31,26 @@ export async function POST() {
       },
     });
 
+    // Match by every known address form: ipAddress, prometheusInstance host,
+    // and the linked Prometheus target instance host. node-exporter instances
+    // are "IP:port", so strip the port when indexing.
+    const hostOf = (s: string | null | undefined): string | null => {
+      if (!s) return null;
+      return s.split(":")[0] || null;
+    };
     const ipToEquipment = new Map<string, (typeof equipment)[0]>();
     for (const eq of equipment) {
-      if (eq.ipAddress) ipToEquipment.set(eq.ipAddress, eq);
+      for (const key of [
+        eq.ipAddress,
+        hostOf(eq.prometheusInstance),
+        hostOf(eq.prometheusTarget?.instance),
+      ]) {
+        if (key && !ipToEquipment.has(key)) ipToEquipment.set(key, eq);
+      }
     }
 
     let updated = 0;
+    const processed = new Set<string>();
     const details: { hostname: string | null; ip: string; osType: string; osVersion: string }[] = [];
 
     for (const entry of result.data.result) {
@@ -48,10 +62,11 @@ export async function POST() {
 
       const eq = ipToEquipment.get(ip);
       if (!eq) continue;
+      if (processed.has(eq.id)) continue; // same equipment matched by multiple keys
+      processed.add(eq.id);
 
       const sysname = labels.sysname || "";
       const release = labels.release || "";
-      const version = labels.version || "";
       const machine = labels.machine || "";
       const nodename = labels.nodename || "";
 

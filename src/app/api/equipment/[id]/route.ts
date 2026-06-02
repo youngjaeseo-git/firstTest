@@ -4,6 +4,7 @@ import { getSessionUser, canEdit, canDelete } from "@/lib/rbac";
 import { logAudit, diffShallow } from "@/lib/audit";
 import { parseBody } from "@/lib/api-validation";
 import { UpdateEquipmentSchema } from "@/lib/schemas/equipment";
+import { checkRackPlacement } from "@/lib/rack-placement";
 
 export async function GET(
   _req: NextRequest,
@@ -46,8 +47,38 @@ export async function PUT(
   const { cpus, memories: _memories, ...equipmentData } = parsed.data;
 
   const before = await prisma.equipment.findUnique({ where: { id } });
+  if (!before) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Resolve effective rack placement after merging the partial update with
+  // current values, then validate position/capacity/overlap server-side.
+  const data = equipmentData as Record<string, unknown>;
+  const effectiveRackId =
+    "rackId" in data ? (data.rackId as string | null) : before.rackId;
+  const effectiveRackPosition =
+    "rackPosition" in data
+      ? (data.rackPosition as number | null)
+      : before.rackPosition;
+  const effectiveRackHeight =
+    "rackHeight" in data ? (data.rackHeight as number) : before.rackHeight;
+
+  let conflictError: string | null = null;
 
   const equipment = await prisma.$transaction(async (tx) => {
+    if (effectiveRackId && effectiveRackPosition != null) {
+      const check = await checkRackPlacement(tx, {
+        rackId: effectiveRackId,
+        rackPosition: effectiveRackPosition,
+        rackHeight: effectiveRackHeight ?? 1,
+        excludeEquipmentId: id,
+      });
+      if (!check.ok) {
+        conflictError = check.error;
+        return null;
+      }
+    }
+
     if (cpus) {
       await tx.equipmentCpu.deleteMany({ where: { equipmentId: id } });
       if (cpus.length > 0) {
@@ -66,6 +97,13 @@ export async function PUT(
       include: { cpus: true, memories: true, rack: true },
     });
   });
+
+  if (conflictError || !equipment) {
+    return NextResponse.json(
+      { error: conflictError ?? "Update failed" },
+      { status: 409 },
+    );
+  }
 
   if (before) {
     const changes = diffShallow(

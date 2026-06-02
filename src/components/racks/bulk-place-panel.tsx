@@ -243,7 +243,9 @@ export function BulkPlacePanel({ racks }: BulkPlacePanelProps) {
                           updateRow(idx, "rackPosition", parseInt(e.target.value) || 1)
                         }
                         min={1}
-                        max={100}
+                        max={
+                          racks.find((r) => r.id === row.rackId)?.totalUnits ?? 100
+                        }
                       />
                     </td>
                     <td className="px-2 py-2">
@@ -254,7 +256,7 @@ export function BulkPlacePanel({ racks }: BulkPlacePanelProps) {
                           updateRow(idx, "rackHeight", parseInt(e.target.value))
                         }
                       >
-                        {[1, 2, 3, 4].map((h) => (
+                        {[1, 2, 3, 4, 6, 8, 10].map((h) => (
                           <option key={h} value={h}>
                             {h}U
                           </option>

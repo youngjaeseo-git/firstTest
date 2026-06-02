@@ -50,6 +50,15 @@ export async function PATCH(
     data,
   });
 
+  // When an item is renewed or dismissed, auto-resolve any open alert it raised
+  // so stale expiry alerts don't linger.
+  if (rest.status === "RENEWED" || rest.status === "DISMISSED") {
+    await prisma.alert.updateMany({
+      where: { source: `expiry:${id}`, status: { in: ["FIRING", "ACKNOWLEDGED"] } },
+      data: { status: "RESOLVED", resolvedAt: new Date() },
+    });
+  }
+
   return NextResponse.json(item);
 }
 
@@ -65,6 +74,12 @@ export async function DELETE(
   const { id } = await params;
 
   await prisma.expiryTracker.delete({ where: { id } });
+
+  // Resolve any open alert raised by this item.
+  await prisma.alert.updateMany({
+    where: { source: `expiry:${id}`, status: { in: ["FIRING", "ACKNOWLEDGED"] } },
+    data: { status: "RESOLVED", resolvedAt: new Date() },
+  });
 
   return NextResponse.json({ ok: true });
 }

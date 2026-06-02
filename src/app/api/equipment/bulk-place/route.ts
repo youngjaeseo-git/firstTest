@@ -168,20 +168,23 @@ export async function POST(req: NextRequest) {
 
     successCount = validPlacements.length;
 
-    // Log audit entries outside the transaction (audit failures should not roll back placements)
-    for (const placement of validPlacements) {
-      await logAudit({
-        userId: user.id,
-        action: "RACK_MOVE",
-        entityType: "Equipment",
-        entityId: placement.equipmentId,
-        changes: {
-          rackId: placement.rackId,
-          rackPosition: placement.rackPosition,
-          ...(placement.rackHeight !== undefined ? { rackHeight: placement.rackHeight } : {}),
-        },
-      });
-    }
+    // Log audit entries outside the transaction (audit failures must not turn a
+    // committed placement into a request error, so swallow per-entry failures).
+    await Promise.allSettled(
+      validPlacements.map((placement) =>
+        logAudit({
+          userId: user.id,
+          action: "RACK_MOVE",
+          entityType: "Equipment",
+          entityId: placement.equipmentId,
+          changes: {
+            rackId: placement.rackId,
+            rackPosition: placement.rackPosition,
+            ...(placement.rackHeight !== undefined ? { rackHeight: placement.rackHeight } : {}),
+          },
+        }),
+      ),
+    );
   }
 
   return NextResponse.json({ success: successCount, failed });
