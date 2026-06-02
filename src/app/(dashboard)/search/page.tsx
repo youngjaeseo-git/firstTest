@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
-import { Search, Filter, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Filter, X, ChevronDown, ChevronUp, MapPin } from "lucide-react";
+import { QuickPlaceModal } from "@/components/racks/quick-place-modal";
 
 interface Facet {
   value: string;
@@ -60,6 +61,7 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [placing, setPlacing] = useState<{ id: string; label: string } | null>(null);
 
   const doSearch = useCallback(async (q: string, f: Record<string, string>) => {
     setLoading(true);
@@ -277,7 +279,22 @@ export default function SearchPage() {
                       {eq.biosVersion || "-"}
                     </td>
                     <td className="py-2 pr-3 text-gray-500 text-xs">
-                      {eq.rack ? `${eq.rack.room.name} / ${eq.rack.name}` : "-"}
+                      {eq.rack ? (
+                        `${eq.rack.room.name} / ${eq.rack.name}`
+                      ) : (
+                        <button
+                          onClick={() =>
+                            setPlacing({
+                              id: eq.id,
+                              label: eq.hostname || eq.ipAddress || eq.id,
+                            })
+                          }
+                          className="flex items-center gap-1 rounded border border-blue-700/50 bg-blue-600/10 px-2 py-1 text-xs text-blue-300 transition-colors hover:bg-blue-600/20"
+                        >
+                          <MapPin className="h-3 w-3" />
+                          배치
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -291,6 +308,15 @@ export default function SearchPage() {
         <Card>
           <p className="text-center text-gray-500 py-8">검색 결과가 없습니다.</p>
         </Card>
+      )}
+
+      {placing && (
+        <QuickPlaceModal
+          equipmentId={placing.id}
+          equipmentLabel={placing.label}
+          onClose={() => setPlacing(null)}
+          onPlaced={() => doSearch(query, filters)}
+        />
       )}
     </div>
   );

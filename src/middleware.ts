@@ -8,6 +8,8 @@ export default withAuth({
 
 export const config = {
   matcher: [
-    "/((?!login|signup|api/auth|_next/static|_next/image|favicon.ico).*)",
+    // api/cron is excluded — it uses CRON_SECRET auth, not a user session,
+    // so an external scheduler can call it.
+    "/((?!login|signup|api/auth|api/cron|_next/static|_next/image|favicon.ico).*)",
   ],
 };

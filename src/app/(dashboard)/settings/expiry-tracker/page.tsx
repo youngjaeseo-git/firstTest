@@ -71,6 +71,7 @@ export default function ExpiryTrackerPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [collecting, setCollecting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
@@ -163,6 +164,31 @@ export default function ExpiryTrackerPage() {
     }
   };
 
+  const handleCollectCerts = async () => {
+    setCollecting(true);
+    try {
+      const res = await fetch("/api/expiry-tracker/collect-certs", { method: "POST" });
+      const result = await res.json();
+      if (res.ok) {
+        if (result.found === 0) {
+          toast({ type: "error", title: result.message || "인증서 메트릭을 찾지 못했습니다" });
+        } else {
+          toast({
+            type: "success",
+            title: `${result.metric}: ${result.created}개 등록, ${result.updated}개 갱신`,
+          });
+          fetchItems();
+        }
+      } else {
+        toast({ type: "error", title: result.error || "수집 실패" });
+      }
+    } catch {
+      toast({ type: "error", title: "수집 실패" });
+    } finally {
+      setCollecting(false);
+    }
+  };
+
   const startEdit = (item: ExpiryItem) => {
     setEditingId(item.id);
     setForm({
@@ -202,6 +228,15 @@ export default function ExpiryTrackerPage() {
         accent="blue"
         right={
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCollectCerts}
+              disabled={collecting}
+            >
+              <ShieldCheck className={`mr-1 h-4 w-4 ${collecting ? "animate-spin" : ""}`} />
+              인증서 자동 수집
+            </Button>
             <Button
               variant="outline"
               size="sm"

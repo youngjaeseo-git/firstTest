@@ -25,6 +25,7 @@ import {
   X,
   ArrowDown,
   ArrowUp,
+  Thermometer,
 } from "lucide-react";
 
 /* ── Types ── */
@@ -80,6 +81,28 @@ const statusColor: Record<string, string> = {
   DISPOSED: "bg-gray-700/30 border-gray-700 text-gray-500",
 };
 
+/* ── Temperature heatmap helpers ── */
+
+function tempColor(temp: number): string {
+  if (temp >= 75) return "bg-red-600/60 border-red-500 text-red-100";
+  if (temp >= 65) return "bg-orange-600/50 border-orange-500 text-orange-100";
+  if (temp >= 55) return "bg-amber-500/40 border-amber-500 text-amber-100";
+  if (temp >= 45) return "bg-yellow-500/30 border-yellow-600 text-yellow-100";
+  if (temp >= 35) return "bg-green-600/30 border-green-600 text-green-200";
+  return "bg-sky-600/30 border-sky-600 text-sky-200";
+}
+
+/** Look up an equipment's temperature by hostname first, then IP. */
+function lookupTemp(
+  temps: Record<string, number> | undefined,
+  eq: { hostname: string | null; ipAddress: string | null },
+): number | null {
+  if (!temps) return null;
+  if (eq.hostname && temps[eq.hostname] != null) return temps[eq.hostname];
+  if (eq.ipAddress && temps[eq.ipAddress] != null) return temps[eq.ipAddress];
+  return null;
+}
+
 /* ── Helper: check if position is available ── */
 
 function canPlace(
@@ -104,9 +127,13 @@ function canPlace(
 function RackElevationInline({
   rack,
   onEquipmentMoved,
+  temps,
+  heatmap,
 }: {
   rack: RackData;
   onEquipmentMoved?: () => void;
+  temps?: Record<string, number>;
+  heatmap?: boolean;
 }) {
   const t = useT();
   const { toast } = useToast();
@@ -314,7 +341,10 @@ function RackElevationInline({
               </span>
             </div>
             <div className="space-y-px">
-              {units.map(({ position, equipment, isStart }) => (
+              {units.map(({ position, equipment, isStart }) => {
+                const eqTemp = equipment ? lookupTemp(temps, equipment) : null;
+                const useHeat = heatmap && eqTemp != null;
+                return (
                 <div
                   key={position}
                   className="flex items-stretch gap-1"
@@ -334,8 +364,10 @@ function RackElevationInline({
                         draggingId === equipment.id
                           ? "opacity-50 ring-2 ring-blue-500"
                           : "hover:brightness-125 hover:shadow-lg",
-                        statusColor[equipment.status] ||
-                          "bg-gray-800 border-gray-700 text-gray-400",
+                        useHeat
+                          ? tempColor(eqTemp!)
+                          : statusColor[equipment.status] ||
+                              "bg-gray-800 border-gray-700 text-gray-400",
                       )}
                       style={{
                         height: `${equipment.rackHeight * 24 + (equipment.rackHeight - 1)}px`,
@@ -345,6 +377,11 @@ function RackElevationInline({
                       <span className="truncate font-mono">
                         {equipment.hostname || equipment.type}
                       </span>
+                      {heatmap && eqTemp != null && (
+                        <span className="ml-auto shrink-0 pl-1 font-mono font-semibold">
+                          {eqTemp}°
+                        </span>
+                      )}
                       <div className="pointer-events-none absolute left-full top-0 z-50 ml-2 hidden w-56 rounded-lg border border-gray-700 bg-gray-900 p-3 text-left text-xs shadow-xl group-hover/eq:block">
                         <p className="font-semibold text-gray-100">
                           {equipment.hostname || "(unnamed)"}
@@ -387,7 +424,8 @@ function RackElevationInline({
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -698,10 +736,29 @@ export function RacksPageClient({
   const t = useT();
   const router = useRouter();
   const [expandedRack, setExpandedRack] = useState<string | null>(null);
+  const [heatmap, setHeatmap] = useState(false);
+  const [temps, setTemps] = useState<Record<string, number>>({});
+  const [loadingTemps, setLoadingTemps] = useState(false);
 
   const toggleRack = (rackId: string) => {
     setExpandedRack((prev) => (prev === rackId ? null : rackId));
   };
+
+  const toggleHeatmap = useCallback(async () => {
+    const next = !heatmap;
+    setHeatmap(next);
+    if (next && Object.keys(temps).length === 0) {
+      setLoadingTemps(true);
+      try {
+        const res = await fetch("/api/metrics/node-temps");
+        if (res.ok) setTemps(await res.json());
+      } catch {
+        // leave temps empty; heatmap just shows no overlay
+      } finally {
+        setLoadingTemps(false);
+      }
+    }
+  }, [heatmap, temps]);
 
   const handleEquipmentMoved = useCallback(() => {
     router.refresh();
@@ -715,18 +772,50 @@ export function RacksPageClient({
         subtitle={`${t("rack.title")} - ${t("common.total")} ${totalRacks}`}
         accent="purple"
         right={
-          <Link href="/racks/manage">
+          <div className="flex items-center gap-2">
             <Button
-              variant="outline"
+              variant={heatmap ? "default" : "outline"}
               size="sm"
               className="flex items-center gap-2"
+              onClick={toggleHeatmap}
+              disabled={loadingTemps}
             >
-              <Settings2 className="h-4 w-4" />
-              {t("rackManage.manage")}
+              <Thermometer className={cn("h-4 w-4", loadingTemps && "animate-pulse")} />
+              온도 {heatmap ? "ON" : "OFF"}
             </Button>
-          </Link>
+            <Link href="/racks/manage">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Settings2 className="h-4 w-4" />
+                {t("rackManage.manage")}
+              </Button>
+            </Link>
+          </div>
         }
       />
+
+      {heatmap && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-800 bg-gray-900/40 px-4 py-2 text-xs">
+          <span className="font-medium text-gray-400">온도 범례:</span>
+          {[
+            ["<35°", "bg-sky-600/60"],
+            ["35-45°", "bg-green-600/60"],
+            ["45-55°", "bg-yellow-500/60"],
+            ["55-65°", "bg-amber-500/60"],
+            ["65-75°", "bg-orange-600/60"],
+            ["≥75°", "bg-red-600/70"],
+          ].map(([label, color]) => (
+            <div key={label} className="flex items-center gap-1">
+              <span className={cn("h-3 w-3 rounded-sm", color)} />
+              <span className="text-gray-500">{label}</span>
+            </div>
+          ))}
+          <span className="text-gray-600">· 랙을 펼치면 장비별 온도가 표시됩니다</span>
+        </div>
+      )}
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -901,6 +990,8 @@ export function RacksPageClient({
                           <RackElevationInline
                             rack={rack}
                             onEquipmentMoved={handleEquipmentMoved}
+                            temps={temps}
+                            heatmap={heatmap}
                           />
                         </div>
                       )}

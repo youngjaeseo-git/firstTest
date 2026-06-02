@@ -4,6 +4,24 @@
 
 - **명령어나 플레이스홀더에 꺽쇠 괄호(`<>`)를 절대 사용하지 않는다.** 실제 값을 넣거나, 설명으로 대체한다.
 
+## 검증 루틴 (코드 작성 후 필수)
+
+코드를 변경하면 작업 완료를 보고하기 전에 **반드시 전체 소스를 검증**한다. `tsc`와 단위 테스트만으로는 부족하다 — 이유와 절차는 아래와 같다.
+
+### 왜 tsc/test 통과 후에도 런타임 에러가 나는가
+
+- `npm run typecheck` (tsc): **타입/문법만** 검사. 런타임 동작은 모름.
+- `npm run test:run` (vitest): 존재하는 단위 테스트 7개 파일(약 58개)만 실행. 새 기능·React 렌더링·DB·Prometheus 연동은 **커버하지 않음**.
+- `npm run build` (next build): **컴파일 + Server/Client 경계 + import + RSC 직렬화**까지 검사 → tsc가 못 잡는 오류를 잡는다. 단, ISR 페이지(`/racks`, `/reports`)는 빌드 시 DB 프리렌더를 시도하므로 `DATABASE_URL`이 필요.
+- 그래도 못 잡는 것: 실제 데이터 형식 불일치, DB 마이그레이션 누락(`prisma db push`), Prometheus 응답 구조 → 회사망 배포 후 별도 확인 필요(아래 "검증 범위 명시" 참조).
+
+### 절차
+
+1. `npm run verify` — typecheck + lint + test:run. **DB 없이 항상 실행 가능**. 매 작업 후 기본.
+2. `npm run verify:full` — 위 + `next build`. **DATABASE_URL 필요**(회사 Docker 환경 또는 더미 값). 페이지/라우트 추가·구조 변경 시 실행.
+3. 스키마 변경 시: 서버에서 `npx prisma db push` 안내.
+4. 보고 시 "검증 통과 = 문법/빌드 통과"이며 **실제 데이터 연동은 회사망 확인 필요**임을 명시.
+
 ## Project Overview
 
 기존 Grafana 기반의 서버 모니터링(온도, PCIe bandwidth, 전력 등)을 대체하는

@@ -7,6 +7,20 @@ import { logAudit } from "@/lib/audit";
 import { parseBody } from "@/lib/api-validation";
 import { CreateRackSchema } from "@/lib/schemas/rack";
 
+export async function GET() {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const racks = await prisma.rack.findMany({
+    include: { room: { select: { name: true } } },
+    orderBy: [{ room: { sortOrder: "asc" } }, { sortOrder: "asc" }],
+  });
+
+  return NextResponse.json({ items: racks });
+}
+
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) {
