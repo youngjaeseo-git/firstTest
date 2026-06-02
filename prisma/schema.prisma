@@ -540,3 +540,41 @@ model EvalNote {
 
   @@index([projectId])
 }
+
+// ============================================
+// Expiry Tracking (Certificates, Licenses, etc.)
+// ============================================
+
+model ExpiryTracker {
+  id          String       @id @default(cuid())
+  name        String
+  category    ExpiryCategory
+  description String?
+  expiresAt   DateTime
+  notifyDays  Int          @default(30)  // days before expiry to alert
+  status      ExpiryStatus @default(ACTIVE)
+  source      String?      // e.g., "K8s API Server", "equipment hostname"
+  metadata    Json?        // extra info like cert CN, issuer
+  createdBy   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([expiresAt])
+  @@index([category])
+}
+
+enum ExpiryCategory {
+  K8S_CERTIFICATE
+  TLS_CERTIFICATE
+  LICENSE
+  WARRANTY
+  DOMAIN
+  CUSTOM
+}
+
+enum ExpiryStatus {
+  ACTIVE
+  EXPIRED
+  RENEWED
+  DISMISSED
+}

@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { getSessionUser, canEdit } from "@/lib/rbac";
 import { redirect } from "next/navigation";
 import { RackManageClient } from "@/components/racks/rack-manage-client";
+import { BulkPlacePanel } from "@/components/racks/bulk-place-panel";
+import { RackManageTabs } from "@/components/racks/rack-manage-tabs";
 
 export default async function RackManagePage() {
   const user = await getSessionUser();
@@ -37,5 +39,19 @@ export default async function RackManagePage() {
     })),
   }));
 
-  return <RackManageClient rooms={serialized} />;
+  const rackOptions = rooms.flatMap((r) =>
+    r.racks.map((rack) => ({
+      id: rack.id,
+      name: rack.name,
+      roomName: r.name,
+      totalUnits: rack.totalUnits,
+    })),
+  );
+
+  return (
+    <RackManageTabs
+      manageTab={<RackManageClient rooms={serialized} />}
+      bulkTab={<BulkPlacePanel racks={rackOptions} />}
+    />
+  );
 }

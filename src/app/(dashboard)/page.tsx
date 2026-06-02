@@ -16,6 +16,7 @@ import {
   Server,
   Building2,
   Radar,
+  ShieldCheck,
 } from "lucide-react";
 
 export default async function DashboardPage() {
@@ -35,6 +36,7 @@ export default async function DashboardPage() {
     recentAlerts,
     equipmentMapping,
     allEquipmentForPlatform,
+    expiringItems,
   ] = await Promise.all([
     prisma.equipment.groupBy({
       by: ["status"],
@@ -95,6 +97,14 @@ export default async function DashboardPage() {
     prisma.equipment.findMany({
       where: { type: "SERVER" },
       select: { hostname: true, model: true, status: true },
+    }),
+    prisma.expiryTracker.findMany({
+      where: {
+        status: "ACTIVE",
+        expiresAt: { lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
+      },
+      orderBy: { expiresAt: "asc" },
+      take: 5,
     }),
   ]);
 
@@ -273,8 +283,8 @@ export default async function DashboardPage() {
             </Card>
           </div>
 
-          {/* Recent Alerts Feed */}
-          <div>
+          {/* Alerts + Expiry Feed */}
+          <div className="space-y-6">
             <Card>
               <SectionHeading
                 icon={Bell}
@@ -334,6 +344,59 @@ export default async function DashboardPage() {
                 </div>
               )}
             </Card>
+
+            {/* Expiry Widget */}
+            {expiringItems.length > 0 && (
+              <Card>
+                <SectionHeading
+                  icon={ShieldCheck}
+                  title="만기 임박"
+                  accent="amber"
+                  right={
+                    <Link
+                      href="/settings/expiry-tracker"
+                      className="text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      전체 보기 →
+                    </Link>
+                  }
+                />
+                <div className="space-y-2">
+                  {expiringItems.map((item) => {
+                    const days = Math.ceil(
+                      (new Date(item.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+                    );
+                    const isExpired = days < 0;
+                    return (
+                      <div
+                        key={item.id}
+                        className={`rounded-lg border-l-2 p-3 ${
+                          isExpired || days <= 7
+                            ? "border-l-red-500 bg-red-500/5"
+                            : "border-l-amber-500 bg-amber-500/5"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-200">{item.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {item.source || item.category}
+                            </p>
+                          </div>
+                          <span
+                            className={`text-sm font-bold ${
+                              isExpired ? "text-red-400" : days <= 7 ? "text-red-400" : "text-amber-400"
+                            }`}
+                          >
+                            {isExpired ? "만료" : `D-${days}`}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
           </div>
         </div>
       </div>

@@ -9,6 +9,7 @@ import {
   Bell,
   Cpu,
   Stethoscope,
+  ShieldCheck,
   Settings as SettingsIcon,
 } from "lucide-react";
 
@@ -43,6 +44,13 @@ export default async function SettingsPage() {
       title: "Prometheus 진단",
       description: "설정 문제 감지: 중복 스크래핑, 고아 타겟, IP 전용 타겟",
       icon: Stethoscope,
+      adminOnly: false,
+    },
+    {
+      href: "/settings/expiry-tracker",
+      title: "만기 관리",
+      description: "인증서, 라이선스, 보증 만기일 추적 및 자동 알림",
+      icon: ShieldCheck,
       adminOnly: false,
     },
     {
