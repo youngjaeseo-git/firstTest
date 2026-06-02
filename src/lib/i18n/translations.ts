@@ -441,6 +441,19 @@ export const translations: Record<Language, Record<string, string>> = {
     "discovery.searchPlaceholder": "Search IP or hostname...",
     "discovery.targets": "Targets",
 
+    // ── Rack Management ──
+    "rackManage.title": "Rack Management",
+    "rackManage.subtitle": "Create, edit, and position racks within rooms",
+    "rackManage.backToRacks": "Back to Racks",
+    "rackManage.addRoom": "Add Room",
+    "rackManage.addRack": "Add Rack",
+    "rackManage.roomName": "Room Name",
+    "rackManage.rackName": "Rack Name",
+    "rackManage.description": "Description",
+    "rackManage.sortOrder": "Order",
+    "rackManage.devices": "Devices",
+    "rackManage.manage": "Manage",
+
     // ── Settings / Users ──
     "settings.usersDesc": "Manage system user accounts and roles.",
     "settings.addUser": "+ Add User",
@@ -930,6 +943,19 @@ export const translations: Record<Language, Record<string, string>> = {
     "discovery.notLinked": "미연결",
     "discovery.searchPlaceholder": "IP 또는 호스트명 검색...",
     "discovery.targets": "타겟",
+
+    // ── Rack Management ──
+    "rackManage.title": "랙 관리",
+    "rackManage.subtitle": "룸 내 랙 생성, 수정, 위치 설정",
+    "rackManage.backToRacks": "랙 목록으로",
+    "rackManage.addRoom": "Room 추가",
+    "rackManage.addRack": "랙 추가",
+    "rackManage.roomName": "Room 이름",
+    "rackManage.rackName": "랙 이름",
+    "rackManage.description": "설명",
+    "rackManage.sortOrder": "순서",
+    "rackManage.devices": "장비",
+    "rackManage.manage": "관리",
 
     // ── Settings / Users ──
     "settings.usersDesc": "시스템 사용자 계정 및 역할을 관리합니다.",

@@ -17,6 +17,7 @@ import {
   ChevronUp,
   ExternalLink,
   Eye,
+  Settings2,
 } from "lucide-react";
 
 /* ── Types ── */
@@ -346,6 +347,14 @@ export function RacksPageClient({
         title={t("nav.racks")}
         subtitle={`${t("rack.title")} - ${t("common.total")} ${totalRacks}`}
         accent="purple"
+        right={
+          <Link href="/racks/manage">
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4" />
+              {t("rackManage.manage")}
+            </Button>
+          </Link>
+        }
       />
 
       {/* Summary */}
