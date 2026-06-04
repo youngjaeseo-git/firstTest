@@ -36,7 +36,6 @@ export default async function DashboardPage() {
     recentAlerts,
     equipmentMapping,
     allEquipmentForPlatform,
-    expiringItems,
   ] = await Promise.all([
     prisma.equipment.groupBy({
       by: ["status"],
@@ -98,15 +97,22 @@ export default async function DashboardPage() {
       where: { type: "SERVER" },
       select: { hostname: true, model: true, status: true },
     }),
-    prisma.expiryTracker.findMany({
+  ]);
+
+  // ExpiryTracker may not exist if DB migration hasn't run yet
+  let expiringItems: { id: string; name: string; expiresAt: Date; category: string; source: string | null }[] = [];
+  try {
+    expiringItems = await prisma.expiryTracker.findMany({
       where: {
         status: { in: ["ACTIVE", "EXPIRED"] },
         expiresAt: { lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
       },
       orderBy: { expiresAt: "asc" },
       take: 5,
-    }),
-  ]);
+    });
+  } catch {
+    // table doesn't exist yet — skip
+  }
 
   // Derive counts from groupBy results
   function countFromGroupBy(
