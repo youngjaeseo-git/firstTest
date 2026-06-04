@@ -280,7 +280,9 @@ export default function WorkloadsPage() {
         </div>
 
         {tab === "active" && (
-          <ActiveTab groups={groups} loading={loading} />
+          <ActiveTab groups={groups} loading={loading} archivedProjects={allProjects.filter(
+            (p) => p.namespace && !groups.some((g) => g.namespace === p.namespace)
+          )} />
         )}
 
         {tab === "history" && (
@@ -292,12 +294,20 @@ export default function WorkloadsPage() {
 }
 
 /* ─── Active Tab ─── */
-function ActiveTab({ groups, loading }: { groups: WorkloadGroup[]; loading: boolean }) {
+function ActiveTab({ groups, loading, archivedProjects }: { groups: WorkloadGroup[]; loading: boolean; archivedProjects: EvalProject[] }) {
+  const archivedNs = new Map<string, EvalProject[]>();
+  archivedProjects.forEach((p) => {
+    if (!p.namespace) return;
+    const list = archivedNs.get(p.namespace) || [];
+    list.push(p);
+    archivedNs.set(p.namespace, list);
+  });
+
   if (loading) {
     return <Card><p className="text-gray-500 text-sm text-center py-8">Loading...</p></Card>;
   }
 
-  if (groups.length === 0) {
+  if (groups.length === 0 && archivedNs.size === 0) {
     return (
       <Card>
         <EmptyState className="py-12" />
@@ -306,58 +316,105 @@ function ActiveTab({ groups, loading }: { groups: WorkloadGroup[]; loading: bool
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {groups.map((g) => {
-        const style = HEALTH_STYLES[g.worstHealth];
-        return (
-          <Link
-            key={g.namespace}
-            href={`/workloads/${encodeURIComponent(g.namespace)}`}
-            className={cn(
-              "group rounded-xl border p-4 transition-all hover:shadow-lg",
-              g.worstHealth === "error"
-                ? "border-red-500/40 bg-red-500/5 hover:border-red-500/60"
-                : g.worstHealth === "warning"
-                  ? "border-orange-500/40 bg-orange-500/5 hover:border-orange-500/60"
-                  : g.worstHealth === "pending"
-                    ? "border-yellow-500/30 bg-yellow-500/5 hover:border-yellow-500/50"
-                    : "border-gray-800 bg-gray-900/50 hover:border-violet-500/30",
-            )}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className={cn("h-2.5 w-2.5 rounded-full", style.dot)} />
-                <span className={cn("font-mono text-sm font-semibold", style.text)}>
-                  {g.namespace}
-                </span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-gray-600 group-hover:text-gray-400 transition-colors" />
-            </div>
-            <div className="flex items-center gap-3 text-xs text-gray-400 mb-3">
-              <span className="flex items-center gap-1">
-                <FlaskConical className="h-3 w-3" />
-                {g.pods.length} pod{g.pods.length > 1 ? "s" : ""}
-              </span>
-              <span className="flex items-center gap-1">
-                <Server className="h-3 w-3" />
-                {g.nodes.length} node{g.nodes.length !== 1 ? "s" : ""}
-              </span>
-            </div>
-            {g.pods[0] && (
-              <div className="flex items-center gap-3 text-[11px] text-gray-500">
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {g.pods[0].createdDate || "-"}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {formatAge(Math.max(...g.pods.map((p) => p.ageSeconds)))}
-                </span>
-              </div>
-            )}
-          </Link>
-        );
-      })}
+    <div className="space-y-6">
+      {groups.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {groups.map((g) => {
+            const style = HEALTH_STYLES[g.worstHealth];
+            return (
+              <Link
+                key={g.namespace}
+                href={`/workloads/${encodeURIComponent(g.namespace)}`}
+                className={cn(
+                  "group rounded-xl border p-4 transition-all hover:shadow-lg",
+                  g.worstHealth === "error"
+                    ? "border-red-500/40 bg-red-500/5 hover:border-red-500/60"
+                    : g.worstHealth === "warning"
+                      ? "border-orange-500/40 bg-orange-500/5 hover:border-orange-500/60"
+                      : g.worstHealth === "pending"
+                        ? "border-yellow-500/30 bg-yellow-500/5 hover:border-yellow-500/50"
+                        : "border-gray-800 bg-gray-900/50 hover:border-violet-500/30",
+                )}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className={cn("h-2.5 w-2.5 rounded-full", style.dot)} />
+                    <span className={cn("font-mono text-sm font-semibold", style.text)}>
+                      {g.namespace}
+                    </span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-gray-600 group-hover:text-gray-400 transition-colors" />
+                </div>
+                <div className="flex items-center gap-3 text-xs text-gray-400 mb-3">
+                  <span className="flex items-center gap-1">
+                    <FlaskConical className="h-3 w-3" />
+                    {g.pods.length} pod{g.pods.length > 1 ? "s" : ""}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Server className="h-3 w-3" />
+                    {g.nodes.length} node{g.nodes.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                {g.pods[0] && (
+                  <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {g.pods[0].createdDate || "-"}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatAge(Math.max(...g.pods.map((p) => p.ageSeconds)))}
+                    </span>
+                  </div>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {archivedNs.size > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <Archive className="h-3.5 w-3.5" />
+            종료된 워크로드 ({archivedNs.size})
+          </h3>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from(archivedNs.entries()).map(([ns, projects]) => {
+              const noteCount = projects.reduce((s, p) => s + p._count.notes, 0);
+              const taskCount = projects.reduce((s, p) => s + p._count.tasks, 0);
+              const resultCount = projects.reduce((s, p) => s + p._count.results, 0);
+              return (
+                <Link
+                  key={ns}
+                  href={`/workloads/${encodeURIComponent(ns)}`}
+                  className="group rounded-xl border border-gray-800/60 bg-gray-900/30 p-4 transition-all hover:border-gray-700 hover:shadow-lg"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Archive className="h-3.5 w-3.5 text-gray-600" />
+                      <span className="font-mono text-sm font-semibold text-gray-400">
+                        {ns}
+                      </span>
+                    </div>
+                    <span className="rounded-full bg-gray-800 px-2 py-0.5 text-[10px] text-gray-500">
+                      종료됨
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-gray-600">
+                    {resultCount > 0 && <span>{resultCount} results</span>}
+                    {taskCount > 0 && <span>{taskCount} tasks</span>}
+                    {noteCount > 0 && <span>{noteCount} notes</span>}
+                    {resultCount === 0 && taskCount === 0 && noteCount === 0 && (
+                      <span>기록 {projects.length}건</span>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
