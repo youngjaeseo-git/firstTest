@@ -73,11 +73,15 @@ export async function GET() {
     }));
 
   // ── prometheusOrphans ──
-  // Live target IPs that don't match any equipment's ipAddress or prometheusInstance host
+  // Live target IPs that don't match any equipment's known address form.
+  // node-exporter targets use IP, cAdvisor targets use hostname — so we must
+  // index every form (ipAddress, prometheusInstance host, hostname) to avoid
+  // flagging a host that IS registered, just under a different label form.
   const equipmentIpSet = new Set<string>();
   for (const eq of equipmentList) {
     if (eq.ipAddress) equipmentIpSet.add(eq.ipAddress);
     if (eq.prometheusInstance) equipmentIpSet.add(instanceIp(eq.prometheusInstance));
+    if (eq.hostname) equipmentIpSet.add(eq.hostname);
   }
   const prometheusOrphans = targets
     .filter((t) => {
@@ -92,13 +96,24 @@ export async function GET() {
     }));
 
   // ── dbOrphans ──
-  // Equipment rows whose ipAddress doesn't appear in any live target's IP set
+  // Equipment whose NONE of its known address forms appears among live targets.
+  // Checking only ipAddress would falsely flag hostname-registered (cAdvisor)
+  // equipment as missing, so we test ipAddress, prometheusInstance host, and
+  // hostname against the live target set.
   const liveIpSet = new Set<string>();
   for (const t of targets) {
     liveIpSet.add(instanceIp(t.instance));
   }
   const dbOrphans = equipmentList
-    .filter((eq) => eq.ipAddress && !liveIpSet.has(eq.ipAddress))
+    .filter((eq) => {
+      const forms = [
+        eq.ipAddress,
+        eq.prometheusInstance ? instanceIp(eq.prometheusInstance) : null,
+        eq.hostname,
+      ].filter((f): f is string => Boolean(f));
+      if (forms.length === 0) return false;
+      return !forms.some((f) => liveIpSet.has(f));
+    })
     .map((eq) => ({
       id: eq.id,
       hostname: eq.hostname,
