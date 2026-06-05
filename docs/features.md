@@ -17,6 +17,7 @@
 | Trend Sparkline | ✅ 완료 | CPU/Memory/Network/Power 추이 그래프 |
 | Platform 분포 | ✅ 완료 | GNR-AP/GNR-SP/SPR/Ampere/SRF별 장비 수 |
 | 만료 임박 위젯 | ✅ 완료 | ExpiryTracker 기반 D-day 표시 |
+| 알림 심각도별 위젯 | ✅ 완료 | 심각도별 현재 firing 수(주) + 24h 발생 수(보조) 타일 |
 | Prometheus 연결 상태 | ✅ 완료 | 연결 성공/실패 인디케이터 |
 | 에러 바운더리 | ✅ 완료 | Prometheus 장애 시 UI 깨지지 않음 |
 
@@ -43,7 +44,8 @@
 | Node Resources 카드 | ✅ 완료 | kube-state-metrics CPU/Memory/Disk 게이지 |
 | Pod 목록 | ✅ 완료 | kube_pod_info 기반 Pod 이름/namespace |
 | BMC 센서 모니터링 | ✅ 완료 | Redfish 온도/팬/전력 센서 카드 |
-| 서버 비교 뷰 | ✅ 완료 | 2대 이상 서버 메트릭 병렬 비교 |
+| 서버 비교 뷰 | ✅ 완료 | 2대 이상 서버 메트릭 병렬 시계열 오버레이 (최대 4대) |
+| 메트릭 없는 서버 안내 | ✅ 완료 | Prometheus 시계열이 전혀 없으면 빈 차트 대신 안내 배너 표시 |
 
 ---
 
@@ -57,7 +59,8 @@
 | BMC HW 자동 수집 | ✅ 완료 | Redfish로 CPU/Memory/NIC 자동 감지 |
 | 메모리 상세 페이지 | ✅ 완료 | DIMM 슬롯별 용량/타입/제조사/속도/채널 |
 | 메모리 전체 현황 | ✅ 완료 | /memory 페이지 — 서버별 DIMM 집계 |
-| 변경 이력 | ✅ 완료 | 장비별 수정/전원 제어 이력 |
+| 변경 이력 (타임라인) | ✅ 완료 | 장비별 수정/전원/상태/유지보수 이력 타임라인 (equipment-history) |
+| 펌웨어 관리 | ✅ 완료 | /firmware — 서버 모델별 BIOS/펌웨어 버전 비교, 오래된 버전 식별 |
 | Redfish 전원 제어 | ✅ 완료 | BMC를 통한 원격 켜기/끄기/재시작 |
 
 ---
@@ -128,6 +131,8 @@
 | BMC 자격증명 관리 | ✅ 완료 | 장비별 BMC 계정 오버라이드 |
 | Prometheus 진단 | ✅ 완료 | IP-only/중복/orphan 진단 페이지 |
 | 만료 추적 | ✅ 완료 | 인증서/라이선스/보증 만료일 관리 |
+| 감사 로그 조회 (/history) | ✅ 완료 | 액션/엔티티/사용자/날짜 필터 + 필드 diff 표시 |
+| 감사 로그 적용 범위 | ✅ 완료 | equipment·rack·room·user·alert-rule·discovery CRUD 전반 logAudit |
 | Audit Log Export | ✅ 완료 | CSV 내보내기 (날짜 필터 + 이스케이프) |
 
 ---
@@ -143,7 +148,18 @@
 
 ---
 
-## 11. 기타
+## 11. 용량 계획 / 리포트 (Capacity / Reports)
+
+| 기능 | 상태 | 설명 |
+|------|------|------|
+| 용량 현황 (Capacity) | ✅ 완료 | /capacity — 전력/공간/냉각/컴퓨팅 용량 현황 표시 |
+| 용량 예측 (Forecast) | 📋 예정 | 추세 기반 용량 소진 시점 예측 |
+| 리포트 뷰 (Reports) | ✅ 완료 | /reports — 인프라 현황 + 알림 통계 리포트 (생성시각 포함) |
+| 리포트 PDF 내보내기 | ⚠️ 부분 | 브라우저 인쇄 기반, 네이티브 PDF export 미구현 |
+
+---
+
+## 12. 기타
 
 | 기능 | 상태 | 설명 |
 |------|------|------|
@@ -158,8 +174,9 @@
 
 | 기능 | 상태 | 설명 |
 |------|------|------|
-| Capacity Planning 예측 | 📋 예정 | 전력/공간/냉각 용량 예측 |
-| Reports PDF 내보내기 | 📋 예정 | 커스텀 리포트 생성 |
+| Capacity Planning 예측 | 📋 예정 | 전력/공간/냉각 용량 예측 (현황 뷰는 §11 구현됨) |
+| Reports PDF 네이티브 export | ⚠️ 부분 | 리포트 뷰는 §11 구현됨, 네이티브 PDF는 미구현 (브라우저 인쇄 사용) |
+| UI/디자인 개선 | 📋 예정 | 전체 페이지 디자인 통일·토큰 정리 (마지막 단계) |
 | Multi-Prometheus | 📋 예정 | Room별 별도 Prometheus URL |
 | 온도 외부 DB 연동 | 📋 예정 | PDU monitoring SQL DB 연결 |
 | systemd 서비스 등록 | 📋 예정 | 프로덕션 전환 시 자동 시작 |
