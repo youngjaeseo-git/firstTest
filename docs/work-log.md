@@ -254,3 +254,18 @@
 - [ ] 장비 등록 시 Rack/U position 자동 할당
 - [ ] PDF 리포트 내보내기
 - [ ] E2E 테스트 (Discovery → Register → Monitor 플로우)
+
+---
+
+## 2026-06-05 (목)
+### 완료
+- **Fleet Top CPU/Memory 중복 표시 수정** — dedupTopResults에서 canonical IP 키 기반 dedup + PrometheusTarget 테이블 hostname-IP 매핑 활용. 같은 서버가 IP+hostname으로 이중 표시되던 문제 해결
+- **운영 자동화 4종 구현 (Phase 4)**
+  - `scripts/backup-db.sh` — DB 백업 자동화 (pg_dump + gzip, 7일 보관, cron 매일 03:00, 복원 기능)
+  - `scripts/setup-logrotate.sh` — 앱 로그 로테이션 (50MB 또는 매일, 7일 보관 + 압축, cron 매일 04:00)
+  - `scripts/recovery.sh` — 대화형 장애 복구 메뉴 (시스템 상태 진단, 앱/DB 재시작, 백업 복원, 에러 로그 조회)
+  - `deploy-update.sh` 개선 — DB 확인 + 배포 전 자동 백업 + git pull + 마이그레이션 + 서버 시작 후 헬스체크 + 배포 로그 기록
+- **대시보드 ExpiryTracker crash 수정** — try-catch로 분리 + migration 파일 추가
+- **Evaluations 사이드바 제거** — 미사용 메뉴 숨김
+- **종료된 워크로드 Active 탭 표시** — Prometheus에서 사라진 namespace의 EvalProject를 Active 탭 하단에 표시
+- **CLAUDE.md 영향 분석 규칙 추가** — 코드 수정 시 영향 범위 전수 점검 필수화

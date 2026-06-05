@@ -69,6 +69,33 @@ docker compose build     # Build images
 docker compose down      # Stop all services
 ```
 
+### 운영 스크립트 (scripts/)
+
+```bash
+# DB 백업
+./scripts/backup-db.sh              # 수동 백업 실행
+./scripts/backup-db.sh --install    # cron 자동 백업 등록 (매일 03:00)
+./scripts/backup-db.sh --uninstall  # cron 등록 해제
+./scripts/backup-db.sh --list       # 백업 목록 확인
+./scripts/backup-db.sh --restore    # 최근 백업에서 복원
+
+# 로그 관리
+./scripts/setup-logrotate.sh           # logrotate 설정 + cron 등록 (매일 04:00)
+./scripts/setup-logrotate.sh --status  # 현재 로그 상태 확인
+./scripts/setup-logrotate.sh --rotate  # 즉시 로테이션 실행
+
+# 장애 복구
+./scripts/recovery.sh    # 대화형 복구 메뉴 (상태 확인, 앱/DB 재시작, 백업 복원, 에러 로그)
+
+# 배포 업데이트 (개선됨)
+./deploy-update.sh       # git pull → DB 백업 → migrate → 앱 시작 + 헬스체크
+./deploy-update.sh 3001  # 포트 지정
+```
+
+**백업 보관 위치:** `$HOME/dcim-backups/` (7일 자동 삭제)
+**로그 보관 위치:** `$HOME/dcim-logs/` (7일 자동 삭제)
+**배포 로그:** `$HOME/dcim-logs/deploy-YYYYMMDD-HHMMSS.log`
+
 ## Directory Structure
 
 ```
