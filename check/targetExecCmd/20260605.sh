@@ -1,10 +1,6 @@
 #!/bin/bash
-# 외부 평가 DB 구조 확인
-# 사용법:
-#   1) 아래 접속 정보 5줄 수정
-#   2) bash check/targetExecCmd/20260605.sh
-#   3) git add check/results/ && git commit -m "eval db schema" && git push
-#      → 타이핑 없이 결과 파일을 push하면 됨
+# 외부 평가 DB 구조 확인 (타이핑 최소화 — 사내 폐쇄망, 직접 타이핑 전달)
+# 사용법: 접속 정보 5줄 수정 후  bash check/targetExecCmd/20260605.sh
 
 EVAL_DB_HOST="여기에_IP_입력"
 EVAL_DB_PORT="5432"
@@ -15,51 +11,42 @@ EVAL_DB_NAME="여기에_DB명_입력"
 export PGPASSWORD="$EVAL_DB_PASS"
 Q="psql -h $EVAL_DB_HOST -p $EVAL_DB_PORT -U $EVAL_DB_USER -d $EVAL_DB_NAME -tAc"
 
-cd "$(dirname "$0")/../.."
-RESULT="check/results/20260605-eval-db-schema.txt"
-mkdir -p check/results
-
-# 상세 결과는 전부 파일에 저장 (길어도 됨 — push하면 되니까)
-{
-echo "########## 1. 전체 테이블 + 행수 ##########"
-$Q "SELECT t.table_name || ' (' || COALESCE(s.n_live_tup::text,'?') || ' rows)'
-    FROM information_schema.tables t
-    LEFT JOIN pg_stat_user_tables s ON s.relname = t.table_name
-    WHERE t.table_schema='public' ORDER BY t.table_name;"
-
-echo ""
-echo "########## 2. 테이블별 전체 컬럼 ##########"
-$Q "SELECT table_name || ':' || E'\n  ' || string_agg(column_name || ' (' || data_type || ')', E'\n  ' ORDER BY ordinal_position)
+# 1) step/workload/script/phase 관련 컬럼이 있는 테이블만 (가장 중요)
+echo "### A. step/workload 관련 컬럼 (테이블.컬럼)"
+$Q "SELECT string_agg(table_name || '.' || column_name, ', ' ORDER BY table_name)
     FROM information_schema.columns
     WHERE table_schema='public'
+      AND lower(column_name) SIMILAR TO '%(step|workload|script|phase|yaml|command)%';"
+
+# 2) server/host 관련 컬럼
+echo ""
+echo "### B. server/host 관련 컬럼 (테이블.컬럼)"
+$Q "SELECT string_agg(table_name || '.' || column_name, ', ' ORDER BY table_name)
+    FROM information_schema.columns
+    WHERE table_schema='public'
+      AND lower(column_name) SIMILAR TO '%(server|host|node|machine|ip)%';"
+
+# 3) A에서 나온 테이블들의 전체 컬럼 (한 줄씩) — 구조 파악용
+echo ""
+echo "### C. 위 관련 테이블의 컬럼 구조"
+$Q "SELECT table_name || ': ' || string_agg(column_name, ',' ORDER BY ordinal_position)
+    FROM information_schema.columns
+    WHERE table_schema='public'
+      AND table_name IN (
+        SELECT DISTINCT table_name FROM information_schema.columns
+        WHERE table_schema='public'
+          AND lower(column_name) SIMILAR TO '%(step|workload|script|phase|server|host|node)%')
     GROUP BY table_name ORDER BY table_name;"
 
+# 4) step 컬럼의 실제 값 형태 1개만 (앞 80자) — 'step1:vdd up' 형식 확인용
 echo ""
-echo "########## 3. step/workload/script/phase 관련 테이블 샘플 3행 ##########"
-for tbl in $($Q "SELECT DISTINCT table_name FROM information_schema.columns
+echo "### D. step/script 값 샘플 (앞 80자, 1개씩)"
+for tc in $($Q "SELECT table_name || '|' || column_name FROM information_schema.columns
     WHERE table_schema='public'
-      AND (lower(column_name) SIMILAR TO '%(step|workload|script|phase|yaml|command)%')
-    ORDER BY table_name;"); do
-  echo ""
-  echo "===== $tbl (샘플 3행) ====="
-  $Q "SELECT row_to_json(t) FROM \"$tbl\" t LIMIT 3;" 2>/dev/null
+      AND lower(column_name) SIMILAR TO '%(step|script|yaml|command)%' LIMIT 5;"); do
+  t="${tc%|*}"; c="${tc#*|}"
+  v=$($Q "SELECT left(\"$c\"::text, 80) FROM \"$t\" WHERE \"$c\" IS NOT NULL LIMIT 1;" 2>/dev/null)
+  echo "$t.$c = $v"
 done
-
-echo ""
-echo "########## 4. server/host/node 관련 테이블 샘플 3행 ##########"
-for tbl in $($Q "SELECT DISTINCT table_name FROM information_schema.columns
-    WHERE table_schema='public'
-      AND (lower(column_name) SIMILAR TO '%(server|host|node|machine)%')
-    ORDER BY table_name;"); do
-  echo ""
-  echo "===== $tbl (샘플 3행) ====="
-  $Q "SELECT row_to_json(t) FROM \"$tbl\" t LIMIT 3;" 2>/dev/null
-done
-} > "$RESULT" 2>&1
-
-echo "완료. 결과 저장됨: $RESULT"
-echo ""
-echo "다음 명령으로 결과를 전달해주세요 (타이핑 최소):"
-echo "  git add $RESULT && git commit -m 'eval db schema' && git push"
 
 unset PGPASSWORD
