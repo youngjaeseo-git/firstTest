@@ -270,3 +270,9 @@
 - **Evaluations 사이드바 제거** — 미사용 메뉴 숨김
 - **종료된 워크로드 Active 탭 표시** — Prometheus에서 사라진 namespace의 EvalProject를 Active 탭 하단에 표시
 - **CLAUDE.md 영향 분석 규칙 추가** — 코드 수정 시 영향 범위 전수 점검 필수화
+- **Prometheus 진단 orphan 오탐 보강** — IP↔hostname 이중성으로 인한 prometheusOrphans/dbOrphans 오탐을 모든 주소 형태(ipAddress + prometheusInstance host + hostname) 검사로 수정
+- **신규 기능 3종 구현**
+  - 메트릭 없는 서버 안내 — 서버 상세 페이지에서 Prometheus 시계열이 전혀 없으면 안내 배너 표시 (빈 차트 대신)
+  - Audit Log 확장 — users(POST/PATCH), alert-rules(POST/PATCH/DELETE), discovery(register/unregister) 6개 라우트에 logAudit 추가. /history 페이지에서 자동 표시
+  - 알림 심각도별 대시보드 위젯 — 심각도별 현재 firing 수(주) + 24시간 발생 수(보조) 타일
+  - (확인) 메모리 현황 / 서버 비교 오버레이 / 장비 타임라인은 이미 구현되어 있어 재구현 없이 검증만 수행
