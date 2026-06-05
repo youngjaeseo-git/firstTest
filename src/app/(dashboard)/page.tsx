@@ -36,6 +36,7 @@ export default async function DashboardPage() {
     recentAlerts,
     equipmentMapping,
     allEquipmentForPlatform,
+    promTargets,
   ] = await Promise.all([
     prisma.equipment.groupBy({
       by: ["status"],
@@ -96,6 +97,10 @@ export default async function DashboardPage() {
     prisma.equipment.findMany({
       where: { type: "SERVER" },
       select: { hostname: true, model: true, status: true },
+    }),
+    prisma.prometheusTarget.findMany({
+      where: { hostname: { not: null } },
+      select: { instance: true, hostname: true },
     }),
   ]);
 
@@ -182,14 +187,23 @@ export default async function DashboardPage() {
             lab1: { active: lab1Active, maintenance: lab1Maintenance, failed: lab1Failed },
             lab3: { active: lab3Active, maintenance: lab3Maintenance, failed: lab3Failed },
           }}
-          hostnameIpMap={Object.fromEntries(
-            equipmentMapping
-              .filter((e) => e.hostname && e.ipAddress)
-              .flatMap((e) => [
-                [e.hostname!, e.ipAddress!],
-                [e.ipAddress!, e.hostname!],
-              ])
-          )}
+          hostnameIpMap={(() => {
+            const map: Record<string, string> = {};
+            for (const e of equipmentMapping) {
+              if (e.hostname && e.ipAddress) {
+                map[e.hostname] = e.ipAddress;
+                map[e.ipAddress] = e.hostname;
+              }
+            }
+            for (const t of promTargets) {
+              const ip = t.instance.replace(/:\d+$/, "");
+              if (t.hostname && !map[ip]) {
+                map[ip] = t.hostname;
+                map[t.hostname] = ip;
+              }
+            }
+            return map;
+          })()}
           platformStats={platformStats}
         />
 

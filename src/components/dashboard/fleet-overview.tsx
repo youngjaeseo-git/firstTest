@@ -121,24 +121,37 @@ function dedupTopResults(
   caResults: { metric: Record<string, string>; value?: [number, string] }[],
   hostnameIpMap: Record<string, string>,
 ): TopServer[] {
-  const seenIps = new Set<string>();
+  const seen = new Set<string>();
   const deduped: TopServer[] = [];
+
+  function canonicalKey(raw: string): string {
+    const host = raw.replace(/:\d+$/, "");
+    const mapped = hostnameIpMap[host];
+    return mapped && /^\d+\.\d+\.\d+\.\d+$/.test(mapped) ? mapped : host;
+  }
+
+  function displayName(raw: string): string {
+    const host = raw.replace(/:\d+$/, "");
+    const mapped = hostnameIpMap[host];
+    if (!mapped) return host;
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) return mapped;
+    return host;
+  }
 
   for (const r of neResults) {
     if (!r.value) continue;
-    const ip = (r.metric.instance || "").replace(/:\d+$/, "");
-    seenIps.add(ip);
-    const displayName = hostnameIpMap[ip] || ip;
-    deduped.push({ instance: displayName, percent: parseFloat(r.value[1]) });
+    const key = canonicalKey(r.metric.instance || "");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push({ instance: displayName(r.metric.instance || ""), percent: parseFloat(r.value[1]) });
   }
 
   for (const r of caResults) {
     if (!r.value) continue;
-    const hostname = r.metric.instance || "";
-    const ip = hostnameIpMap[hostname];
-    if (ip && seenIps.has(ip)) continue;
-    seenIps.add(ip || hostname);
-    deduped.push({ instance: hostname, percent: parseFloat(r.value[1]) });
+    const key = canonicalKey(r.metric.instance || "");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push({ instance: displayName(r.metric.instance || ""), percent: parseFloat(r.value[1]) });
   }
 
   return deduped.sort((a, b) => b.percent - a.percent).slice(0, 5);
