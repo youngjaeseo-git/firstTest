@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { parseBody } from "@/lib/api-validation";
+import { logAudit, diffShallow } from "@/lib/audit";
 
 // Whitelist of mutable fields — prevents arbitrary column injection via PATCH body.
 const UpdateRuleSchema = z
@@ -33,10 +34,26 @@ export async function PATCH(
   const parsed = await parseBody(req, UpdateRuleSchema);
   if (parsed.response) return parsed.response;
 
+  const before = await prisma.alertRule.findUnique({ where: { id } });
+
   const rule = await prisma.alertRule.update({
     where: { id },
     data: parsed.data,
   });
+
+  await logAudit({
+    userId: (session.user as { id: string }).id,
+    action: "UPDATE",
+    entityType: "AlertRule",
+    entityId: id,
+    changes: before
+      ? diffShallow(
+          before as unknown as Record<string, unknown>,
+          rule as unknown as Record<string, unknown>,
+        )
+      : (parsed.data as Record<string, unknown>),
+  });
+
   return NextResponse.json(rule);
 }
 
@@ -50,6 +67,20 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const before = await prisma.alertRule.findUnique({
+    where: { id },
+    select: { name: true, severity: true },
+  });
+
   await prisma.alertRule.delete({ where: { id } });
+
+  await logAudit({
+    userId: (session.user as { id: string }).id,
+    action: "DELETE",
+    entityType: "AlertRule",
+    entityId: id,
+    changes: before ? { name: before.name, severity: before.severity } : undefined,
+  });
+
   return NextResponse.json({ success: true });
 }

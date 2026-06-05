@@ -102,6 +102,8 @@ export const translations: Record<Language, Record<string, string>> = {
 
     // ── Server Detail ──
     "server.range": "Range",
+    "server.noMetrics.title": "No metric data for this server",
+    "server.noMetrics.desc": "Prometheus is not reporting any time-series for this instance. The server may not run node-exporter/cAdvisor, may not be scraped, or may be offline. Asset details remain available; live charts will populate once metrics are collected.",
     "server.cpu": "CPU",
     "server.memory": "Memory",
     "server.disk": "Disk / Storage",
@@ -610,6 +612,8 @@ export const translations: Record<Language, Record<string, string>> = {
 
     // ── Server Detail ──
     "server.range": "기간",
+    "server.noMetrics.title": "이 서버의 메트릭 데이터가 없습니다",
+    "server.noMetrics.desc": "Prometheus가 이 인스턴스의 시계열을 전혀 반환하지 않습니다. node-exporter/cAdvisor가 없거나, 스크래핑 대상이 아니거나, 서버가 오프라인일 수 있습니다. 자산 정보는 정상 표시되며, 메트릭이 수집되면 실시간 차트가 채워집니다.",
     "server.cpu": "CPU",
     "server.memory": "메모리",
     "server.disk": "디스크 / 스토리지",

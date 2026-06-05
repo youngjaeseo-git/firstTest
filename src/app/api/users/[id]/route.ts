@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { parseBody } from "@/lib/api-validation";
+import { logAudit, diffShallow } from "@/lib/audit";
 
 const UpdateUserSchema = z.object({
   role: z.enum(["ADMIN", "OPERATOR", "VIEWER"]),
@@ -23,10 +24,23 @@ export async function PATCH(
   if (parsed.response) return parsed.response;
   const { role } = parsed.data;
 
+  const before = await prisma.user.findUnique({
+    where: { id },
+    select: { role: true },
+  });
+
   const user = await prisma.user.update({
     where: { id },
     data: { role },
     select: { id: true, name: true, email: true, role: true },
+  });
+
+  await logAudit({
+    userId: (session.user as { id: string }).id,
+    action: "UPDATE",
+    entityType: "User",
+    entityId: id,
+    changes: diffShallow({ role: before?.role }, { role: user.role }),
   });
 
   return NextResponse.json(user);

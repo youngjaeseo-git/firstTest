@@ -15,6 +15,7 @@ import {
   bmcCredentialsConfigured,
 } from "@/lib/bmc-credentials";
 import { MemoryType } from "@prisma/client";
+import { logAudit } from "@/lib/audit";
 
 const BMC_SUBNET = "192.168.10";
 
@@ -307,6 +308,19 @@ export async function POST(req: Request) {
     }
     throw err;
   }
+
+  await logAudit({
+    userId: (session.user as { id: string }).id,
+    action: "CREATE",
+    entityType: "Equipment",
+    entityId: equipment.id,
+    changes: {
+      hostname: equipment.hostname,
+      ipAddress: equipment.ipAddress,
+      source: "discovery",
+      prometheusInstance: instance,
+    },
+  });
 
   return NextResponse.json({
     equipment,

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { parseBody } from "@/lib/api-validation";
+import { logAudit } from "@/lib/audit";
 
 const CreateRuleSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -49,6 +50,14 @@ export async function POST(req: NextRequest) {
       category: category || null,
       enabled: enabled !== false,
     },
+  });
+
+  await logAudit({
+    userId: (session.user as { id: string }).id,
+    action: "CREATE",
+    entityType: "AlertRule",
+    entityId: rule.id,
+    changes: { name: rule.name, severity: rule.severity, metric: rule.metric, condition: rule.condition },
   });
 
   return NextResponse.json(rule, { status: 201 });

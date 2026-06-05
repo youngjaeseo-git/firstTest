@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { AlertTriangle } from "lucide-react";
 import { MetricChart } from "./metric-chart";
 import { CpuCoreHeatmap } from "./cpu-core-heatmap";
 import { NodeOverviewCard } from "./node-overview-card";
@@ -67,6 +68,9 @@ export function ServerDetailClient({ instance, hostIp }: Props) {
           <span className="font-mono">{instance}</span>
         </span>
       </div>
+
+      {/* Notice shown only when Prometheus reports no metrics for this instance */}
+      <MetricsAvailabilityNotice instance={instance} hostIp={hostIp} />
 
       {/* System Health Quick View */}
       <SystemHealthCard instance={instance} hostIp={hostIp} />
@@ -521,6 +525,59 @@ async function fetchInstantValue(query: string): Promise<number | null> {
   } catch {
     return null;
   }
+}
+
+// Returns true when the query yields at least one series. Unlike fetchInstantValue,
+// a present-but-zero value (e.g. up=0 / DOWN) still counts as "has result", which is
+// exactly what we need to tell "Prometheus knows this target" from "no data at all".
+async function fetchInstantHasResult(query: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/metrics/instant?query=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    return Array.isArray(data?.data?.result) && data.data.result.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+// Shows a notice when Prometheus returns no time-series for this instance at all,
+// so a server that doesn't export metrics (or isn't scraped) reads as intentional
+// rather than a broken page full of empty charts.
+function MetricsAvailabilityNotice({ instance, hostIp }: Props) {
+  const t = useT();
+  const [state, setState] = useState<"checking" | "available" | "missing">("checking");
+
+  useEffect(() => {
+    let cancelled = false;
+    async function check() {
+      const [up, cpu] = await Promise.all([
+        fetchInstantHasResult(queries.nodeUp(instance)),
+        fetchInstantHasResult(queries.cpuUsage(instance, hostIp)),
+      ]);
+      if (cancelled) return;
+      setState(up || cpu ? "available" : "missing");
+    }
+    check();
+    const interval = setInterval(check, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [instance, hostIp]);
+
+  if (state !== "missing") return null;
+
+  return (
+    <div className="rounded-xl border border-amber-700/50 bg-amber-900/15 p-4">
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400" />
+        <div>
+          <p className="text-sm font-semibold text-amber-300">{t("server.noMetrics.title")}</p>
+          <p className="mt-1 text-xs text-amber-200/70">{t("server.noMetrics.desc")}</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function SystemHealthCard({ instance, hostIp }: Props) {

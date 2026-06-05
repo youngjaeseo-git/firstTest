@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { parseBody } from "@/lib/api-validation";
+import { logAudit } from "@/lib/audit";
 
 const CreateUserSchema = z.object({
   name: z.string().trim().max(100).optional().nullable(),
@@ -67,6 +68,14 @@ export async function POST(req: NextRequest) {
       role: true,
       createdAt: true,
     },
+  });
+
+  await logAudit({
+    userId: (session.user as { id: string }).id,
+    action: "CREATE",
+    entityType: "User",
+    entityId: user.id,
+    changes: { email: user.email, role: user.role },
   });
 
   return NextResponse.json(user, { status: 201 });

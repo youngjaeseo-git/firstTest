@@ -17,11 +17,13 @@ import {
   Building2,
   Radar,
   ShieldCheck,
+  Activity,
 } from "lucide-react";
 
 export default async function DashboardPage() {
   const lab1Where = { ipAddress: { startsWith: "10.144.38." } };
   const lab3Where = { ipAddress: { startsWith: "10.144.131." } };
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   const [
     statusBreakdown,
@@ -37,6 +39,8 @@ export default async function DashboardPage() {
     equipmentMapping,
     allEquipmentForPlatform,
     promTargets,
+    alerts24hBySeverity,
+    firingBySeverity,
   ] = await Promise.all([
     prisma.equipment.groupBy({
       by: ["status"],
@@ -101,6 +105,16 @@ export default async function DashboardPage() {
     prisma.prometheusTarget.findMany({
       where: { hostname: { not: null } },
       select: { instance: true, hostname: true },
+    }),
+    prisma.alert.groupBy({
+      by: ["severity"],
+      where: { firedAt: { gte: since24h } },
+      _count: true,
+    }),
+    prisma.alert.groupBy({
+      by: ["severity"],
+      where: { status: "FIRING" },
+      _count: true,
     }),
   ]);
 
@@ -169,6 +183,22 @@ export default async function DashboardPage() {
   const platformStats = platformOrder
     .filter((p) => platformCounts[p].total > 0)
     .map((p) => ({ platform: p, ...platformCounts[p] }));
+
+  // Alert activity (last 24h fired + currently firing), broken down by severity
+  function severityCount(
+    groups: { severity: string; _count: number }[],
+    severity: string,
+  ): number {
+    return groups.find((g) => g.severity === severity)?._count ?? 0;
+  }
+  const alertSeverityStats = (["CRITICAL", "WARNING", "INFO"] as const).map((sev) => ({
+    severity: sev,
+    fired24h: severityCount(alerts24hBySeverity, sev),
+    firingNow: severityCount(firingBySeverity, sev),
+  }));
+  const totalFiringNow = alertSeverityStats.reduce((s, a) => s + a.firingNow, 0);
+  const criticalFiringNow =
+    alertSeverityStats.find((a) => a.severity === "CRITICAL")?.firingNow ?? 0;
 
   return (
     <PageTransition>
@@ -248,6 +278,53 @@ export default async function DashboardPage() {
                 </span>
               </div>
             ))}
+          </div>
+        </Card>
+
+        {/* Alerts by severity: currently firing (primary) + fired in last 24h (context) */}
+        <Card>
+          <SectionHeading
+            icon={Activity}
+            title="Alerts by Severity"
+            accent={criticalFiringNow > 0 ? "red" : totalFiringNow > 0 ? "amber" : "green"}
+            right={
+              <Link
+                href="/alerts/history"
+                className="text-xs text-blue-400 hover:text-blue-300"
+              >
+                History →
+              </Link>
+            }
+          />
+          <div className="grid grid-cols-3 gap-3">
+            {alertSeverityStats.map((a) => {
+              const tone =
+                a.severity === "CRITICAL"
+                  ? { text: "text-red-400", dot: "bg-red-500", border: "border-l-red-500" }
+                  : a.severity === "WARNING"
+                    ? { text: "text-amber-400", dot: "bg-amber-500", border: "border-l-amber-500" }
+                    : { text: "text-blue-400", dot: "bg-blue-500", border: "border-l-blue-500" };
+              return (
+                <div
+                  key={a.severity}
+                  className={`rounded-lg border border-gray-800/60 border-l-2 ${tone.border} bg-gray-800/20 p-3`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
+                    <span className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
+                      {a.severity}
+                    </span>
+                    <span className="ml-auto text-[10px] text-gray-500">firing now</span>
+                  </div>
+                  <p className={`mt-2 text-2xl font-bold ${a.firingNow > 0 ? tone.text : "text-gray-500"}`}>
+                    {a.firingNow}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-gray-500">
+                    {a.fired24h} fired · 24h
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </Card>
 

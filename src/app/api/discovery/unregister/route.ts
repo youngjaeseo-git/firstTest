@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { parseBody } from "@/lib/api-validation";
+import { logAudit } from "@/lib/audit";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -33,6 +34,19 @@ export async function POST(req: Request) {
     data: { equipmentId: null },
   });
   await prisma.equipment.delete({ where: { id: equipmentId } });
+
+  await logAudit({
+    userId: (session.user as { id: string }).id,
+    action: "DELETE",
+    entityType: "Equipment",
+    entityId: equipmentId,
+    changes: {
+      hostname: target.equipment?.hostname ?? null,
+      ipAddress: target.equipment?.ipAddress ?? null,
+      source: "discovery-unregister",
+      instance: target.instance,
+    },
+  });
 
   return NextResponse.json({ success: true });
 }
