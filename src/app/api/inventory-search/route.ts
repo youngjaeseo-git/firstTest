@@ -14,7 +14,8 @@ export async function GET(req: NextRequest) {
   const biosVersion = searchParams.get("biosVersion") || "";
   const status = searchParams.get("status") || "";
   const minMemoryGb = parseInt(searchParams.get("minMemoryGb") || "0") || 0;
-  const limit = Math.min(parseInt(searchParams.get("limit") || "100"), 500);
+  const parsedLimit = parseInt(searchParams.get("limit") || "100");
+  const limit = Math.min(Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 100, 500);
 
   const where: Record<string, unknown> = {};
   const andConditions: Record<string, unknown>[] = [];

@@ -55,9 +55,9 @@ export function CpuCoreHeatmap({ instance, hostIp }: { instance: string; hostIp?
       const results = res.data?.result;
       if (Array.isArray(results) && results.length > 1) {
         const parsed: CoreData[] = results
-          .map((r: { metric: Record<string, string>; value: [number, string] }) => ({
+          .map((r: { metric: Record<string, string>; value?: [number, string] }) => ({
             cpu: parseInt(r.metric.cpu || "0", 10),
-            usage: parseFloat(r.value[1]) || 0,
+            usage: parseFloat(r.value?.[1] ?? "") || 0,
           }))
           .filter((c: CoreData) => !isNaN(c.cpu))
           .sort((a: CoreData, b: CoreData) => a.cpu - b.cpu);
@@ -81,10 +81,10 @@ export function CpuCoreHeatmap({ instance, hostIp }: { instance: string; hostIp?
       const results = res.data?.result;
       if (Array.isArray(results) && results.length > 0) {
         const parsed: PodCpuData[] = results
-          .map((r: { metric: Record<string, string>; value: [number, string] }) => ({
+          .map((r: { metric: Record<string, string>; value?: [number, string] }) => ({
             pod: r.metric.pod || "unknown",
             namespace: r.metric.namespace || "",
-            cores: parseFloat(r.value[1]) || 0,
+            cores: parseFloat(r.value?.[1] ?? "") || 0,
           }))
           .filter((p: PodCpuData) => p.cores > 0.001)
           .sort((a: PodCpuData, b: PodCpuData) => b.cores - a.cores);

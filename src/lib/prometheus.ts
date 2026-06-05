@@ -97,6 +97,10 @@ export async function fetchTargets(): Promise<DiscoveredPrometheusTarget[]> {
 
   const data: PrometheusTargetsResponse = await res.json();
 
+  if (data.status !== "success" || !Array.isArray(data.data?.activeTargets)) {
+    throw new Error("Prometheus targets response malformed or returned an error status");
+  }
+
   return data.data.activeTargets.map((target) => {
     const rawAddr = target.discoveredLabels?.__address__ || "";
     const addrIp = rawAddr.split(":")[0] || null;
@@ -116,8 +120,15 @@ export async function fetchTargets(): Promise<DiscoveredPrometheusTarget[]> {
 // Instance Matchers
 // ============================================
 
+// Escape PromQL regex metacharacters so an IP like 10.144.38.1 does not
+// cross-match 10.144.38.10/11/... (dots are regex "any char" otherwise).
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Extract the host portion of an instance and escape it for use in a regex matcher.
 function ip(instance: string): string {
-  return instance.split(":")[0];
+  return escapeRe(instance.split(":")[0]);
 }
 
 // cAdvisor/general matcher: matches hostname or IP regardless of port
@@ -132,7 +143,7 @@ function cm(instance: string): string {
 
 // node-exporter matcher: uses hostIp if provided (resolves hostname vs IP mismatch)
 function ne(instance: string, hostIp?: string): string {
-  const addr = hostIp || ip(instance);
+  const addr = hostIp ? escapeRe(hostIp) : ip(instance);
   return `instance=~"${addr}(:.*)?",job="node-exporter"`;
 }
 
@@ -417,7 +428,7 @@ export const queries = {
   // ── Status ──
   nodeUp: (instance: string) => `up{${m(instance)}}`,
 
-  allNodesUp: () => `up{job!~"kube-state-metrics|kubernetes-apiservers|kubernetes-cadvisor|kubernetes-sevice-endpoints"}`,
+  allNodesUp: () => `up{job!~"kube-state-metrics|kubernetes-apiservers|kubernetes-cadvisor|kubernetes-service-endpoints"}`,
 
   nodeExporterUp: (instance: string, hostIp?: string) =>
     `up{${ne(instance, hostIp)}}`,

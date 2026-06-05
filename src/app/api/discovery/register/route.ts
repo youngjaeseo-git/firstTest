@@ -266,34 +266,47 @@ export async function POST(req: Request) {
         }))
       : [];
 
-  const equipment = await prisma.equipment.create({
-    data: {
-      hostname,
-      ipAddress,
-      bmcIpAddress,
-      manufacturer,
-      model,
-      serialNumber,
-      type: "SERVER",
-      status: isUp ? "ACTIVE" : "INSTALLED",
-      totalMemoryGB: totalMemoryGB,
-      osType: osImage ? "Linux" : null,
-      osVersion: osImage || null,
-      biosVersion,
-      notes: notes || null,
-      prometheusInstance: instance,
-      prometheusTarget: { connect: { id: target.id } },
-      ...(cpuCreateData.length > 0
-        ? { cpus: { create: cpuCreateData } }
-        : {}),
-      ...(memoryCreateData.length > 0
-        ? { memories: { create: memoryCreateData } }
-        : {}),
-      ...(nicCreateData.length > 0
-        ? { networkPorts: { create: nicCreateData } }
-        : {}),
-    },
-  });
+  let equipment;
+  try {
+    equipment = await prisma.equipment.create({
+      data: {
+        hostname,
+        ipAddress,
+        bmcIpAddress,
+        manufacturer,
+        model,
+        serialNumber,
+        type: "SERVER",
+        status: isUp ? "ACTIVE" : "INSTALLED",
+        totalMemoryGB: totalMemoryGB,
+        osType: osImage ? "Linux" : null,
+        osVersion: osImage || null,
+        biosVersion,
+        notes: notes || null,
+        prometheusInstance: instance,
+        prometheusTarget: { connect: { id: target.id } },
+        ...(cpuCreateData.length > 0
+          ? { cpus: { create: cpuCreateData } }
+          : {}),
+        ...(memoryCreateData.length > 0
+          ? { memories: { create: memoryCreateData } }
+          : {}),
+        ...(nicCreateData.length > 0
+          ? { networkPorts: { create: nicCreateData } }
+          : {}),
+      },
+    });
+  } catch (err) {
+    // P2002 = unique constraint violation (e.g. serialNumber/assetTag already registered)
+    if (err && typeof err === "object" && "code" in err && err.code === "P2002") {
+      const fields = (err as { meta?: { target?: string[] } }).meta?.target?.join(", ") || "field";
+      return NextResponse.json(
+        { error: `이미 등록된 장비입니다 (중복: ${fields})` },
+        { status: 409 },
+      );
+    }
+    throw err;
+  }
 
   return NextResponse.json({
     equipment,

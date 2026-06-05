@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { getSessionUser, canControlPower } from "@/lib/rbac";
+import { getSessionUser, canControlPower, canEdit } from "@/lib/rbac";
 import {
   getBmcCredentials,
   bmcCredentialsConfigured,
@@ -157,6 +157,14 @@ export async function POST(req: NextRequest) {
   }
 
   if (payload.action === "power" && !canControlPower(user.role)) {
+    return NextResponse.json(
+      { error: "Forbidden — ADMIN or OPERATOR required" },
+      { status: 403 },
+    );
+  }
+
+  // refresh-hw deletes+rewrites CPU/memory/NIC rows, so it requires edit rights
+  if (payload.action === "refresh-hw" && !canEdit(user.role)) {
     return NextResponse.json(
       { error: "Forbidden — ADMIN or OPERATOR required" },
       { status: 403 },

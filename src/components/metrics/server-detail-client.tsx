@@ -682,15 +682,15 @@ function FilesystemBreakdown({ instance, hostIp }: Props) {
 
         const availMap = new Map<string, number>();
         for (const r of availResults) {
-          availMap.set(r.metric.mountpoint, parseFloat(r.value[1]) || 0);
+          availMap.set(r.metric.mountpoint, parseFloat(r.value?.[1] ?? "") || 0);
         }
 
         const fsList: FsInfo[] = sizeResults
-          .map((r: { metric: Record<string, string>; value: [number, string] }) => ({
+          .map((r: { metric: Record<string, string>; value?: [number, string] }) => ({
             mountpoint: r.metric.mountpoint || "?",
             fstype: r.metric.fstype || "?",
             device: r.metric.device || "?",
-            sizeBytes: parseFloat(r.value[1]) || 0,
+            sizeBytes: parseFloat(r.value?.[1] ?? "") || 0,
             availBytes: availMap.get(r.metric.mountpoint) || 0,
           }))
           .filter((fs: FsInfo) => fs.sizeBytes > 0)
@@ -785,13 +785,13 @@ function NetworkInterfaceInventory({ instance, hostIp }: Props) {
 
         const speedMap = new Map<string, number>();
         for (const r of (speedRes?.data?.result || [])) {
-          speedMap.set(r.metric.device, parseFloat(r.value[1]) || 0);
+          speedMap.set(r.metric.device, parseFloat(r.value?.[1] ?? "") || 0);
         }
 
         const nics: NicInfo[] = upResults
-          .map((r: { metric: Record<string, string>; value: [number, string] }) => ({
+          .map((r: { metric: Record<string, string>; value?: [number, string] }) => ({
             device: r.metric.device || "?",
-            operstate: parseFloat(r.value[1]) === 1 ? "up" : "down",
+            operstate: parseFloat(r.value?.[1] ?? "") === 1 ? "up" : "down",
             speed: speedMap.get(r.metric.device) ?? null,
           }))
           .sort((a: NicInfo, b: NicInfo) => {

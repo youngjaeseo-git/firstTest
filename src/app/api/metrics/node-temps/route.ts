@@ -5,13 +5,15 @@ import { instantQuery } from "@/lib/prometheus";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const emptyResult = { data: { result: [] as { metric?: Record<string, string>; value?: [number, string] }[] } };
   const [equipments, tempResult, unameResult] = await Promise.all([
     prisma.equipment.findMany({
       where: { hostname: { not: null }, ipAddress: { not: null } },
       select: { hostname: true, ipAddress: true },
     }),
-    instantQuery(`avg by (instance) (node_hwmon_temp_celsius)`),
-    instantQuery(`node_uname_info`),
+    // Degrade gracefully if Prometheus is unreachable rather than 500-ing
+    instantQuery(`avg by (instance) (node_hwmon_temp_celsius)`).catch(() => emptyResult),
+    instantQuery(`node_uname_info`).catch(() => emptyResult),
   ]);
 
   const ipToHostname: Record<string, string> = {};
