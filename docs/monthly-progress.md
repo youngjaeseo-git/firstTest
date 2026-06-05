@@ -157,6 +157,7 @@ Phase 5: 고도화 및 확장          (2026년 6월~)         📋 예정
 | Capacity Planning | 전력/공간/냉각 용량 예측 대시보드 |
 | Reports PDF | 커스텀 리포트 생성 및 PDF 내보내기 |
 | 프로덕션 빌드 최적화 | Docker 멀티스테이지 빌드, `npm run build && npm start` 전환 |
+| UI/디자인 개선 | 전체 페이지 디자인 통일, 색상/간격/타이포 토큰 정리, 반응형·EmptyState UX 향상 (마지막 단계) |
 
 ---
 

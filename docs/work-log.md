@@ -243,6 +243,7 @@
 - [ ] **DRAM 파트넘 자동 조회 + 워크로드 기반 일괄 지정** — dmidecode로 서버별 DIMM 파트넘 자동 수집 (textfile collector 또는 SSH), Prometheus stress 라벨로 동일 워크로드 서버 감지, 같은 DRAM 제품군 서버를 자동 그룹핑하여 테스트 구성에 일괄 할당. 사전 확인: dmidecode 출력 구조 확인 스크립트 필요
 
 ### 우선순위 중간
+- [ ] **UI/디자인 개선** — 전체 페이지 디자인 통일, 색상/간격/타이포 토큰 정리, 반응형 개선, 빈 상태(EmptyState) UX 향상, 테이블/카드 레이아웃 일관성. 마지막 단계에서 진행
 - [ ] **to-prd 적용** — DRAM 인증 테스트 관리 등 큰 기능 구현 전 기획서(PRD) 작성. `/to-prd` 커맨드로 합의 내용을 기획서로 정리
 - [ ] **to-issues 적용** — TODO 항목을 GitHub Issue로 분리. `/to-issues` 커맨드로 작업 단위 쪼개기
 - [ ] **improve-codebase 적용** — check/ 스크립트 정리, 되돌린 코드 잔재 제거, 중복 코드 정리. `/improve-codebase` 커맨드로 주기적 정리
