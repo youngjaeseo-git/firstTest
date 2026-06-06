@@ -243,7 +243,7 @@
 - [ ] **DRAM 파트넘 자동 조회 + 워크로드 기반 일괄 지정** — dmidecode로 서버별 DIMM 파트넘 자동 수집 (textfile collector 또는 SSH), Prometheus stress 라벨로 동일 워크로드 서버 감지, 같은 DRAM 제품군 서버를 자동 그룹핑하여 테스트 구성에 일괄 할당. 사전 확인: dmidecode 출력 구조 확인 스크립트 필요
 
 ### 우선순위 중간
-- [ ] **Capacity 용량 예측 (Forecast)** — /capacity 현황 페이지에 추세 기반 예측 추가. 데이터 소스는 DB 기반(장비 증가/랙 사용률)으로 설계해 로컬 검증 가능하게. (B유형: 구현 후 서버 확인)
+- [x] **Capacity 용량 예측 (Forecast)** — ✅ 구현 완료. 장비 createdAt 기반 월별 성장 추이 + 선형회귀 12개월 전망 차트 + 랙공간/전력 소진일 예측 카드
 - [ ] **장애 시나리오 매뉴얼** — recovery.sh와 짝이 되는 장애 대응 절차 문서. 서버 무관, 문서 작업. (B유형)
 - [ ] **UI/디자인 개선** — 전체 페이지 디자인 통일, 색상/간격/타이포 토큰 정리, 반응형 개선, 빈 상태(EmptyState) UX 향상, 테이블/카드 레이아웃 일관성. 마지막 단계에서 진행
 - [ ] **to-prd 적용** — DRAM 인증 테스트 관리 등 큰 기능 구현 전 기획서(PRD) 작성. `/to-prd` 커맨드로 합의 내용을 기획서로 정리
@@ -257,6 +257,15 @@
 - [ ] 장비 등록 시 Rack/U position 자동 할당
 - [ ] PDF 리포트 내보내기
 - [ ] E2E 테스트 (Discovery → Register → Monitor 플로우)
+
+---
+
+## 2026-06-06 (금)
+### 완료
+- **Capacity 용량 예측 (Forecast)** — 장비 createdAt 기반 월별 성장 추이 차트(Recharts AreaChart, 실적 실선 + 12개월 전망 점선) + 선형회귀로 랙 공간/전력 소진일 예측 카드 + 리소스별 월간 증가량 요약. API: `/api/capacity/forecast`, 컴포넌트: `CapacityForecast`
+- **Reports 네이티브 PDF 내보내기** — html2canvas + jsPDF 동적 import, A4 페이지네이션, 한글 브라우저 폰트 렌더링
+- **CLAUDE.md 중복 확인 규칙 추가** — 기능 제안/구현 전 features.md + 코드 확인 필수
+- **features.md 동기화** — Capacity 예측 ✅ 완료로 변경, 미구현 목록에서 제거
 
 ---
 

@@ -333,6 +333,29 @@ export const translations: Record<Language, Record<string, string>> = {
     "capacity.forecast.stable": "Stable",
     "capacity.forecast.rising": "Rising",
     "capacity.forecast.falling": "Falling",
+    "capacity.forecast.longTerm": "Capacity Forecast",
+    "capacity.forecast.longTermSub":
+      "Long-term growth trend and exhaustion prediction based on equipment history",
+    "capacity.forecast.loading": "Calculating forecast…",
+    "capacity.forecast.error": "Failed to load forecast data",
+    "capacity.forecast.growthChart": "Equipment Growth Trend",
+    "capacity.forecast.growthChartSub":
+      "Historical count (solid) + 12-month projection (dashed)",
+    "capacity.forecast.perMonth": "eq/month",
+    "capacity.forecast.actual": "Actual",
+    "capacity.forecast.projected": "Projected",
+    "capacity.forecast.now": "Now",
+    "capacity.forecast.noData": "Not enough data for forecast",
+    "capacity.forecast.growthSummary": "Monthly Growth by Resource",
+    "capacity.forecast.mo": "mo",
+    "capacity.forecast.res.space": "Rack Space",
+    "capacity.forecast.res.power": "Power",
+    "capacity.forecast.res.memory": "Memory",
+    "capacity.forecast.res.cpu": "CPU Cores",
+    "capacity.forecast.urgentWarning":
+      "Capacity exhaustion imminent (within 6 months)",
+    "capacity.forecast.alreadyFull": "Already full",
+    "capacity.forecast.noExhaustion": "No exhaustion projected",
 
     // ── Discovery ──
     "discovery.title": "Prometheus Discovery",
@@ -845,6 +868,29 @@ export const translations: Record<Language, Record<string, string>> = {
     "capacity.forecast.stable": "안정",
     "capacity.forecast.rising": "상승",
     "capacity.forecast.falling": "하락",
+    "capacity.forecast.longTerm": "용량 예측",
+    "capacity.forecast.longTermSub":
+      "장비 이력 기반 장기 성장 추세 및 용량 소진 예측",
+    "capacity.forecast.loading": "예측 계산 중…",
+    "capacity.forecast.error": "예측 데이터를 불러올 수 없습니다",
+    "capacity.forecast.growthChart": "장비 증가 추이",
+    "capacity.forecast.growthChartSub":
+      "과거 실적(실선) + 12개월 전망(점선)",
+    "capacity.forecast.perMonth": "대/월",
+    "capacity.forecast.actual": "실적",
+    "capacity.forecast.projected": "전망",
+    "capacity.forecast.now": "현재",
+    "capacity.forecast.noData": "예측에 필요한 데이터가 부족합니다",
+    "capacity.forecast.growthSummary": "리소스별 월간 증가량",
+    "capacity.forecast.mo": "월",
+    "capacity.forecast.res.space": "랙 공간",
+    "capacity.forecast.res.power": "전력",
+    "capacity.forecast.res.memory": "메모리",
+    "capacity.forecast.res.cpu": "CPU 코어",
+    "capacity.forecast.urgentWarning":
+      "용량 소진이 임박합니다 (6개월 이내)",
+    "capacity.forecast.alreadyFull": "이미 포화",
+    "capacity.forecast.noExhaustion": "소진 예상 없음",
 
     // ── Discovery ──
     "discovery.title": "Prometheus 디스커버리",

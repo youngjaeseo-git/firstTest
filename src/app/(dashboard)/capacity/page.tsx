@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/states";
 import { PageHeader } from "@/components/ui/page-header";
 import { LiveCapacityMetrics } from "@/components/capacity/live-capacity-metrics";
+import { CapacityForecast } from "@/components/capacity/capacity-forecast";
 import { BarChart3 } from "lucide-react";
 
 export default async function CapacityPage() {
@@ -134,6 +135,9 @@ export default async function CapacityPage() {
 
       {/* Live Prometheus metrics */}
       <LiveCapacityMetrics />
+
+      {/* Long-term capacity forecast */}
+      <CapacityForecast />
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
