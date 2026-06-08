@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { List, Building2, Search, Server, GitCompareArrows, ArrowUpDown } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
 import { queries } from "@/lib/prometheus";
+import { DataCenterFloorPlan } from "@/components/twin/datacenter-floor-plan";
 
 type PowerState = "running" | "idle" | "off" | "unknown";
 
@@ -452,89 +453,94 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
           t={t}
         />
       ) : (
-        /* TWIN VIEW - Level 1: Room Selector */
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {rooms.map((room, idx) => {
-            const totalEq = room.racks.reduce(
-              (s, r) => s + r.equipment.length,
-              0,
-            );
-            const activeEq = room.racks.reduce(
-              (s, r) =>
-                s + r.equipment.filter((e) => e.status === "ACTIVE").length,
-              0,
-            );
-            const totalUnits = room.racks.reduce(
-              (s, r) => s + r.totalUnits,
-              0,
-            );
-            const usedUnits = room.racks.reduce(
-              (s, r) =>
-                s + r.equipment.reduce((u, e) => u + (e.rackHeight || 1), 0),
-              0,
-            );
-            const util =
-              totalUnits > 0
-                ? Math.round((usedUnits / totalUnits) * 100)
-                : 0;
-            const gradient =
-              idx % 2 === 0
-                ? "from-blue-600/20 via-blue-600/5 to-transparent border-blue-500/40"
-                : "from-purple-600/20 via-purple-600/5 to-transparent border-purple-500/40";
-            return (
-              <button
-                key={room.id}
-                onClick={() => setSelectedRoom(room.id)}
-                className={cn(
-                  "group relative overflow-hidden rounded-xl border bg-gradient-to-br p-6 text-left transition-all hover:scale-[1.01] hover:shadow-lg",
-                  gradient,
-                )}
-              >
-                <Building2 className="absolute -right-4 -top-4 h-32 w-32 text-white/5" />
+        /* TWIN VIEW - Level 1: Data Center Floor Plan + Room Cards */
+        <div className="space-y-6">
+          <DataCenterFloorPlan
+            rooms={rooms}
+            onSelectRoom={setSelectedRoom}
+            t={t}
+          />
 
-                <div className="relative">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {rooms.map((room, idx) => {
+              const totalEq = room.racks.reduce(
+                (s, r) => s + r.equipment.length,
+                0,
+              );
+              const activeEq = room.racks.reduce(
+                (s, r) =>
+                  s + r.equipment.filter((e) => e.status === "ACTIVE").length,
+                0,
+              );
+              const totalUnits = room.racks.reduce(
+                (s, r) => s + r.totalUnits,
+                0,
+              );
+              const usedUnits = room.racks.reduce(
+                (s, r) =>
+                  s + r.equipment.reduce((u, e) => u + (e.rackHeight || 1), 0),
+                0,
+              );
+              const util =
+                totalUnits > 0
+                  ? Math.round((usedUnits / totalUnits) * 100)
+                  : 0;
+              const colors = [
+                "from-blue-600/20 via-blue-600/5 to-transparent border-blue-500/40",
+                "from-gray-600/10 via-gray-600/5 to-transparent border-gray-600/30",
+                "from-purple-600/20 via-purple-600/5 to-transparent border-purple-500/40",
+              ];
+              const iconColors = [
+                "bg-blue-500/20 text-blue-300",
+                "bg-gray-600/20 text-gray-400",
+                "bg-purple-500/20 text-purple-300",
+              ];
+              const gradient = colors[idx % colors.length];
+              const iconColor = iconColors[idx % iconColors.length];
+              return (
+                <button
+                  key={room.id}
+                  onClick={() => setSelectedRoom(room.id)}
+                  className={cn(
+                    "group relative overflow-hidden rounded-xl border bg-gradient-to-br p-5 text-left transition-all hover:scale-[1.01] hover:shadow-lg",
+                    gradient,
+                  )}
+                >
                   <div className="flex items-center gap-2">
-                    <div
-                      className={cn(
-                        "rounded-lg p-2",
-                        idx % 2 === 0
-                          ? "bg-blue-500/20 text-blue-300"
-                          : "bg-purple-500/20 text-purple-300",
-                      )}
-                    >
-                      <Building2 className="h-5 w-5" />
+                    <div className={cn("rounded-lg p-1.5", iconColor)}>
+                      <Building2 className="h-4 w-4" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-100">
+                    <h3 className="text-lg font-bold text-gray-100">
                       {room.name}
                     </h3>
                   </div>
 
-                  <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+                  <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
                     <div>
-                      <p className="text-xs text-gray-400">Racks</p>
-                      <p className="text-2xl font-bold text-blue-400">
+                      <p className="text-[10px] text-gray-500">Racks</p>
+                      <p className="text-xl font-bold text-blue-400">
                         {room.racks.length}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400">Servers</p>
-                      <p className="text-2xl font-bold text-green-400">
+                      <p className="text-[10px] text-gray-500">Servers</p>
+                      <p className="text-xl font-bold text-green-400">
                         {totalEq}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400">Active</p>
-                      <p className="text-2xl font-bold text-emerald-400">
+                      <p className="text-[10px] text-gray-500">Active</p>
+                      <p className="text-xl font-bold text-emerald-400">
                         {activeEq}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-4">
+                  <div className="mt-3">
                     <div className="flex items-center justify-between text-xs text-gray-400">
-                      <span>U Utilization</span>
-                      <span>
-                        {usedUnits} / {totalUnits}U ({util}%)
+                      <span>U {t("twin.statUtil")}</span>
+                      <span className="font-mono text-[11px]">
+                        {usedUnits}/{totalUnits}U ({util}%)
                       </span>
                     </div>
                     <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-gray-800">
@@ -552,13 +558,13 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
                     </div>
                   </div>
 
-                  <p className="mt-4 text-xs text-gray-500 group-hover:text-blue-300">
+                  <p className="mt-3 text-xs text-gray-500 group-hover:text-blue-300">
                     {t("twin.clickToFloorPlan")}
                   </p>
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
           {rooms.length === 0 && (
             <p className="text-gray-500">{t("twin.noRoomData")}</p>
           )}

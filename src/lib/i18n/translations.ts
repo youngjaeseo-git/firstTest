@@ -520,6 +520,10 @@ export const translations: Record<Language, Record<string, string>> = {
     "twin.statActive": "Active",
     "twin.statIssues": "Issues",
     "twin.statUtil": "Utilization",
+    "twin.floorPlan.title": "Data Center Floor Plan",
+    "twin.floorPlan.clickRoom": "Click a room to view rack layout",
+    "twin.floorPlan.noManagedServers": "No managed servers",
+    "twin.floorPlan.noData": "No room data",
 
     // ── Prometheus Diagnostic ──
     "diagnostic.title": "Prometheus Diagnostic",
@@ -1055,6 +1059,10 @@ export const translations: Record<Language, Record<string, string>> = {
     "twin.statActive": "가동 중",
     "twin.statIssues": "이슈",
     "twin.statUtil": "사용률",
+    "twin.floorPlan.title": "데이터센터 평면도",
+    "twin.floorPlan.clickRoom": "방을 클릭하면 랙 배치도로 이동합니다",
+    "twin.floorPlan.noManagedServers": "관리 대상 서버 없음",
+    "twin.floorPlan.noData": "데이터 없음",
 
     // ── Prometheus Diagnostic ──
     "diagnostic.title": "Prometheus 진단",
