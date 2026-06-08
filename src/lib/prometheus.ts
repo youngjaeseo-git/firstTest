@@ -120,10 +120,11 @@ export async function fetchTargets(): Promise<DiscoveredPrometheusTarget[]> {
 // Instance Matchers
 // ============================================
 
-// Escape PromQL regex metacharacters so an IP like 10.144.38.1 does not
-// cross-match 10.144.38.10/11/... (dots are regex "any char" otherwise).
+// Escape regex metacharacters for use inside PromQL string literals.
+// PromQL strings parse \\ as a literal backslash, so to get \. in the
+// regex engine we must emit \\. in the PromQL source.
 function escapeRe(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\\\$&");
 }
 
 // Extract the host portion of an instance and escape it for use in a regex matcher.

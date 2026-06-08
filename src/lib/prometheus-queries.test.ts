@@ -5,8 +5,8 @@ describe("prometheus query builders", () => {
   describe("instance matcher regex escaping", () => {
     it("escapes dots in IPv4 so 10.144.38.1 does not cross-match .10/.11", () => {
       const q = queries.nodeUp("10.144.38.1:9100");
-      // dots must be backslash-escaped in the regex matcher
-      expect(q).toContain("10\\.144\\.38\\.1");
+      // PromQL string needs \\\\ to produce \\ which regex interprets as literal dot
+      expect(q).toContain("10\\\\.144\\\\.38\\\\.1");
       // raw unescaped form must NOT appear
       expect(q).not.toMatch(/instance=~"10\.144\.38\.1\(/);
     });
@@ -18,7 +18,7 @@ describe("prometheus query builders", () => {
 
     it("escapes hostIp override in node-exporter matcher", () => {
       const q = queries.nodeExporterUp("somehost", "10.0.0.5");
-      expect(q).toContain("10\\.0\\.0\\.5");
+      expect(q).toContain("10\\\\.0\\\\.0\\\\.5");
       expect(q).toContain('job="node-exporter"');
     });
   });
