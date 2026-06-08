@@ -115,7 +115,12 @@ export function DataCenterFloorPlan({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-xl border border-gray-700 bg-gray-900/80">
+      <div className="flex items-center gap-2 text-sm text-gray-400">
+        <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-blue-500/20 text-blue-400 text-xs">&#9633;</span>
+        <span>{t("twin.floorPlan.title")}</span>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-gray-600/60 bg-gray-900/90 shadow-lg shadow-black/20">
         <svg
           viewBox={`0 0 ${W} ${H}`}
           className="w-full"
@@ -185,18 +190,18 @@ export function DataCenterFloorPlan({
             y1={MID_Y}
             x2={W - P}
             y2={MID_Y}
-            stroke="#374151"
-            strokeWidth={WALL}
-            strokeDasharray="6 3"
+            stroke="#6b7280"
+            strokeWidth={WALL + 1}
+            strokeDasharray="8 4"
           />
           <line
             x1={SPLIT_X}
             y1={MID_Y}
             x2={SPLIT_X}
             y2={H - P}
-            stroke="#374151"
-            strokeWidth={WALL}
-            strokeDasharray="6 3"
+            stroke="#6b7280"
+            strokeWidth={WALL + 1}
+            strokeDasharray="8 4"
           />
         </svg>
       </div>
@@ -226,7 +231,7 @@ function Lab3Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
   const coolY = rect.y + rect.h - 42;
 
   return (
-    <g opacity={0.5}>
+    <g>
       {racks.map((r) => (
         <g key={r.label}>
           <rect
@@ -234,15 +239,17 @@ function Lab3Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
             y={oy + r.row * (rh + gap)}
             width={rw}
             height={rh}
-            rx={3}
-            fill="none"
-            stroke="#4b5563"
-            strokeWidth={1}
+            rx={4}
+            fill="#1e1b4b"
+            fillOpacity={0.6}
+            stroke="#a78bfa"
+            strokeOpacity={0.5}
+            strokeWidth={1.2}
           />
           <text
             x={ox + r.col * (rw + gap) + rw / 2}
             y={oy + r.row * (rh + gap) + rh / 2 + 4}
-            fill="#6b7280"
+            fill="#c4b5fd"
             fontSize="10"
             textAnchor="middle"
             fontFamily="system-ui, sans-serif"
@@ -251,7 +258,6 @@ function Lab3Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
           </text>
         </g>
       ))}
-      {/* Unnamed rack groups (middle, right) */}
       {[0, 1].map((col) => (
         <g key={`grp-${col}`}>
           {[0, 1, 2].map((row) => (
@@ -261,16 +267,17 @@ function Lab3Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
               y={oy + row * (rh + gap)}
               width={rw + 20}
               height={rh}
-              rx={3}
-              fill="none"
-              stroke="#374151"
-              strokeWidth={0.8}
-              strokeDasharray="3 2"
+              rx={4}
+              fill="#1e1b4b"
+              fillOpacity={0.3}
+              stroke="#7c3aed"
+              strokeOpacity={0.25}
+              strokeWidth={1}
+              strokeDasharray="4 2"
             />
           ))}
         </g>
       ))}
-      {/* Cooling units */}
       {[0, 1, 2].map((i) => (
         <g key={`cool-${i}`}>
           <rect
@@ -278,19 +285,19 @@ function Lab3Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
             y={coolY}
             width={72}
             height={28}
-            rx={4}
-            fill="#164e63"
-            fillOpacity={0.3}
+            rx={5}
+            fill="#083344"
+            fillOpacity={0.7}
             stroke="#22d3ee"
-            strokeOpacity={0.3}
-            strokeWidth={1}
+            strokeOpacity={0.6}
+            strokeWidth={1.2}
           />
           <text
             x={coolX + i * 90 + 36}
             y={coolY + 18}
-            fill="#22d3ee"
-            fillOpacity={0.5}
+            fill="#67e8f9"
             fontSize="10"
+            fontWeight="600"
             textAnchor="middle"
             fontFamily="system-ui, sans-serif"
           >
@@ -317,26 +324,26 @@ function Lab1Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
   ];
 
   return (
-    <g opacity={0.5}>
+    <g>
       {/* Cooling unit */}
       <rect
         x={ox - 5}
         y={rect.y + 32}
         width={72}
         height={28}
-        rx={4}
-        fill="#164e63"
-        fillOpacity={0.3}
+        rx={5}
+        fill="#083344"
+        fillOpacity={0.7}
         stroke="#22d3ee"
-        strokeOpacity={0.3}
-        strokeWidth={1}
+        strokeOpacity={0.6}
+        strokeWidth={1.2}
       />
       <text
         x={ox - 5 + 36}
         y={rect.y + 32 + 18}
-        fill="#22d3ee"
-        fillOpacity={0.5}
+        fill="#67e8f9"
         fontSize="10"
+        fontWeight="600"
         textAnchor="middle"
         fontFamily="system-ui, sans-serif"
       >
@@ -351,15 +358,17 @@ function Lab1Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
             y={oy + r.row * (rh + gap)}
             width={rw}
             height={rh}
-            rx={3}
-            fill="none"
-            stroke="#4b5563"
-            strokeWidth={1}
+            rx={4}
+            fill="#172554"
+            fillOpacity={0.6}
+            stroke="#60a5fa"
+            strokeOpacity={0.5}
+            strokeWidth={1.2}
           />
           <text
             x={ox + rw / 2}
             y={oy + r.row * (rh + gap) + rh / 2 + 4}
-            fill="#6b7280"
+            fill="#93c5fd"
             fontSize="10"
             textAnchor="middle"
             fontFamily="system-ui, sans-serif"
@@ -393,8 +402,8 @@ function RoomBlock({
   const isClickable = !!room;
   const r = 6;
 
-  const fillOpacity = hasServers ? 0.08 : 0.03;
-  const borderOpacity = hasServers ? 0.4 : 0.15;
+  const fillOpacity = hasServers ? 0.12 : 0.04;
+  const borderOpacity = hasServers ? 0.5 : 0.2;
 
   return (
     <g
