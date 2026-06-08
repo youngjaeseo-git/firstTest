@@ -1,23 +1,23 @@
 -- CreateEnum
-CREATE TYPE "EvalType" AS ENUM ('FIELD', 'ACCELERATED');
+DO $$ BEGIN CREATE TYPE "EvalType" AS ENUM ('FIELD', 'ACCELERATED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- CreateEnum
-CREATE TYPE "EvalProjectStatus" AS ENUM ('PLANNED', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED');
+DO $$ BEGIN CREATE TYPE "EvalProjectStatus" AS ENUM ('PLANNED', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- CreateEnum
-CREATE TYPE "EvalPhaseStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'PASSED', 'FAILED', 'SKIPPED');
+DO $$ BEGIN CREATE TYPE "EvalPhaseStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'PASSED', 'FAILED', 'SKIPPED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- CreateEnum
-CREATE TYPE "EvalTestResult" AS ENUM ('PASS', 'FAIL', 'WARNING', 'RUNNING', 'PENDING');
+DO $$ BEGIN CREATE TYPE "EvalTestResult" AS ENUM ('PASS', 'FAIL', 'WARNING', 'RUNNING', 'PENDING'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- CreateEnum
-CREATE TYPE "EvalTaskStatus" AS ENUM ('TODO', 'IN_PROGRESS', 'DONE', 'BLOCKED');
+DO $$ BEGIN CREATE TYPE "EvalTaskStatus" AS ENUM ('TODO', 'IN_PROGRESS', 'DONE', 'BLOCKED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- CreateEnum
-CREATE TYPE "EvalTaskPriority" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'URGENT');
+DO $$ BEGIN CREATE TYPE "EvalTaskPriority" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'URGENT'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- CreateTable
-CREATE TABLE "EvalProject" (
+CREATE TABLE IF NOT EXISTS "EvalProject" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "description" TEXT,
@@ -40,7 +40,7 @@ CREATE TABLE "EvalProject" (
 );
 
 -- CreateTable
-CREATE TABLE "EvalPhase" (
+CREATE TABLE IF NOT EXISTS "EvalPhase" (
     "id" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -54,7 +54,7 @@ CREATE TABLE "EvalPhase" (
 );
 
 -- CreateTable
-CREATE TABLE "EvalResult" (
+CREATE TABLE IF NOT EXISTS "EvalResult" (
     "id" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
     "phaseId" TEXT,
@@ -77,7 +77,7 @@ CREATE TABLE "EvalResult" (
 );
 
 -- CreateTable
-CREATE TABLE "EvalTask" (
+CREATE TABLE IF NOT EXISTS "EvalTask" (
     "id" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
     "phaseId" TEXT,
@@ -96,7 +96,7 @@ CREATE TABLE "EvalTask" (
 );
 
 -- CreateTable
-CREATE TABLE "EvalNote" (
+CREATE TABLE IF NOT EXISTS "EvalNote" (
     "id" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
     "content" TEXT NOT NULL,
@@ -107,46 +107,54 @@ CREATE TABLE "EvalNote" (
 );
 
 -- CreateIndex
-CREATE INDEX "EvalProject_status_idx" ON "EvalProject"("status");
+CREATE INDEX IF NOT EXISTS "EvalProject_status_idx" ON "EvalProject"("status");
 
 -- CreateIndex
-CREATE INDEX "EvalProject_evalType_idx" ON "EvalProject"("evalType");
+CREATE INDEX IF NOT EXISTS "EvalProject_evalType_idx" ON "EvalProject"("evalType");
 
 -- CreateIndex
-CREATE INDEX "EvalPhase_projectId_idx" ON "EvalPhase"("projectId");
+CREATE INDEX IF NOT EXISTS "EvalPhase_projectId_idx" ON "EvalPhase"("projectId");
 
 -- CreateIndex
-CREATE INDEX "EvalResult_projectId_idx" ON "EvalResult"("projectId");
+CREATE INDEX IF NOT EXISTS "EvalResult_projectId_idx" ON "EvalResult"("projectId");
 
 -- CreateIndex
-CREATE INDEX "EvalResult_equipmentId_idx" ON "EvalResult"("equipmentId");
+CREATE INDEX IF NOT EXISTS "EvalResult_equipmentId_idx" ON "EvalResult"("equipmentId");
 
 -- CreateIndex
-CREATE INDEX "EvalTask_projectId_idx" ON "EvalTask"("projectId");
+CREATE INDEX IF NOT EXISTS "EvalTask_projectId_idx" ON "EvalTask"("projectId");
 
 -- CreateIndex
-CREATE INDEX "EvalTask_status_idx" ON "EvalTask"("status");
+CREATE INDEX IF NOT EXISTS "EvalTask_status_idx" ON "EvalTask"("status");
 
 -- CreateIndex
-CREATE INDEX "EvalNote_projectId_idx" ON "EvalNote"("projectId");
+CREATE INDEX IF NOT EXISTS "EvalNote_projectId_idx" ON "EvalNote"("projectId");
 
--- AddForeignKey
+-- AddForeignKey (idempotent)
+DO $$ BEGIN
 ALTER TABLE "EvalPhase" ADD CONSTRAINT "EvalPhase_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "EvalProject"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- AddForeignKey
+DO $$ BEGIN
 ALTER TABLE "EvalResult" ADD CONSTRAINT "EvalResult_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "EvalProject"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- AddForeignKey
+DO $$ BEGIN
 ALTER TABLE "EvalResult" ADD CONSTRAINT "EvalResult_phaseId_fkey" FOREIGN KEY ("phaseId") REFERENCES "EvalPhase"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- AddForeignKey
+DO $$ BEGIN
 ALTER TABLE "EvalResult" ADD CONSTRAINT "EvalResult_equipmentId_fkey" FOREIGN KEY ("equipmentId") REFERENCES "Equipment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- AddForeignKey
+DO $$ BEGIN
 ALTER TABLE "EvalTask" ADD CONSTRAINT "EvalTask_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "EvalProject"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- AddForeignKey
+DO $$ BEGIN
 ALTER TABLE "EvalTask" ADD CONSTRAINT "EvalTask_phaseId_fkey" FOREIGN KEY ("phaseId") REFERENCES "EvalPhase"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- AddForeignKey
+DO $$ BEGIN
 ALTER TABLE "EvalNote" ADD CONSTRAINT "EvalNote_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "EvalProject"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;

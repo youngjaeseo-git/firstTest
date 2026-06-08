@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE "EvalProject" ADD COLUMN "namespace" TEXT;
+ALTER TABLE "EvalProject" ADD COLUMN IF NOT EXISTS "namespace" TEXT;
 
 -- CreateIndex
-CREATE INDEX "EvalProject_namespace_idx" ON "EvalProject"("namespace");
+CREATE INDEX IF NOT EXISTS "EvalProject_namespace_idx" ON "EvalProject"("namespace");

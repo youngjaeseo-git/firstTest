@@ -1,11 +1,11 @@
 -- CreateEnum
-CREATE TYPE "ExpiryCategory" AS ENUM ('K8S_CERTIFICATE', 'TLS_CERTIFICATE', 'LICENSE', 'WARRANTY', 'DOMAIN', 'CUSTOM');
+DO $$ BEGIN CREATE TYPE "ExpiryCategory" AS ENUM ('K8S_CERTIFICATE', 'TLS_CERTIFICATE', 'LICENSE', 'WARRANTY', 'DOMAIN', 'CUSTOM'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- CreateEnum
-CREATE TYPE "ExpiryStatus" AS ENUM ('ACTIVE', 'EXPIRED', 'RENEWED', 'DISMISSED');
+DO $$ BEGIN CREATE TYPE "ExpiryStatus" AS ENUM ('ACTIVE', 'EXPIRED', 'RENEWED', 'DISMISSED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- CreateTable
-CREATE TABLE "ExpiryTracker" (
+CREATE TABLE IF NOT EXISTS "ExpiryTracker" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "category" "ExpiryCategory" NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE "ExpiryTracker" (
 );
 
 -- CreateIndex
-CREATE INDEX "ExpiryTracker_expiresAt_idx" ON "ExpiryTracker"("expiresAt");
+CREATE INDEX IF NOT EXISTS "ExpiryTracker_expiresAt_idx" ON "ExpiryTracker"("expiresAt");
 
 -- CreateIndex
-CREATE INDEX "ExpiryTracker_category_idx" ON "ExpiryTracker"("category");
+CREATE INDEX IF NOT EXISTS "ExpiryTracker_category_idx" ON "ExpiryTracker"("category");
