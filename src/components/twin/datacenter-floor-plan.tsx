@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { Building2, Server, HardDrive, Activity } from "lucide-react";
 
 interface RoomData {
   id: string;
@@ -65,14 +64,14 @@ function utilColor(pct: number): string {
   return "#22c55e";
 }
 
-const LAYOUT = {
-  width: 600,
-  height: 400,
-  padding: 2,
-  gap: 4,
-  midY: 200,
-  lab2SplitX: 420,
-};
+const W = 800;
+const H = 520;
+const P = 8;
+const GAP = 6;
+const WALL = 2;
+
+const MID_Y = 280;
+const SPLIT_X = 460;
 
 export function DataCenterFloorPlan({
   rooms,
@@ -100,38 +99,31 @@ export function DataCenterFloorPlan({
   const lab2 = findRoom("lab2") || findRoom("2");
   const lab3 = findRoom("lab3") || findRoom("3");
 
-  const { width, height, padding: p, gap, midY, lab2SplitX } = LAYOUT;
-
-  const lab1Rect = { x: p, y: p, w: width - p * 2, h: midY - p - gap / 2 };
+  const lab3Rect = { x: P, y: P, w: W - P * 2, h: MID_Y - P - GAP / 2 };
   const lab2Rect = {
-    x: p,
-    y: midY + gap / 2,
-    w: lab2SplitX - p - gap / 2,
-    h: height - midY - p - gap / 2,
+    x: P,
+    y: MID_Y + GAP / 2,
+    w: SPLIT_X - P - GAP / 2,
+    h: H - MID_Y - P - GAP / 2,
   };
-  const lab3Rect = {
-    x: lab2SplitX + gap / 2,
-    y: midY + gap / 2,
-    w: width - lab2SplitX - p - gap / 2,
-    h: height - midY - p - gap / 2,
+  const lab1Rect = {
+    x: SPLIT_X + GAP / 2,
+    y: MID_Y + GAP / 2,
+    w: W - SPLIT_X - P - GAP / 2,
+    h: H - MID_Y - P - GAP / 2,
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm text-gray-400">
-        <Building2 className="h-4 w-4" />
-        <span>{t("twin.floorPlan.title")}</span>
-      </div>
-
       <div className="overflow-hidden rounded-xl border border-gray-700 bg-gray-900/80">
         <svg
-          viewBox={`0 0 ${width} ${height}`}
+          viewBox={`0 0 ${W} ${H}`}
           className="w-full"
-          style={{ maxHeight: "480px" }}
+          style={{ maxHeight: "520px" }}
         >
           <defs>
             <pattern
-              id="grid"
+              id="floor-grid"
               width="20"
               height="20"
               patternUnits="userSpaceOnUse"
@@ -145,26 +137,10 @@ export function DataCenterFloorPlan({
             </pattern>
           </defs>
 
-          <rect width={width} height={height} fill="url(#grid)" rx="8" />
+          <rect width={W} height={H} fill="#0a0f1a" rx="8" />
+          <rect width={W} height={H} fill="url(#floor-grid)" rx="8" />
 
-          <RoomBlock
-            rect={lab1Rect}
-            room={lab1}
-            label="Lab-1"
-            accent="#3b82f6"
-            hasServers
-            onClick={() => lab1 && onSelectRoom(lab1.id)}
-            t={t}
-          />
-          <RoomBlock
-            rect={lab2Rect}
-            room={lab2}
-            label="Lab-2"
-            accent="#6b7280"
-            hasServers={false}
-            onClick={() => lab2 && onSelectRoom(lab2.id)}
-            t={t}
-          />
+          {/* Lab-3: top */}
           <RoomBlock
             rect={lab3Rect}
             room={lab3}
@@ -175,23 +151,51 @@ export function DataCenterFloorPlan({
             t={t}
           />
 
-          {/* Dividing walls */}
+          {/* Lab-3 rack layout sketch */}
+          <Lab3Interior rect={lab3Rect} />
+
+          {/* Lab-2: bottom-left (empty) */}
+          <RoomBlock
+            rect={lab2Rect}
+            room={lab2}
+            label="Lab-2"
+            accent="#6b7280"
+            hasServers={false}
+            onClick={() => lab2 && onSelectRoom(lab2.id)}
+            t={t}
+          />
+
+          {/* Lab-1: bottom-right */}
+          <RoomBlock
+            rect={lab1Rect}
+            room={lab1}
+            label="Lab-1"
+            accent="#3b82f6"
+            hasServers
+            onClick={() => lab1 && onSelectRoom(lab1.id)}
+            t={t}
+          />
+
+          {/* Lab-1 rack layout sketch */}
+          <Lab1Interior rect={lab1Rect} />
+
+          {/* Walls */}
           <line
-            x1={p}
-            y1={midY}
-            x2={width - p}
-            y2={midY}
+            x1={P}
+            y1={MID_Y}
+            x2={W - P}
+            y2={MID_Y}
             stroke="#374151"
-            strokeWidth="2"
+            strokeWidth={WALL}
             strokeDasharray="6 3"
           />
           <line
-            x1={lab2SplitX}
-            y1={midY}
-            x2={lab2SplitX}
-            y2={height - p}
+            x1={SPLIT_X}
+            y1={MID_Y}
+            x2={SPLIT_X}
+            y2={H - P}
             stroke="#374151"
-            strokeWidth="2"
+            strokeWidth={WALL}
             strokeDasharray="6 3"
           />
         </svg>
@@ -201,6 +205,170 @@ export function DataCenterFloorPlan({
         {t("twin.floorPlan.clickRoom")}
       </p>
     </div>
+  );
+}
+
+function Lab3Interior({ rect }: { rect: { x: number; y: number; w: number; h: number } }) {
+  const rw = 70;
+  const rh = 30;
+  const gap = 6;
+  const ox = rect.x + 20;
+  const oy = rect.y + 40;
+
+  const racks = [
+    { label: "Rack #3-4", col: 0, row: 0 },
+    { label: "Rack #3-3", col: 0, row: 1 },
+    { label: "Rack #3-2", col: 0, row: 2 },
+    { label: "Rack #3-1", col: 0, row: 3 },
+  ];
+
+  const coolX = rect.x + rect.w * 0.3;
+  const coolY = rect.y + rect.h - 42;
+
+  return (
+    <g opacity={0.5}>
+      {racks.map((r) => (
+        <g key={r.label}>
+          <rect
+            x={ox + r.col * (rw + gap)}
+            y={oy + r.row * (rh + gap)}
+            width={rw}
+            height={rh}
+            rx={3}
+            fill="none"
+            stroke="#4b5563"
+            strokeWidth={1}
+          />
+          <text
+            x={ox + r.col * (rw + gap) + rw / 2}
+            y={oy + r.row * (rh + gap) + rh / 2 + 4}
+            fill="#6b7280"
+            fontSize="10"
+            textAnchor="middle"
+            fontFamily="system-ui, sans-serif"
+          >
+            {r.label}
+          </text>
+        </g>
+      ))}
+      {/* Unnamed rack groups (middle, right) */}
+      {[0, 1].map((col) => (
+        <g key={`grp-${col}`}>
+          {[0, 1, 2].map((row) => (
+            <rect
+              key={row}
+              x={ox + (col + 2) * (rw + gap) + 60}
+              y={oy + row * (rh + gap)}
+              width={rw + 20}
+              height={rh}
+              rx={3}
+              fill="none"
+              stroke="#374151"
+              strokeWidth={0.8}
+              strokeDasharray="3 2"
+            />
+          ))}
+        </g>
+      ))}
+      {/* Cooling units */}
+      {[0, 1, 2].map((i) => (
+        <g key={`cool-${i}`}>
+          <rect
+            x={coolX + i * 90}
+            y={coolY}
+            width={72}
+            height={28}
+            rx={4}
+            fill="#164e63"
+            fillOpacity={0.3}
+            stroke="#22d3ee"
+            strokeOpacity={0.3}
+            strokeWidth={1}
+          />
+          <text
+            x={coolX + i * 90 + 36}
+            y={coolY + 18}
+            fill="#22d3ee"
+            fillOpacity={0.5}
+            fontSize="10"
+            textAnchor="middle"
+            fontFamily="system-ui, sans-serif"
+          >
+            AC
+          </text>
+        </g>
+      ))}
+    </g>
+  );
+}
+
+function Lab1Interior({ rect }: { rect: { x: number; y: number; w: number; h: number } }) {
+  const rw = 70;
+  const rh = 30;
+  const gap = 6;
+  const ox = rect.x + rect.w - rw - 30;
+  const oy = rect.y + 70;
+
+  const racks = [
+    { label: "Rack #1-1", row: 0 },
+    { label: "Rack #1-2", row: 1 },
+    { label: "Rack #1-3", row: 2 },
+    { label: "Rack #1-4", row: 3 },
+  ];
+
+  return (
+    <g opacity={0.5}>
+      {/* Cooling unit */}
+      <rect
+        x={ox - 5}
+        y={rect.y + 32}
+        width={72}
+        height={28}
+        rx={4}
+        fill="#164e63"
+        fillOpacity={0.3}
+        stroke="#22d3ee"
+        strokeOpacity={0.3}
+        strokeWidth={1}
+      />
+      <text
+        x={ox - 5 + 36}
+        y={rect.y + 32 + 18}
+        fill="#22d3ee"
+        fillOpacity={0.5}
+        fontSize="10"
+        textAnchor="middle"
+        fontFamily="system-ui, sans-serif"
+      >
+        AC
+      </text>
+
+      {/* Racks */}
+      {racks.map((r) => (
+        <g key={r.label}>
+          <rect
+            x={ox}
+            y={oy + r.row * (rh + gap)}
+            width={rw}
+            height={rh}
+            rx={3}
+            fill="none"
+            stroke="#4b5563"
+            strokeWidth={1}
+          />
+          <text
+            x={ox + rw / 2}
+            y={oy + r.row * (rh + gap) + rh / 2 + 4}
+            fill="#6b7280"
+            fontSize="10"
+            textAnchor="middle"
+            fontFamily="system-ui, sans-serif"
+          >
+            {r.label}
+          </text>
+        </g>
+      ))}
+    </g>
   );
 }
 
@@ -225,8 +393,8 @@ function RoomBlock({
   const isClickable = !!room;
   const r = 6;
 
-  const fillOpacity = hasServers ? 0.12 : 0.05;
-  const borderOpacity = hasServers ? 0.5 : 0.2;
+  const fillOpacity = hasServers ? 0.08 : 0.03;
+  const borderOpacity = hasServers ? 0.4 : 0.15;
 
   return (
     <g
@@ -235,7 +403,6 @@ function RoomBlock({
       role={isClickable ? "button" : undefined}
       tabIndex={isClickable ? 0 : undefined}
     >
-      {/* Background */}
       <rect
         x={rect.x}
         y={rect.y}
@@ -249,7 +416,6 @@ function RoomBlock({
         strokeWidth="1.5"
       />
 
-      {/* Hover overlay */}
       {isClickable && (
         <rect
           x={rect.x}
@@ -263,7 +429,6 @@ function RoomBlock({
         />
       )}
 
-      {/* Room label */}
       <text
         x={rect.x + 16}
         y={rect.y + 26}
@@ -277,33 +442,28 @@ function RoomBlock({
 
       {stats && hasServers ? (
         <>
-          {/* Stats row */}
           <g transform={`translate(${rect.x + 16}, ${rect.y + 46})`}>
             <StatItem
               x={0}
-              icon="rack"
               value={stats.rackCount}
               label={t("twin.statRacks")}
               color="#9ca3af"
             />
             <StatItem
-              x={rect.w > 200 ? 80 : 65}
-              icon="server"
+              x={80}
               value={stats.equipmentCount}
               label={t("twin.statEquipment")}
               color="#9ca3af"
             />
             <StatItem
-              x={rect.w > 200 ? 160 : 130}
-              icon="active"
+              x={160}
               value={stats.activeCount}
               label={t("twin.statActive")}
               color="#22c55e"
             />
             {stats.issueCount > 0 && (
               <StatItem
-                x={rect.w > 200 ? 240 : 195}
-                icon="issue"
+                x={240}
                 value={stats.issueCount}
                 label={t("twin.statIssues")}
                 color="#ef4444"
@@ -313,35 +473,34 @@ function RoomBlock({
 
           {/* Utilization bar */}
           <g
-            transform={`translate(${rect.x + 16}, ${rect.y + rect.h - 36})`}
+            transform={`translate(${rect.x + 16}, ${rect.y + rect.h - 28})`}
           >
             <text
               x={0}
               y={0}
               fill="#6b7280"
-              fontSize="11"
+              fontSize="10"
               fontFamily="system-ui, sans-serif"
             >
-              {t("twin.statUtil")}: {stats.usedU}/{stats.totalU}U (
-              {stats.utilPct}%)
+              {stats.usedU}/{stats.totalU}U ({stats.utilPct}%)
             </text>
             <rect
               x={0}
               y={6}
-              width={Math.min(rect.w - 32, 280)}
-              height={6}
-              rx={3}
+              width={Math.min(rect.w - 32, 260)}
+              height={5}
+              rx={2.5}
               fill="#1f2937"
             />
             <rect
               x={0}
               y={6}
               width={
-                Math.min(rect.w - 32, 280) *
+                Math.min(rect.w - 32, 260) *
                 Math.min(stats.utilPct / 100, 1)
               }
-              height={6}
-              rx={3}
+              height={5}
+              rx={2.5}
               fill={utilColor(stats.utilPct)}
             />
           </g>
@@ -365,13 +524,11 @@ function RoomBlock({
 
 function StatItem({
   x,
-  icon,
   value,
   label,
   color,
 }: {
   x: number;
-  icon: "rack" | "server" | "active" | "issue";
   value: number;
   label: string;
   color: string;

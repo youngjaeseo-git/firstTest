@@ -85,6 +85,12 @@ export default async function ServerDetailPage({
               <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">IP Address</p>
               <p className="mt-1 font-mono text-gray-200">{equipment.ipAddress || "-"}</p>
             </div>
+            {equipment.bmcIpAddress && (
+              <div>
+                <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">BMC IP</p>
+                <p className="mt-1 font-mono text-gray-200">{equipment.bmcIpAddress}</p>
+              </div>
+            )}
             <div>
               <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Status</p>
               <div className="mt-1 flex items-center gap-2">
