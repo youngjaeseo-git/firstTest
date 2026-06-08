@@ -20,12 +20,14 @@ import {
   Boxes,
   History,
   Zap,
+  Users,
 } from "lucide-react";
 
 const navigation = [
   { key: "nav.dashboard", href: "/", icon: LayoutDashboard },
   { key: "nav.servers", href: "/servers", icon: Server },
   { key: "nav.infrastructure", href: "/infrastructure", icon: Building2 },
+  { key: "nav.assignments", href: "/assignments", icon: Users },
   { key: "nav.racks", href: "/racks", icon: Layers },
   { key: "nav.search", href: "/search", icon: Search },
   { key: "nav.memory", href: "/memory", icon: MemoryStick },

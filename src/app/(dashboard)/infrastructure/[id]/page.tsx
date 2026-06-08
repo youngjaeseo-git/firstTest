@@ -16,6 +16,7 @@ import { PowerConsoleCard } from "@/components/equipment/power-console-card";
 import { RefreshHwButton } from "@/components/equipment/refresh-hw-button";
 import { EquipmentHistory } from "@/components/equipment/equipment-history";
 import { DeleteEquipmentButton } from "@/components/equipment/delete-equipment-button";
+import { EquipmentAssignments } from "@/components/equipment/equipment-assignments";
 
 export default async function EquipmentDetailPage({
   params,
@@ -153,6 +154,9 @@ export default async function EquipmentDetailPage({
           </Link>
         </div>
       )}
+
+      {/* Assignment tracking */}
+      <EquipmentAssignments equipmentId={equipment.id} />
 
       {/* Collapsible sections */}
       <Accordion type="multiple" defaultValue={["basic", "cpu", "memory"]}>

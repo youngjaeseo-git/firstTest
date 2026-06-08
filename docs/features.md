@@ -133,7 +133,8 @@
 | Prometheus 진단 | ✅ 완료 | IP-only/중복/orphan 진단 페이지 |
 | 만료 추적 | ✅ 완료 | 인증서/라이선스/보증 만료일 관리 |
 | 감사 로그 조회 (/history) | ✅ 완료 | 액션/엔티티/사용자/날짜 필터 + 필드 diff 표시 |
-| 감사 로그 적용 범위 | ✅ 완료 | equipment·rack·room·user·alert-rule·discovery CRUD 전반 logAudit |
+| 서버 사용 현황 (Assignments) | ✅ 완료 | 장비별 사용자 할당/반납 + 이력 추적, /assignments 전체 현황 페이지 |
+| 감사 로그 적용 범위 | ✅ 완료 | equipment·rack·room·user·alert-rule·discovery·assignment CRUD 전반 logAudit |
 | Audit Log Export | ✅ 완료 | CSV 내보내기 (날짜 필터 + 이스케이프) |
 
 ---

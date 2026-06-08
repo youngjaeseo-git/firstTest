@@ -13,6 +13,7 @@ import { BmcSensorsCard } from "@/components/equipment/bmc-sensors-card";
 import { MemorySlotDiagram } from "@/components/memory/memory-slot-diagram";
 import { PowerStateIndicator } from "@/components/metrics/power-state-indicator";
 import { getSessionUser, canControlPower } from "@/lib/rbac";
+import { EquipmentAssignments } from "@/components/equipment/equipment-assignments";
 
 export default async function ServerDetailPage({
   params,
@@ -139,6 +140,9 @@ export default async function ServerDetailPage({
             </div>
           </div>
         </div>
+
+        {/* Assignment tracking */}
+        <EquipmentAssignments equipmentId={equipment.id} />
 
         {/* Power & Console */}
         <PowerConsoleCard

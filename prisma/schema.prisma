@@ -144,6 +144,7 @@ model Equipment {
   networkPorts     NetworkPort[]
   prometheusTarget PrometheusTarget?
   evalResults      EvalResult[]
+  assignments      EquipmentAssignment[]
 
   // Prometheus target label for metric queries (legacy, prefer PrometheusTarget relation)
   prometheusInstance String?
@@ -539,6 +540,27 @@ model EvalNote {
   project     EvalProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
+}
+
+// ============================================
+// Equipment Assignment (Usage Tracking)
+// ============================================
+
+model EquipmentAssignment {
+  id          String    @id @default(cuid())
+  equipmentId String
+  assignedTo  String
+  purpose     String?
+  assignedAt  DateTime  @default(now())
+  releasedAt  DateTime?
+  notes       String?
+  createdBy   String
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([equipmentId])
+  @@index([assignedTo])
+  @@index([releasedAt])
 }
 
 // ============================================

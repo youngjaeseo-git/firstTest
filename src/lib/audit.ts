@@ -22,6 +22,7 @@ export type AuditAction =
 
 export type AuditEntityType =
   | "Equipment"
+  | "EquipmentAssignment"
   | "Rack"
   | "Room"
   | "DataCenter"
