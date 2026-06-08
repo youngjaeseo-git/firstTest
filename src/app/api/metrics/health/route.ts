@@ -1,43 +1,60 @@
 export const dynamic = "force-dynamic";
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 const PROMETHEUS_URL =
   process.env.PROMETHEUS_URL || "http://10.100.175.248:8080";
 
-export async function GET() {
-  const result: Record<string, unknown> = {
+export async function GET(req: NextRequest) {
+  const results: Record<string, unknown> = {
     promUrl: PROMETHEUS_URL,
-    nodeVersion: process.version,
     timestamp: new Date().toISOString(),
   };
 
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(
-      `${PROMETHEUS_URL}/api/v1/query?query=up`,
-      { signal: controller.signal },
-    );
-    clearTimeout(timer);
+  const testQueries: Record<string, string> = {
+    simple: "up",
+    cpuNE: '(1 - avg(rate(node_cpu_seconds_total{mode="idle",job="node-exporter"}[5m]))) * 100',
+    memNE: 'node_memory_MemTotal_bytes{job="node-exporter"}',
+    cpuCA: 'sum(rate(container_cpu_usage_seconds_total{container!=""}[5m]))',
+    orQuery:
+      '(1 - avg(rate(node_cpu_seconds_total{mode="idle",job="node-exporter"}[5m]))) * 100' +
+      ' or ' +
+      'sum(rate(container_cpu_usage_seconds_total{container!=""}[5m]))',
+  };
 
-    result.httpStatus = res.status;
-    result.httpOk = res.ok;
+  const end = new Date();
+  const start = new Date(end.getTime() - 5 * 60 * 1000);
 
-    if (res.ok) {
-      const json = await res.json();
-      result.promStatus = json.status;
-      result.resultCount = json.data?.result?.length ?? 0;
-      result.ok = true;
-    } else {
-      result.body = await res.text().then((t) => t.slice(0, 200));
-      result.ok = false;
+  for (const [name, query] of Object.entries(testQueries)) {
+    try {
+      const url = new URL("/api/v1/query_range", PROMETHEUS_URL);
+      url.searchParams.set("query", query);
+      url.searchParams.set("start", (start.getTime() / 1000).toString());
+      url.searchParams.set("end", (end.getTime() / 1000).toString());
+      url.searchParams.set("step", "30s");
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      const res = await fetch(url.toString(), { signal: controller.signal });
+      clearTimeout(timer);
+
+      if (res.ok) {
+        const json = await res.json();
+        const count = json.data?.result?.length ?? 0;
+        results[name] = { ok: true, status: res.status, results: count };
+      } else {
+        const body = await res.text();
+        results[name] = { ok: false, status: res.status, error: body.slice(0, 300) };
+      }
+    } catch (err) {
+      results[name] = {
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
     }
-  } catch (err) {
-    result.ok = false;
-    result.error = err instanceof Error ? err.message : String(err);
-    result.errorType = err instanceof Error ? err.constructor.name : typeof err;
   }
 
-  return NextResponse.json(result);
+  return NextResponse.json(results, {
+    headers: { "Cache-Control": "no-store" },
+  });
 }
