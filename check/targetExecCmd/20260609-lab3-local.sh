@@ -80,3 +80,54 @@ try:
   if found==0: print('none')
 except: print('prom-query-failed')
 " 2>/dev/null
+
+echo ""
+echo "=== 11. Prometheus Pod 상태 + 로그 ==="
+PPOD=$(kubectl get pod -n monitoring 2>/dev/null | grep -i prom | awk '{print $1}' | head -1)
+if [ -n "$PPOD" ]; then
+  kubectl get pod -n monitoring $PPOD -o wide 2>/dev/null | awk 'NR<=2{print $1,$2,$3,$5}'
+  echo "-- last 10 log lines --"
+  kubectl logs -n monitoring $PPOD --tail=10 2>/dev/null || echo "log-fail"
+else
+  echo "prometheus pod not found"
+fi
+
+echo ""
+echo "=== 12. Prometheus ConfigMap scrape 설정 ==="
+kubectl get configmap prometheus-server-conf -n monitoring -o jsonpath='{.data}' 2>/dev/null | python3 -c "
+import sys,yaml
+try:
+  raw=sys.stdin.read()
+  if not raw: print('empty'); sys.exit()
+  import json
+  data=json.loads(raw)
+  for k in data:
+    cfg=yaml.safe_load(data[k])
+    if isinstance(cfg, dict) and 'scrape_configs' in cfg:
+      jobs=cfg['scrape_configs']
+      print(f'file={k} jobs={len(jobs)}:')
+      for j in jobs:
+        targets=j.get('static_configs',[{}])
+        tcount=sum(len(t.get('targets',[])) for t in targets)
+        print(f'  {j[\"job_name\"]} targets={tcount}')
+except Exception as e: print(f'parse-err: {e}')
+" 2>/dev/null
+
+echo ""
+echo "=== 13. Prometheus 직접 curl 테스트 ==="
+echo "-- /api/v1/status/config --"
+CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:30003/api/v1/status/config" 2>/dev/null)
+echo "http=$CODE"
+echo "-- /api/v1/targets summary --"
+curl -s "http://localhost:30003/api/v1/targets" 2>/dev/null | python3 -c "
+import json,sys
+try:
+  raw=sys.stdin.read()
+  if not raw: print('empty response'); sys.exit()
+  d=json.loads(raw)
+  st=d.get('status','')
+  t=d.get('data',{}).get('activeTargets',[])
+  up=sum(1 for x in t if x.get('health')=='up')
+  print(f'status={st} total={len(t)} up={up} down={len(t)-up}')
+except Exception as e: print(f'parse-err: {e}')
+" 2>/dev/null

@@ -66,3 +66,31 @@ SELECT 'lab1: ' || count(*) FILTER (WHERE \"ipAddress\" LIKE '10.144.38.%')
     || '  no-ip: ' || count(*) FILTER (WHERE \"ipAddress\" IS NULL OR \"ipAddress\" = '')
     || '  total: ' || count(*)
 FROM \"Equipment\";"
+
+echo ""
+echo "=== 7. Lab-1에서 Lab-3 Prometheus 직접 접근 ==="
+curl -s --connect-timeout 5 "http://10.144.131.100:30003/api/v1/status/config" 2>/dev/null | python3 -c "
+import json,sys
+try:
+  d=json.load(sys.stdin)
+  y=d['data']['yaml']
+  jobs=[l.strip().replace('job_name:','').strip().strip(\"'\").strip('\"') for l in y.split('\n') if 'job_name' in l]
+  print(f'jobs({len(jobs)}): {\", \".join(jobs)}')
+except: print('unreachable or parse-fail')
+" 2>/dev/null
+
+echo ""
+echo "=== 8. Lab-1 Prometheus federation 설정 확인 ==="
+curl -s "$PROM/api/v1/status/config" 2>/dev/null | python3 -c "
+import json,sys
+try:
+  d=json.load(sys.stdin)
+  y=d['data']['yaml']
+  has131=('131' in y)
+  has_fed=('federate' in y.lower())
+  print(f'contains 131: {has131}, contains federate: {has_fed}')
+  if has131:
+    for l in y.split('\n'):
+      if '131' in l: print(f'  {l.strip()[:80]}')
+except: print('parse-fail')
+" 2>/dev/null
