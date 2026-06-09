@@ -16,9 +16,21 @@
 - **API 인증**: NextAuth.js — API 호출 시 로그인 필요, check 스크립트에서는 docker exec로 DB 직접 조회
 
 ### Cluster 2 — Lab-3 (10.144.131.100)
-- **역할**: K8s master-lab3 node
-- **Prometheus**: k8s-monitoring → Cluster 1으로 메트릭 federation/전송
-- **작업 순서**: Lab-1 서버 메트릭 완성 후 Lab-3 확장 (TODO)
+- **역할**: K8s master-lab3 node (Ready), 워커 노드 19대 (전부 NotReady, 2026-06-09 확인)
+- **Prometheus**: 자체 prometheus-service 존재 (NodePort 30003, ClusterIP 10.97.9.194:8080)
+  - ConfigMap: `prometheus-server-conf` (63일 전 생성)
+  - 타겟 조회 시도 시 파싱 실패 → 정상 동작 여부 추가 확인 필요
+- **node-exporter**: DaemonSet 배포됨, Pod 9개 Running
+- **K8s 노드 (21개)**:
+  - Ready: k8s-master-lab3 (10.144.131.100)
+  - NotReady: k8s-monitoring (10.144.131.190)
+  - NotReady: s222hax14ae001~009 — GNR-AP 9대 (10.144.131.101~109)
+  - NotReady: s222hx14ae001~010 — GNR-SP 10대 (10.144.131.111~120)
+  - K8s 미등록: g222bx14ae001~004 — SRF 4대 (10.144.131.121~124)
+  - K8s 미등록: s121x13ae101~103 — SPR 3대 (10.144.131.211~212)
+- **Lab-1 → Lab-3 federation**: 현재 사실상 미동작 (Lab-1에서 Lab-3 타겟 거의 안 보임)
+- **BMC 접근**: DCIM 서버(Lab-1)에서 직접 불가. Lab-3 마스터를 프록시로 경유해야 함 (BMC 스위치 별도)
+- **BMC IP 대역**: 192.168.10.x (Lab-1과 동일 대역, 스위치 분리)
 
 ### 앱 코드에서의 Prometheus 접속
 - `src/lib/prometheus.ts`의 `PROMETHEUS_URL` 환경변수
