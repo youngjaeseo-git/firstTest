@@ -14,6 +14,7 @@ import {
   type ResetType,
 } from "@/lib/redfish";
 import { logAudit } from "@/lib/audit";
+import { parseBody } from "@/lib/api-validation";
 
 export const dynamic = "force-dynamic";
 
@@ -106,18 +107,9 @@ export async function POST(
     );
   }
 
-  let payload: z.infer<typeof PowerActionSchema>;
-  try {
-    payload = PowerActionSchema.parse(await req.json());
-  } catch (err) {
-    return NextResponse.json(
-      {
-        error: "Invalid request",
-        details: err instanceof z.ZodError ? err.errors : undefined,
-      },
-      { status: 400 },
-    );
-  }
+  const parsed = await parseBody(req, PowerActionSchema);
+  if (parsed.response) return parsed.response;
+  const payload = parsed.data;
 
   const equipment = await prisma.equipment.findUnique({
     where: { id },

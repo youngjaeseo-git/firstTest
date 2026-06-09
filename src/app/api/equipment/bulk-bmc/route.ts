@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getSessionUser, canControlPower, canEdit } from "@/lib/rbac";
+import { parseBody } from "@/lib/api-validation";
 import {
   getBmcCredentials,
   bmcCredentialsConfigured,
@@ -146,15 +147,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let payload: z.infer<typeof BulkSchema>;
-  try {
-    payload = BulkSchema.parse(await req.json());
-  } catch (err) {
-    return NextResponse.json(
-      { error: "Invalid request", details: err instanceof z.ZodError ? err.errors : undefined },
-      { status: 400 },
-    );
-  }
+  const parsed = await parseBody(req, BulkSchema);
+  if (parsed.response) return parsed.response;
+  const payload = parsed.data;
 
   if (payload.action === "power" && !canControlPower(user.role)) {
     return NextResponse.json(
