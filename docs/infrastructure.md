@@ -18,8 +18,14 @@
 ### Cluster 2 — Lab-3 (10.144.131.100)
 - **역할**: K8s master-lab3 node
 - **Prometheus**: 자체 prometheus-service 존재 (NodePort 30003, ClusterIP 10.97.9.194:8080)
-  - ConfigMap: `prometheus-server-conf` (63일 전 생성, 항목 3개)
-  - 타겟 조회 시도 시 파싱 실패 → Prometheus 설정 확인 필요
+  - ConfigMap: `prometheus-server-conf` (63일 전 생성), jobs 6개 (전부 k8s service discovery 기반)
+  - **비기능 상태**: Pod Running이지만 K8s API(10.96.0.1:443) 접근 불가 → 타겟 0개, HTTP 응답 불가
+  - 로그: `i/o timeout`, `no route to host` 반복
+- **Lab-1 → Lab-3 메트릭 수집 (실제 구조)**:
+  - **federation 아님** — Lab-1 Prometheus가 Lab-3 서버를 **직접 scrape**
+  - Lab-3 서버 :9200 포트 수집 중 (PCM/server-info 추정)
+  - 수집 대상: GNR-AP(.101~.109:9200), GNR-SP(.111~.120:9200)
+  - node-exporter(:9100)는 Lab-1이 수집하지 않음 (Lab-3 DaemonSet은 동작 중)
 - **node-exporter**: DaemonSet 배포됨, DESIRED/CURRENT/READY=16/16/16, Pod 9개 Running
 - **K8s 노드 (21개, 2026-06-09 방화벽 조치 후 재확인)**:
   - Ready (17개):
@@ -32,7 +38,7 @@
   - K8s 미등록: g222bx14ae001~004 — SRF 4대 (.121~.124), hostname 동일(Lab-1에서 이전), .123/.124 ping down
   - K8s 미등록: s121x13ae103 — SPR 1대 (.213), hostname 동일
   - 기타: LLM-Serving (.211), localhost (.212) — 평가 서버 아님, 다른 용도
-- **Lab-1 → Lab-3 federation**: 노드 복구 후 재확인 필요 (방화벽 조치 전 미동작 확인됨)
+- **Lab-1 → Lab-3 Prometheus 접근**: Lab-1에서 Lab-3 Prometheus(30003) 접근 불가 (네트워크 차단 추정)
 - **BMC 접근**: DCIM 서버(Lab-1)에서 직접 불가. Lab-3 마스터를 프록시로 경유해야 함 (BMC 스위치 별도)
 - **BMC IP 대역**: 192.168.10.x (Lab-1과 동일 대역, 스위치 분리)
 
