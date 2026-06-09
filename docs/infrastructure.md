@@ -16,19 +16,22 @@
 - **API 인증**: NextAuth.js — API 호출 시 로그인 필요, check 스크립트에서는 docker exec로 DB 직접 조회
 
 ### Cluster 2 — Lab-3 (10.144.131.100)
-- **역할**: K8s master-lab3 node (Ready), 워커 노드 19대 (전부 NotReady, 2026-06-09 확인)
+- **역할**: K8s master-lab3 node
 - **Prometheus**: 자체 prometheus-service 존재 (NodePort 30003, ClusterIP 10.97.9.194:8080)
-  - ConfigMap: `prometheus-server-conf` (63일 전 생성)
-  - 타겟 조회 시도 시 파싱 실패 → 정상 동작 여부 추가 확인 필요
-- **node-exporter**: DaemonSet 배포됨, Pod 9개 Running
-- **K8s 노드 (21개)**:
-  - Ready: k8s-master-lab3 (10.144.131.100)
-  - NotReady: k8s-monitoring (10.144.131.190)
-  - NotReady: s222hax14ae001~009 — GNR-AP 9대 (10.144.131.101~109)
-  - NotReady: s222hx14ae001~010 — GNR-SP 10대 (10.144.131.111~120)
+  - ConfigMap: `prometheus-server-conf` (63일 전 생성, 항목 3개)
+  - 타겟 조회 시도 시 파싱 실패 → Prometheus 설정 확인 필요
+- **node-exporter**: DaemonSet 배포됨, DESIRED/CURRENT/READY=16/16/16, Pod 9개 Running
+- **K8s 노드 (21개, 2026-06-09 방화벽 조치 후 재확인)**:
+  - Ready (17개):
+    - k8s-master-lab3 (10.144.131.100)
+    - k8s-monitoring (10.144.131.190)
+    - s222hax14ae003~005, 007, 009 — GNR-AP 5대 (.103~.105, .107, .109)
+    - s222hx14ae001~010 — GNR-SP 10대 (.111~.120)
+  - NotReady (4개):
+    - s222hax14ae001 (.101), 002 (.102), 006 (.106), 008 (.108) — GNR-AP
   - K8s 미등록: g222bx14ae001~004 — SRF 4대 (10.144.131.121~124)
   - K8s 미등록: s121x13ae101~103 — SPR 3대 (10.144.131.211~212)
-- **Lab-1 → Lab-3 federation**: 현재 사실상 미동작 (Lab-1에서 Lab-3 타겟 거의 안 보임)
+- **Lab-1 → Lab-3 federation**: 노드 복구 후 재확인 필요 (방화벽 조치 전 미동작 확인됨)
 - **BMC 접근**: DCIM 서버(Lab-1)에서 직접 불가. Lab-3 마스터를 프록시로 경유해야 함 (BMC 스위치 별도)
 - **BMC IP 대역**: 192.168.10.x (Lab-1과 동일 대역, 스위치 분리)
 
@@ -99,8 +102,13 @@
 | s121x13ae013 | 10.144.38.113 | 사용자 확인 (기준 서버) |
 | s222hax14ae011 | 10.144.38.61 | Prometheus __address__ 라벨 |
 | s222hax14ae012 | 10.144.38.62 | Prometheus __address__ 라벨 |
+| k8s-master-lab3 | 10.144.131.100 | kubectl get nodes (Lab-3) |
+| k8s-monitoring | 10.144.131.190 | kubectl get nodes (Lab-3) |
+| s222hax14ae001~009 | 10.144.131.101~109 | kubectl get nodes (Lab-3, GNR-AP) |
+| s222hx14ae001~010 | 10.144.131.111~120 | kubectl get nodes (Lab-3, GNR-SP) |
 
-> 나머지 서버의 매핑은 미확인. Prometheus config 정리 시 전수 조사 예정.
+> Lab-1 나머지 서버의 매핑은 미확인. Prometheus config 정리 시 전수 조사 예정.
+> Lab-3 SRF/SPR 서버의 IP는 infrastructure.md Cluster 2 섹션 참조.
 
 ---
 
