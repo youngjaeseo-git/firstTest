@@ -29,8 +29,8 @@
     - s222hx14ae001~010 — GNR-SP 10대 (.111~.120)
   - NotReady (4개):
     - s222hax14ae001 (.101), 002 (.102), 006 (.106), 008 (.108) — GNR-AP
-  - K8s 미등록: g222bx14ae001~004 — SRF 4대 (10.144.131.121~124)
-  - K8s 미등록: s121x13ae101~103 — SPR 3대 (10.144.131.211~213)
+  - K8s 미등록: g222bx14ae001~004 — SRF 4대 (10.144.131.121~124), hostname 동일(Lab-1에서 이전), .123/.124 ping down
+  - K8s 미등록: SPR 3대 (10.144.131.211~213), hostname 변경: s121x13ae101~103 → **s222hx14ae001~003** (GNR-SP와 hostname 겹침, IP로 구분)
 - **Lab-1 → Lab-3 federation**: 노드 복구 후 재확인 필요 (방화벽 조치 전 미동작 확인됨)
 - **BMC 접근**: DCIM 서버(Lab-1)에서 직접 불가. Lab-3 마스터를 프록시로 경유해야 함 (BMC 스위치 별도)
 - **BMC IP 대역**: 192.168.10.x (Lab-1과 동일 대역, 스위치 분리)
@@ -106,9 +106,16 @@
 | k8s-monitoring | 10.144.131.190 | kubectl get nodes (Lab-3) |
 | s222hax14ae001~009 | 10.144.131.101~109 | kubectl get nodes (Lab-3, GNR-AP) |
 | s222hx14ae001~010 | 10.144.131.111~120 | kubectl get nodes (Lab-3, GNR-SP) |
+| g222bx14ae001 | 10.144.131.121 | SSH 수동확인 (Lab-3, SRF) |
+| g222bx14ae002 | 10.144.131.122 | SSH 수동확인 (Lab-3, SRF) |
+| g222bx14ae003 | 10.144.131.123 | 추정 (Lab-3, SRF, ping down) |
+| g222bx14ae004 | 10.144.131.124 | 추정 (Lab-3, SRF, ping down) |
+| s222hx14ae001 | 10.144.131.211 | SSH 수동확인 (Lab-3, SPR, 구:s121x13ae101) |
+| s222hx14ae002 | 10.144.131.212 | SSH 수동확인 (Lab-3, SPR, 구:s121x13ae102) |
+| s222hx14ae003 | 10.144.131.213 | SSH 수동확인 (Lab-3, SPR, 구:s121x13ae103) |
 
 > Lab-1 나머지 서버의 매핑은 미확인. Prometheus config 정리 시 전수 조사 예정.
-> Lab-3 SRF/SPR 서버의 IP는 infrastructure.md Cluster 2 섹션 참조.
+> **주의**: s222hx14ae001~003은 GNR-SP(.111~.113)와 SPR(.211~.213) 두 곳에 존재. IP로 구분 필요.
 
 ---
 
