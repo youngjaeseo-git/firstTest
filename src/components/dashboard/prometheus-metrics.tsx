@@ -83,6 +83,8 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
     };
 
     source.onerror = () => {
+      source.close();
+      sourceRef.current = null;
       setData((prev) => ({ ...prev, error: "Connection failed" }));
     };
 
