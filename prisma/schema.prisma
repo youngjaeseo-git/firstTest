@@ -84,6 +84,10 @@ model Room {
   sortOrder    Int      @default(0)
   dataCenterId String
   description  String?
+  layoutX      Int?
+  layoutY      Int?
+  layoutW      Int?
+  layoutH      Int?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

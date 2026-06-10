@@ -36,6 +36,10 @@ interface ServerPageClientProps {
   rooms: Array<{
     id: string;
     name: string;
+    layoutX?: number | null;
+    layoutY?: number | null;
+    layoutW?: number | null;
+    layoutH?: number | null;
     racks: Array<{
       id: string;
       name: string;

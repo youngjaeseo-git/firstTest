@@ -528,6 +528,8 @@ export const translations: Record<Language, Record<string, string>> = {
     "twin.floorPlan.noData": "No room data",
     "twin.editMode": "Edit Layout",
     "twin.editModeDone": "Done",
+    "twin.overlay.temp": "Temp",
+    "twin.overlay.util": "Capacity",
 
     // ── Assignment ──
     "assignment.title": "Server Assignment",
@@ -1097,6 +1099,8 @@ export const translations: Record<Language, Record<string, string>> = {
     "twin.floorPlan.noData": "데이터 없음",
     "twin.editMode": "배치 편집",
     "twin.editModeDone": "완료",
+    "twin.overlay.temp": "온도",
+    "twin.overlay.util": "용량",
 
     // ── Assignment ──
     "assignment.title": "서버 사용 현황",

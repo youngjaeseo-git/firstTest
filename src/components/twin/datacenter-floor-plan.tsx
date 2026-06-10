@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Minus, Plus, Maximize2, Pencil, Check } from "lucide-react";
+import { Minus, Plus, Maximize2, Pencil, Check, Thermometer, BarChart3 } from "lucide-react";
+
+/* ─── Types ─── */
 
 interface Rect {
   x: number; y: number; w: number; h: number;
@@ -16,6 +18,8 @@ interface RackData {
   equipment: Array<{
     status: string;
     rackHeight: number;
+    hostname?: string | null;
+    ipAddress?: string | null;
   }>;
   totalUnits: number;
 }
@@ -25,6 +29,10 @@ interface RoomData {
   name: string;
   racks: RackData[];
   elements?: RoomElementData[];
+  layoutX?: number | null;
+  layoutY?: number | null;
+  layoutW?: number | null;
+  layoutH?: number | null;
 }
 
 interface RoomElementData {
@@ -38,6 +46,8 @@ interface RoomElementData {
   rotation?: number | null;
   metadata?: Record<string, unknown> | null;
 }
+
+type OverlayMode = "none" | "temp" | "util";
 
 interface DataCenterFloorPlanProps {
   rooms: RoomData[];
@@ -78,11 +88,46 @@ function utilColor(pct: number): string {
   return "#22c55e";
 }
 
+/* ─── Temperature color scale (30°C ~ 80°C) ─── */
+function tempColor(celsius: number): string {
+  if (celsius <= 30) return "#22c55e";
+  if (celsius <= 45) return "#84cc16";
+  if (celsius <= 55) return "#eab308";
+  if (celsius <= 65) return "#f97316";
+  if (celsius <= 75) return "#ef4444";
+  return "#dc2626";
+}
+
+function tempOpacity(celsius: number): number {
+  if (celsius <= 30) return 0.25;
+  const t = Math.min((celsius - 30) / 50, 1);
+  return 0.25 + t * 0.45;
+}
+
+/* ─── Rack average temp from equipment ─── */
+function rackAvgTemp(rack: RackData, nodeTemps: Record<string, number>): number | null {
+  const temps: number[] = [];
+  for (const eq of rack.equipment) {
+    if (eq.hostname && nodeTemps[eq.hostname] !== undefined) {
+      temps.push(nodeTemps[eq.hostname]);
+    } else if (eq.ipAddress && nodeTemps[eq.ipAddress] !== undefined) {
+      temps.push(nodeTemps[eq.ipAddress]);
+    }
+  }
+  if (temps.length === 0) return null;
+  return Math.round((temps.reduce((a, b) => a + b, 0) / temps.length) * 10) / 10;
+}
+
+/* ─── Rack utilization (per-rack) ─── */
+function rackUtilPct(rack: RackData): number {
+  const usedU = rack.equipment.reduce((u, e) => u + (e.rackHeight || 1), 0);
+  return rack.totalUnits > 0 ? Math.round((usedU / rack.totalUnits) * 100) : 0;
+}
+
 const W = 1400;
 const H = 650;
 const P = 12;
 const GAP = 10;
-
 const MID_Y = 340;
 const SPLIT_X = 680;
 
@@ -108,6 +153,35 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     offsetY: number;
   } | null>(null);
 
+  /* ─── Overlay state ─── */
+  const [overlay, setOverlay] = useState<OverlayMode>("none");
+  const [nodeTemps, setNodeTemps] = useState<Record<string, number>>({});
+
+  /* ─── Tooltip state ─── */
+  const [tooltip, setTooltip] = useState<{
+    x: number; y: number;
+    rack: RackData;
+    avgTemp: number | null;
+  } | null>(null);
+  const tooltipTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* ─── Fetch temperature data ─── */
+  useEffect(() => {
+    if (overlay !== "temp") return;
+    let cancelled = false;
+    const fetchTemps = async () => {
+      try {
+        const res = await fetch("/api/metrics/node-temps");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setNodeTemps(data);
+      } catch { /* ignore */ }
+    };
+    fetchTemps();
+    const timer = setInterval(fetchTemps, 30_000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [overlay]);
+
   const roomMap = useMemo(() => {
     const map = new Map<string, RoomData>();
     for (const r of rooms) {
@@ -132,19 +206,27 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
   const lab2 = findRoom("lab2") || findRoom("2");
   const lab3 = findRoom("lab3") || findRoom("3");
 
-  const lab3Rect = { x: P, y: P, w: W - P * 2, h: MID_Y - P - GAP / 2 };
-  const lab2Rect = {
-    x: P,
-    y: MID_Y + GAP / 2,
-    w: SPLIT_X - P - GAP / 2,
-    h: H - MID_Y - P - GAP / 2,
-  };
-  const lab1Rect = {
-    x: SPLIT_X + GAP / 2,
-    y: MID_Y + GAP / 2,
-    w: W - SPLIT_X - P - GAP / 2,
-    h: H - MID_Y - P - GAP / 2,
-  };
+  /* ─── Room rects: DB-driven if available, hardcoded fallback ─── */
+  const lab3Rect = useMemo(() => {
+    if (lab3?.layoutX != null && lab3?.layoutY != null && lab3?.layoutW != null && lab3?.layoutH != null) {
+      return { x: lab3.layoutX, y: lab3.layoutY, w: lab3.layoutW, h: lab3.layoutH };
+    }
+    return { x: P, y: P, w: W - P * 2, h: MID_Y - P - GAP / 2 };
+  }, [lab3]);
+
+  const lab2Rect = useMemo(() => {
+    if (lab2?.layoutX != null && lab2?.layoutY != null && lab2?.layoutW != null && lab2?.layoutH != null) {
+      return { x: lab2.layoutX, y: lab2.layoutY, w: lab2.layoutW, h: lab2.layoutH };
+    }
+    return { x: P, y: MID_Y + GAP / 2, w: SPLIT_X - P - GAP / 2, h: H - MID_Y - P - GAP / 2 };
+  }, [lab2]);
+
+  const lab1Rect = useMemo(() => {
+    if (lab1?.layoutX != null && lab1?.layoutY != null && lab1?.layoutW != null && lab1?.layoutH != null) {
+      return { x: lab1.layoutX, y: lab1.layoutY, w: lab1.layoutW, h: lab1.layoutH };
+    }
+    return { x: SPLIT_X + GAP / 2, y: MID_Y + GAP / 2, w: W - SPLIT_X - P - GAP / 2, h: H - MID_Y - P - GAP / 2 };
+  }, [lab1]);
 
   const clientToSVG = useCallback((clientX: number, clientY: number) => {
     const svg = svgRef.current;
@@ -267,6 +349,23 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     setTranslate({ x: 0, y: 0 });
   }, []);
 
+  /* ─── Tooltip handlers ─── */
+  const handleRackHover = useCallback((e: React.MouseEvent, rack: RackData) => {
+    if (isEditMode) return;
+    if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
+    const svgPt = clientToSVG(e.clientX, e.clientY);
+    const avgTemp = rackAvgTemp(rack, nodeTemps);
+    setTooltip({ x: svgPt.x, y: svgPt.y, rack, avgTemp });
+  }, [isEditMode, clientToSVG, nodeTemps]);
+
+  const handleRackLeave = useCallback(() => {
+    tooltipTimeout.current = setTimeout(() => setTooltip(null), 100);
+  }, []);
+
+  const toggleOverlay = useCallback((mode: OverlayMode) => {
+    setOverlay((prev) => prev === mode ? "none" : mode);
+  }, []);
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -277,6 +376,37 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
           <span className="font-medium">{t("twin.floorPlan.title")}</span>
         </div>
         <div className="flex items-center gap-1">
+          {/* Overlay buttons */}
+          <button
+            onClick={() => toggleOverlay("temp")}
+            className={cn(
+              "mr-1 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5",
+              overlay === "temp"
+                ? "border-orange-500/50 bg-orange-500/20 text-orange-300 hover:bg-orange-500/30"
+                : "border-gray-700 bg-gray-800/80 text-gray-400 hover:bg-gray-700 hover:text-gray-200",
+            )}
+            title={t("twin.overlay.temp")}
+          >
+            <Thermometer className="h-3.5 w-3.5" />
+            {t("twin.overlay.temp")}
+          </button>
+          <button
+            onClick={() => toggleOverlay("util")}
+            className={cn(
+              "mr-1 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5",
+              overlay === "util"
+                ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
+                : "border-gray-700 bg-gray-800/80 text-gray-400 hover:bg-gray-700 hover:text-gray-200",
+            )}
+            title={t("twin.overlay.util")}
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+            {t("twin.overlay.util")}
+          </button>
+
+          <div className="mx-1 h-5 w-px bg-gray-700" />
+
+          {/* Edit mode */}
           <button
             onClick={() => { setIsEditMode((p) => !p); dragRef.current = null; setDragState(null); }}
             className={cn(
@@ -327,7 +457,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onMouseLeave={() => { handleMouseUp(); setTooltip(null); }}
         onClickCapture={handleClickCapture}
       >
         <div
@@ -414,7 +544,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               onClick={() => !isEditMode && lab3 && onSelectRoom(lab3.id)}
               t={t}
             />
-            <Lab3Interior rect={lab3Rect} room={lab3} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} />
+            <Lab3Interior rect={lab3Rect} room={lab3} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} />
 
             {/* === Lab-2: bottom-left === */}
             <RoomBlock
@@ -441,7 +571,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               onClick={() => !isEditMode && lab1 && onSelectRoom(lab1.id)}
               t={t}
             />
-            <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} />
+            <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} />
 
             {/* Walls */}
             <line x1={P} y1={MID_Y} x2={W - P} y2={MID_Y} stroke="#374151" strokeWidth="3" />
@@ -453,6 +583,12 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             <DoorMarker x={W / 2} y={MID_Y} horizontal />
             <DoorMarker x={SPLIT_X} y={MID_Y + (H - MID_Y - P) / 2} />
             <DoorMarker x={W / 2} y={P} horizontal top />
+
+            {/* Tooltip */}
+            {tooltip && <RackTooltip x={tooltip.x} y={tooltip.y} rack={tooltip.rack} avgTemp={tooltip.avgTemp} />}
+
+            {/* Overlay legend */}
+            {overlay !== "none" && <OverlayLegend mode={overlay} />}
           </svg>
         </div>
 
@@ -466,6 +602,86 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
         {t("twin.floorPlan.clickRoom")}
       </p>
     </div>
+  );
+}
+
+/* ─── Overlay legend ─── */
+function OverlayLegend({ mode }: { mode: OverlayMode }) {
+  const lx = W - 200;
+  const ly = H - 40;
+  if (mode === "temp") {
+    const stops = [
+      { c: "#22c55e", label: "≤30°C" },
+      { c: "#84cc16", label: "45°C" },
+      { c: "#eab308", label: "55°C" },
+      { c: "#f97316", label: "65°C" },
+      { c: "#ef4444", label: "≥75°C" },
+    ];
+    return (
+      <g>
+        <rect x={lx - 8} y={ly - 6} width={196} height={28} rx={4} fill="#0a0a0a" fillOpacity={0.85} stroke="#374151" strokeWidth={0.5} />
+        <text x={lx} y={ly + 12} fill="#9ca3af" fontSize="8" fontFamily="system-ui, sans-serif">TEMP</text>
+        {stops.map((s, i) => (
+          <g key={i}>
+            <rect x={lx + 34 + i * 32} y={ly} width={26} height={8} rx={2} fill={s.c} fillOpacity={0.7} />
+            <text x={lx + 34 + i * 32 + 13} y={ly + 18} fill="#6b7280" fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">{s.label}</text>
+          </g>
+        ))}
+      </g>
+    );
+  }
+  const stops = [
+    { c: "#22c55e", label: "<60%" },
+    { c: "#f59e0b", label: "60-85%" },
+    { c: "#ef4444", label: ">85%" },
+  ];
+  return (
+    <g>
+      <rect x={lx + 40} y={ly - 6} width={148} height={28} rx={4} fill="#0a0a0a" fillOpacity={0.85} stroke="#374151" strokeWidth={0.5} />
+      <text x={lx + 48} y={ly + 12} fill="#9ca3af" fontSize="8" fontFamily="system-ui, sans-serif">UTIL</text>
+      {stops.map((s, i) => (
+        <g key={i}>
+          <rect x={lx + 76 + i * 36} y={ly} width={30} height={8} rx={2} fill={s.c} fillOpacity={0.7} />
+          <text x={lx + 76 + i * 36 + 15} y={ly + 18} fill="#6b7280" fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">{s.label}</text>
+        </g>
+      ))}
+    </g>
+  );
+}
+
+/* ─── Rack hover tooltip ─── */
+function RackTooltip({ x, y, rack, avgTemp }: {
+  x: number; y: number; rack: RackData; avgTemp: number | null;
+}) {
+  const pct = rackUtilPct(rack);
+  const tw = 140;
+  const th = avgTemp !== null ? 68 : 54;
+  const tx = Math.min(x + 12, W - tw - 8);
+  const ty = Math.max(8, y - th - 8);
+  const activeCount = rack.equipment.filter((e) => e.status === "ACTIVE").length;
+  const totalEq = rack.equipment.length;
+
+  return (
+    <g>
+      <rect x={tx} y={ty} width={tw} height={th} rx={5} fill="#111827" fillOpacity={0.95} stroke="#374151" strokeWidth={1} />
+      <text x={tx + 8} y={ty + 14} fill="#e5e7eb" fontSize="10" fontWeight="700" fontFamily="system-ui, sans-serif">
+        {rack.name || "Rack"}
+      </text>
+      <text x={tx + 8} y={ty + 28} fill="#9ca3af" fontSize="9" fontFamily="system-ui, sans-serif">
+        Servers: {activeCount}/{totalEq}
+      </text>
+      <text x={tx + 8} y={ty + 42} fontSize="9" fontFamily="system-ui, sans-serif">
+        <tspan fill="#9ca3af">U: </tspan>
+        <tspan fill={utilColor(pct)} fontWeight="600">{pct}%</tspan>
+        <tspan fill="#6b7280"> ({rack.equipment.reduce((u, e) => u + (e.rackHeight || 1), 0)}/{rack.totalUnits}U)</tspan>
+      </text>
+      {avgTemp !== null && (
+        <text x={tx + 8} y={ty + 56} fontSize="9" fontFamily="system-ui, sans-serif">
+          <tspan fill="#9ca3af">Temp: </tspan>
+          <tspan fill={tempColor(avgTemp)} fontWeight="600">{avgTemp}°C</tspan>
+        </text>
+      )}
+    </g>
   );
 }
 
@@ -494,27 +710,50 @@ function DoorMarker({ x, y, horizontal, top }: { x: number; y: number; horizonta
 function RackIcon({
   x, y, w, h, label, accent, gradId, servers, utilPct,
   isEditMode, onMouseDown,
+  overlayColor, overlayOpacity,
+  onMouseEnter, onMouseLeave,
 }: {
   x: number; y: number; w: number; h: number;
   label: string; accent: string; gradId: string;
   servers?: number; utilPct?: number;
   isEditMode?: boolean;
   onMouseDown?: (e: React.MouseEvent) => void;
+  overlayColor?: string;
+  overlayOpacity?: number;
+  onMouseEnter?: (e: React.MouseEvent) => void;
+  onMouseLeave?: () => void;
 }) {
   const barH = Math.max(0, (h - 20) * Math.min((utilPct || 0) / 100, 1));
   return (
-    <g style={{ cursor: isEditMode ? "move" : undefined }} onMouseDown={onMouseDown}>
+    <g
+      style={{ cursor: isEditMode ? "move" : "pointer" }}
+      onMouseDown={onMouseDown}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
       <rect x={x} y={y} width={w} height={h} rx={3} fill={`url(#${gradId})`} stroke={accent} strokeOpacity={0.5} strokeWidth={1.2} />
+      {/* Overlay glow */}
+      {overlayColor && (
+        <rect x={x} y={y} width={w} height={h} rx={3} fill={overlayColor} fillOpacity={overlayOpacity ?? 0.3} />
+      )}
       {/* U fill bar */}
-      <rect x={x + 2} y={y + h - 2 - barH} width={w - 4} height={barH} rx={1.5} fill={utilColor(utilPct || 0)} fillOpacity={0.3} />
+      {!overlayColor && (
+        <rect x={x + 2} y={y + h - 2 - barH} width={w - 4} height={barH} rx={1.5} fill={utilColor(utilPct || 0)} fillOpacity={0.3} />
+      )}
       {/* Label */}
-      <text x={x + w / 2} y={y + 12} fill={accent} fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif" fillOpacity={0.9}>
+      <text x={x + w / 2} y={y + 12} fill={overlayColor || accent} fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif" fillOpacity={0.9}>
         {label}
       </text>
       {/* Server count */}
       {servers !== undefined && servers > 0 && (
         <text x={x + w / 2} y={y + h - 6} fill="#9ca3af" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">
           {servers}srv
+        </text>
+      )}
+      {/* Overlay value badge */}
+      {overlayColor && utilPct !== undefined && !overlayColor.startsWith("#22c5") && (
+        <text x={x + w / 2} y={y + h / 2 + 4} fill="#ffffff" fontSize="10" fontWeight="700" textAnchor="middle" fontFamily="system-ui, sans-serif" fillOpacity={0.9}>
+          {/* value shown via parent */}
         </text>
       )}
       {/* Edit mode indicator */}
@@ -567,14 +806,35 @@ function FloorTiles({ x, y, w, h, accent }: { x: number; y: number; w: number; h
   );
 }
 
-/* ─── Lab-3 interior ─── */
-function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart }: {
-  rect: Rect; room?: RoomData;
+/* ─── Shared interior props ─── */
+interface InteriorProps {
+  rect: Rect;
+  room?: RoomData;
   isEditMode?: boolean;
   getRackPos?: (id: string, dx: number, dy: number, rack?: RackData, rect?: Rect) => { x: number; y: number };
   getElemPos?: (elem: RoomElementData, rect: Rect) => { x: number; y: number };
   onDragStart?: (kind: "rack" | "element", id: string, x: number, y: number, w: number, h: number, r: Rect, e: React.MouseEvent) => void;
-}) {
+  overlay?: OverlayMode;
+  nodeTemps?: Record<string, number>;
+  onRackHover?: (e: React.MouseEvent, rack: RackData) => void;
+  onRackLeave?: () => void;
+}
+
+/* ─── Compute overlay props for a rack ─── */
+function overlayProps(rack: RackData, overlay?: OverlayMode, nodeTemps?: Record<string, number>): { overlayColor?: string; overlayOpacity?: number } {
+  if (!overlay || overlay === "none") return {};
+  if (overlay === "temp") {
+    const avg = rackAvgTemp(rack, nodeTemps || {});
+    if (avg === null) return {};
+    return { overlayColor: tempColor(avg), overlayOpacity: tempOpacity(avg) };
+  }
+  // util overlay
+  const pct = rackUtilPct(rack);
+  return { overlayColor: utilColor(pct), overlayOpacity: 0.3 + Math.min(pct / 100, 1) * 0.25 };
+}
+
+/* ─── Lab-3 interior ─── */
+function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave }: InteriorProps) {
   const rw = 54;
   const rh = 50;
   const gap = 8;
@@ -585,9 +845,6 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
   const displayOrder = [3, 2, 1, 0];
 
   const ox1 = rect.x + 30;
-  const ox2 = rect.x + rect.w * 0.18;
-  const ox3 = rect.x + rect.w * 0.36;
-  const ox4 = rect.x + rect.w * 0.50;
 
   const rackUtil = stats ? stats.utilPct : 0;
   const perRackServers = room ? Math.ceil((stats?.equipmentCount || 0) / Math.max(stats?.rackCount || 1, 1)) : undefined;
@@ -603,6 +860,7 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
         const defaultX = ox1;
         const defaultY = oy + row * (rh + gap);
         const pos = getRackPos?.(rack.id, defaultX, defaultY, rack, rect) ?? { x: defaultX, y: defaultY };
+        const op = overlayProps(rack, overlay, nodeTemps);
         return (
           <RackIcon
             key={rack.id}
@@ -615,31 +873,39 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
             utilPct={rackUtil}
             isEditMode={isEditMode}
             onMouseDown={isEditMode ? (e) => onDragStart?.("rack", rack.id, pos.x, pos.y, rw, rh, rect, e) : undefined}
+            overlayColor={op.overlayColor}
+            overlayOpacity={op.overlayOpacity}
+            onMouseEnter={onRackHover ? (e) => onRackHover(e, rack) : undefined}
+            onMouseLeave={onRackLeave}
           />
         );
       })}
 
       {/* Future expansion zones */}
-      {[0, 1].map((col) => (
-        <g key={`exp-${col}`}>
-          {[0, 1, 2, 3].map((row) => {
-            const ex = (col === 0 ? ox2 : ox3) + col * 30;
-            return (
-              <g key={row}>
-                <rect
-                  x={ex} y={oy + row * (rh + gap)}
-                  width={rw + 8} height={rh} rx={3}
-                  fill="#1e1b4b" fillOpacity={0.15}
-                  stroke="#7c3aed" strokeOpacity={0.12} strokeWidth={0.8} strokeDasharray="4 3"
-                />
-                <text x={ex + (rw + 8) / 2} y={oy + row * (rh + gap) + rh / 2 + 3} fill="#4c1d95" fillOpacity={0.4} fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">
-                  RESERVED
-                </text>
-              </g>
-            );
-          })}
-        </g>
-      ))}
+      {[0, 1].map((col) => {
+        const ox2 = rect.x + rect.w * 0.18;
+        const ox3 = rect.x + rect.w * 0.36;
+        return (
+          <g key={`exp-${col}`}>
+            {[0, 1, 2, 3].map((row) => {
+              const ex = (col === 0 ? ox2 : ox3) + col * 30;
+              return (
+                <g key={row}>
+                  <rect
+                    x={ex} y={oy + row * (rh + gap)}
+                    width={rw + 8} height={rh} rx={3}
+                    fill="#1e1b4b" fillOpacity={0.15}
+                    stroke="#7c3aed" strokeOpacity={0.12} strokeWidth={0.8} strokeDasharray="4 3"
+                  />
+                  <text x={ex + (rw + 8) / 2} y={oy + row * (rh + gap) + rh / 2 + 3} fill="#4c1d95" fillOpacity={0.4} fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">
+                    RESERVED
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+        );
+      })}
 
       {/* Infrastructure elements */}
       {room?.elements && room.elements.length > 0 ? (
@@ -649,15 +915,19 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
         })
       ) : (
         <>
-          <g><rect x={ox4 + 140} y={oy} width={90} height={40} rx={4} fill="#1a1a2e" stroke="#6366f1" strokeOpacity={0.3} strokeWidth={1} /><text x={ox4 + 185} y={oy + 16} fill="#818cf8" fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">NET SWITCH</text><text x={ox4 + 185} y={oy + 30} fill="#4f46e5" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">ToR / Spine</text></g>
-          <g><rect x={ox4 + 140} y={oy + 52} width={100} height={36} rx={4} fill="#0a1628" stroke="#22c55e" strokeOpacity={0.4} strokeWidth={1} /><circle cx={ox4 + 154} cy={oy + 70} r={4} fill="#22c55e" fillOpacity={0.6} /><text x={ox4 + 166} y={oy + 66} fill="#4ade80" fontSize="9" fontWeight="600" fontFamily="system-ui, sans-serif">K8s Master</text><text x={ox4 + 166} y={oy + 78} fill="#166534" fontSize="7" fontFamily="system-ui, sans-serif">master-lab3</text></g>
-          <CoolingUnit x={rect.x + rect.w * 0.55} y={rect.y + rect.h - 52} />
-          <CoolingUnit x={rect.x + rect.w * 0.55 + 90} y={rect.y + rect.h - 52} />
-          <CoolingUnit x={rect.x + rect.w * 0.55 + 180} y={rect.y + rect.h - 52} />
-          {[0, 1, 2].map((i) => { const cx = rect.x + rect.w * 0.55 + 36 + i * 90; const top = rect.y + rect.h - 54; return (<g key={`af-${i}`}><AirflowStream cx={cx - 14} startY={top} direction="up" /><AirflowStream cx={cx} startY={top} direction="up" /><AirflowStream cx={cx + 14} startY={top} direction="up" /></g>); })}
-          <rect x={rect.x + rect.w - 60} y={rect.y + rect.h - 52} width={44} height={34} rx={3} fill="#1a0a0a" stroke="#f59e0b" strokeOpacity={0.3} strokeWidth={0.8} />
-          <text x={rect.x + rect.w - 38} y={rect.y + rect.h - 37} fill="#f59e0b" fillOpacity={0.6} fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">PDU</text>
-          <text x={rect.x + rect.w - 38} y={rect.y + rect.h - 25} fill="#92400e" fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">3-Phase</text>
+          {(() => { const ox4 = rect.x + rect.w * 0.50; return (
+            <>
+              <g><rect x={ox4 + 140} y={oy} width={90} height={40} rx={4} fill="#1a1a2e" stroke="#6366f1" strokeOpacity={0.3} strokeWidth={1} /><text x={ox4 + 185} y={oy + 16} fill="#818cf8" fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">NET SWITCH</text><text x={ox4 + 185} y={oy + 30} fill="#4f46e5" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">ToR / Spine</text></g>
+              <g><rect x={ox4 + 140} y={oy + 52} width={100} height={36} rx={4} fill="#0a1628" stroke="#22c55e" strokeOpacity={0.4} strokeWidth={1} /><circle cx={ox4 + 154} cy={oy + 70} r={4} fill="#22c55e" fillOpacity={0.6} /><text x={ox4 + 166} y={oy + 66} fill="#4ade80" fontSize="9" fontWeight="600" fontFamily="system-ui, sans-serif">K8s Master</text><text x={ox4 + 166} y={oy + 78} fill="#166534" fontSize="7" fontFamily="system-ui, sans-serif">master-lab3</text></g>
+              <CoolingUnit x={rect.x + rect.w * 0.55} y={rect.y + rect.h - 52} />
+              <CoolingUnit x={rect.x + rect.w * 0.55 + 90} y={rect.y + rect.h - 52} />
+              <CoolingUnit x={rect.x + rect.w * 0.55 + 180} y={rect.y + rect.h - 52} />
+              {[0, 1, 2].map((i) => { const cx = rect.x + rect.w * 0.55 + 36 + i * 90; const top = rect.y + rect.h - 54; return (<g key={`af-${i}`}><AirflowStream cx={cx - 14} startY={top} direction="up" /><AirflowStream cx={cx} startY={top} direction="up" /><AirflowStream cx={cx + 14} startY={top} direction="up" /></g>); })}
+              <rect x={rect.x + rect.w - 60} y={rect.y + rect.h - 52} width={44} height={34} rx={3} fill="#1a0a0a" stroke="#f59e0b" strokeOpacity={0.3} strokeWidth={0.8} />
+              <text x={rect.x + rect.w - 38} y={rect.y + rect.h - 37} fill="#f59e0b" fillOpacity={0.6} fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">PDU</text>
+              <text x={rect.x + rect.w - 38} y={rect.y + rect.h - 25} fill="#92400e" fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">3-Phase</text>
+            </>
+          ); })()}
         </>
       )}
     </g>
@@ -680,13 +950,7 @@ function Lab2Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
 }
 
 /* ─── Lab-1 interior ─── */
-function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart }: {
-  rect: Rect; room?: RoomData;
-  isEditMode?: boolean;
-  getRackPos?: (id: string, dx: number, dy: number, rack?: RackData, rect?: Rect) => { x: number; y: number };
-  getElemPos?: (elem: RoomElementData, rect: Rect) => { x: number; y: number };
-  onDragStart?: (kind: "rack" | "element", id: string, x: number, y: number, w: number, h: number, r: Rect, e: React.MouseEvent) => void;
-}) {
+function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave }: InteriorProps) {
   const rw = 52;
   const rh = 46;
   const gap = 6;
@@ -715,6 +979,7 @@ function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
         const defaultX = ox;
         const defaultY = oy + rackIdx * (rh + gap);
         const pos = getRackPos?.(rack.id, defaultX, defaultY, rack, rect) ?? { x: defaultX, y: defaultY };
+        const op = overlayProps(rack, overlay, nodeTemps);
         return (
           <RackIcon
             key={rack.id}
@@ -727,6 +992,10 @@ function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
             utilPct={rackUtil}
             isEditMode={isEditMode}
             onMouseDown={isEditMode ? (e) => onDragStart?.("rack", rack.id, pos.x, pos.y, rw, rh, rect, e) : undefined}
+            overlayColor={op.overlayColor}
+            overlayOpacity={op.overlayOpacity}
+            onMouseEnter={onRackHover ? (e) => onRackHover(e, rack) : undefined}
+            onMouseLeave={onRackLeave}
           />
         );
       })}
