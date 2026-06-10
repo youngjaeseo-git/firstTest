@@ -21,11 +21,12 @@
   - ConfigMap: `prometheus-server-conf` (63일 전 생성), jobs 6개 (전부 k8s service discovery 기반)
   - **비기능 상태**: Pod Running이지만 K8s API(10.96.0.1:443) 접근 불가 → 타겟 0개, HTTP 응답 불가
   - 로그: `i/o timeout`, `no route to host` 반복
-- **Lab-1 → Lab-3 메트릭 수집 (실제 구조)**:
-  - **federation 아님** — Lab-1 Prometheus가 Lab-3 서버를 **직접 scrape**
-  - Lab-3 서버 :9200 포트 수집 중 (PCM/server-info 추정)
-  - 수집 대상: GNR-AP(.101~.109:9200), GNR-SP(.111~.120:9200)
-  - node-exporter(:9100)는 Lab-1이 수집하지 않음 (Lab-3 DaemonSet은 동작 중)
+- **Lab-1 → Lab-3 메트릭 수집 (2026-06-10 확인, 원본 config 대조 필요)**:
+  - federation 설정: 확인 안 됨 (스크립트 파싱 한계, 원본 대조 필요)
+  - PCM 메트릭: AE-SMC-GNRAP_PCM, AE-SMC-GNRSP_PCM job에서 **hostname 기반** 수집
+  - :9200 포트: QRA-SMC-DDR5-Dell job (10.80.x 대역, Lab-3 무관, 전부 down)
+  - kubernetes-pods: Lab-3 SRF(10.144.131.121:9100) 1대 up으로 자동 발견
+  - node-exporter(:9100): Lab-3 DaemonSet 동작 중이나 Lab-1 config에 포함 여부 미확인
 - **node-exporter**: DaemonSet 배포됨, DESIRED/CURRENT/READY=16/16/16, Pod 9개 Running
 - **K8s 노드 (21개, 2026-06-09 방화벽 조치 후 재확인)**:
   - Ready (17개):
