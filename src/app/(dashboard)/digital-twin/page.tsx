@@ -18,6 +18,7 @@ export default async function DigitalTwinPage() {
         },
         orderBy: { sortOrder: "asc" },
       },
+      elements: { orderBy: { sortOrder: "asc" } },
     },
     orderBy: { sortOrder: "asc" },
   });

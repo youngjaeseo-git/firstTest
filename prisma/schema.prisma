@@ -87,8 +87,27 @@ model Room {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  dataCenter DataCenter @relation(fields: [dataCenterId], references: [id], onDelete: Cascade)
+  dataCenter DataCenter    @relation(fields: [dataCenterId], references: [id], onDelete: Cascade)
   racks      Rack[]
+  elements   RoomElement[]
+}
+
+model RoomElement {
+  id         String   @id @default(cuid())
+  roomId     String
+  type       String   // COOLING, PDU, SWITCH, MASTER_SERVER
+  name       String?
+  positionX  Int      @default(0)
+  positionY  Int      @default(0)
+  width      Int?
+  height     Int?
+  rotation   Int?     @default(0)
+  metadata   Json?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
 }
 
 // ============================================

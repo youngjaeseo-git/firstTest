@@ -24,6 +24,19 @@ interface RoomData {
   id: string;
   name: string;
   racks: RackData[];
+  elements?: RoomElementData[];
+}
+
+interface RoomElementData {
+  id: string;
+  type: string;
+  name?: string | null;
+  positionX: number;
+  positionY: number;
+  width?: number | null;
+  height?: number | null;
+  rotation?: number | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 interface DataCenterFloorPlanProps {
@@ -84,12 +97,13 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
   const svgRef = useRef<SVGSVGElement>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [posOverrides, setPosOverrides] = useState<Record<string, { x: number; y: number }>>({});
-  const [dragState, setDragState] = useState<{ rackId: string; x: number; y: number } | null>(null);
+  const [dragState, setDragState] = useState<{ id: string; kind: "rack" | "element"; x: number; y: number } | null>(null);
   const dragRef = useRef<{
-    rackId: string;
+    id: string;
+    kind: "rack" | "element";
     roomRect: Rect;
-    rackW: number;
-    rackH: number;
+    w: number;
+    h: number;
     offsetX: number;
     offsetY: number;
   } | null>(null);
@@ -149,7 +163,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     rack?: { positionX?: number | null; positionY?: number | null },
     roomRect?: Rect,
   ) => {
-    if (dragState?.rackId === rackId) return { x: dragState.x, y: dragState.y };
+    if (dragState?.id === rackId) return { x: dragState.x, y: dragState.y };
     const ov = posOverrides[rackId];
     if (ov && roomRect) return { x: roomRect.x + ov.x, y: roomRect.y + ov.y };
     if (rack?.positionX != null && rack?.positionY != null && roomRect) {
@@ -158,37 +172,39 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     return { x: defaultX, y: defaultY };
   }, [dragState, posOverrides]);
 
-  const handleRackDragStart = useCallback((
-    rackId: string, rackX: number, rackY: number,
-    rackW: number, rackH: number, roomRect: Rect, e: React.MouseEvent,
+  const getElemPos = useCallback((elem: RoomElementData, roomRect: Rect) => {
+    if (dragState?.id === elem.id) return { x: dragState.x, y: dragState.y };
+    const ov = posOverrides[elem.id];
+    if (ov) return { x: roomRect.x + ov.x, y: roomRect.y + ov.y };
+    return { x: roomRect.x + elem.positionX, y: roomRect.y + elem.positionY };
+  }, [dragState, posOverrides]);
+
+  const handleItemDragStart = useCallback((
+    kind: "rack" | "element",
+    id: string, x: number, y: number,
+    w: number, h: number, roomRect: Rect, e: React.MouseEvent,
   ) => {
     if (!isEditMode) return;
     e.stopPropagation();
     e.preventDefault();
     const svgPt = clientToSVG(e.clientX, e.clientY);
     dragRef.current = {
-      rackId, roomRect, rackW, rackH,
-      offsetX: svgPt.x - rackX,
-      offsetY: svgPt.y - rackY,
+      id, kind, roomRect, w, h,
+      offsetX: svgPt.x - x,
+      offsetY: svgPt.y - y,
     };
     isMouseDown.current = true;
-    setDragState({ rackId, x: rackX, y: rackY });
+    setDragState({ id, kind, x, y });
   }, [isEditMode, clientToSVG]);
 
-  const saveRackPosition = useCallback(async (rackId: string, posX: number, posY: number) => {
+  const savePosition = useCallback(async (url: string, posX: number, posY: number) => {
     try {
-      await fetch(`/api/racks/${rackId}`, {
+      await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ positionX: Math.round(posX), positionY: Math.round(posY) }),
       });
-    } catch {
-      setPosOverrides((prev) => {
-        const next = { ...prev };
-        delete next[rackId];
-        return next;
-      });
-    }
+    } catch { /* optimistic update stays */ }
   }, []);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -209,9 +225,9 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     if (dragRef.current && isMouseDown.current) {
       const svgPt = clientToSVG(e.clientX, e.clientY);
       const dr = dragRef.current;
-      const nx = Math.max(dr.roomRect.x + 4, Math.min(dr.roomRect.x + dr.roomRect.w - dr.rackW - 4, svgPt.x - dr.offsetX));
-      const ny = Math.max(dr.roomRect.y + 4, Math.min(dr.roomRect.y + dr.roomRect.h - dr.rackH - 4, svgPt.y - dr.offsetY));
-      setDragState({ rackId: dr.rackId, x: nx, y: ny });
+      const nx = Math.max(dr.roomRect.x + 4, Math.min(dr.roomRect.x + dr.roomRect.w - dr.w - 4, svgPt.x - dr.offsetX));
+      const ny = Math.max(dr.roomRect.y + 4, Math.min(dr.roomRect.y + dr.roomRect.h - dr.h - 4, svgPt.y - dr.offsetY));
+      setDragState({ id: dr.id, kind: dr.kind, x: nx, y: ny });
       return;
     }
     if (!isMouseDown.current) return;
@@ -228,14 +244,15 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
       const dr = dragRef.current;
       const rx = dragState.x - dr.roomRect.x;
       const ry = dragState.y - dr.roomRect.y;
-      setPosOverrides((prev) => ({ ...prev, [dr.rackId]: { x: rx, y: ry } }));
-      saveRackPosition(dr.rackId, rx, ry);
+      setPosOverrides((prev) => ({ ...prev, [dr.id]: { x: rx, y: ry } }));
+      const url = dr.kind === "rack" ? `/api/racks/${dr.id}` : `/api/room-elements/${dr.id}`;
+      savePosition(url, rx, ry);
       dragRef.current = null;
       setDragState(null);
     }
     isMouseDown.current = false;
     setIsPanning(false);
-  }, [dragState, saveRackPosition]);
+  }, [dragState, savePosition]);
 
   const handleClickCapture = useCallback((e: React.MouseEvent) => {
     if (hasDragged.current) {
@@ -397,7 +414,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               onClick={() => !isEditMode && lab3 && onSelectRoom(lab3.id)}
               t={t}
             />
-            <Lab3Interior rect={lab3Rect} room={lab3} isEditMode={isEditMode} getRackPos={getRackPos} onRackDragStart={handleRackDragStart} />
+            <Lab3Interior rect={lab3Rect} room={lab3} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} />
 
             {/* === Lab-2: bottom-left === */}
             <RoomBlock
@@ -424,7 +441,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               onClick={() => !isEditMode && lab1 && onSelectRoom(lab1.id)}
               t={t}
             />
-            <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} onRackDragStart={handleRackDragStart} />
+            <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} />
 
             {/* Walls */}
             <line x1={P} y1={MID_Y} x2={W - P} y2={MID_Y} stroke="#374151" strokeWidth="3" />
@@ -551,11 +568,12 @@ function FloorTiles({ x, y, w, h, accent }: { x: number; y: number; w: number; h
 }
 
 /* ─── Lab-3 interior ─── */
-function Lab3Interior({ rect, room, isEditMode, getRackPos, onRackDragStart }: {
+function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart }: {
   rect: Rect; room?: RoomData;
   isEditMode?: boolean;
   getRackPos?: (id: string, dx: number, dy: number, rack?: RackData, rect?: Rect) => { x: number; y: number };
-  onRackDragStart?: (id: string, x: number, y: number, w: number, h: number, r: Rect, e: React.MouseEvent) => void;
+  getElemPos?: (elem: RoomElementData, rect: Rect) => { x: number; y: number };
+  onDragStart?: (kind: "rack" | "element", id: string, x: number, y: number, w: number, h: number, r: Rect, e: React.MouseEvent) => void;
 }) {
   const rw = 54;
   const rh = 50;
@@ -596,7 +614,7 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, onRackDragStart }: {
             servers={perRackServers}
             utilPct={rackUtil}
             isEditMode={isEditMode}
-            onMouseDown={isEditMode ? (e) => onRackDragStart?.(rack.id, pos.x, pos.y, rw, rh, rect, e) : undefined}
+            onMouseDown={isEditMode ? (e) => onDragStart?.("rack", rack.id, pos.x, pos.y, rw, rh, rect, e) : undefined}
           />
         );
       })}
@@ -623,43 +641,25 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, onRackDragStart }: {
         </g>
       ))}
 
-      {/* Network switch area */}
-      <g>
-        <rect x={ox4 + 140} y={oy} width={90} height={40} rx={4} fill="#1a1a2e" stroke="#6366f1" strokeOpacity={0.3} strokeWidth={1} />
-        <text x={ox4 + 185} y={oy + 16} fill="#818cf8" fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">NET SWITCH</text>
-        <text x={ox4 + 185} y={oy + 30} fill="#4f46e5" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">ToR / Spine</text>
-      </g>
-
-      {/* K8s Master marker */}
-      <g>
-        <rect x={ox4 + 140} y={oy + 52} width={100} height={36} rx={4} fill="#0a1628" stroke="#22c55e" strokeOpacity={0.4} strokeWidth={1} />
-        <circle cx={ox4 + 154} cy={oy + 70} r={4} fill="#22c55e" fillOpacity={0.6} />
-        <text x={ox4 + 166} y={oy + 66} fill="#4ade80" fontSize="9" fontWeight="600" fontFamily="system-ui, sans-serif">K8s Master</text>
-        <text x={ox4 + 166} y={oy + 78} fill="#166534" fontSize="7" fontFamily="system-ui, sans-serif">master-lab3</text>
-      </g>
-
-      {/* Cooling units */}
-      <CoolingUnit x={rect.x + rect.w * 0.55} y={rect.y + rect.h - 52} />
-      <CoolingUnit x={rect.x + rect.w * 0.55 + 90} y={rect.y + rect.h - 52} />
-      <CoolingUnit x={rect.x + rect.w * 0.55 + 180} y={rect.y + rect.h - 52} />
-
-      {/* Animated airflow from AC units */}
-      {[0, 1, 2].map((i) => {
-        const acCx = rect.x + rect.w * 0.55 + 36 + i * 90;
-        const acTop = rect.y + rect.h - 54;
-        return (
-          <g key={`airflow-${i}`}>
-            <AirflowStream cx={acCx - 14} startY={acTop} direction="up" />
-            <AirflowStream cx={acCx} startY={acTop} direction="up" />
-            <AirflowStream cx={acCx + 14} startY={acTop} direction="up" />
-          </g>
-        );
-      })}
-
-      {/* PDU markers */}
-      <rect x={rect.x + rect.w - 60} y={rect.y + rect.h - 52} width={44} height={34} rx={3} fill="#1a0a0a" stroke="#f59e0b" strokeOpacity={0.3} strokeWidth={0.8} />
-      <text x={rect.x + rect.w - 38} y={rect.y + rect.h - 37} fill="#f59e0b" fillOpacity={0.6} fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">PDU</text>
-      <text x={rect.x + rect.w - 38} y={rect.y + rect.h - 25} fill="#92400e" fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">3-Phase</text>
+      {/* Infrastructure elements */}
+      {room?.elements && room.elements.length > 0 ? (
+        room.elements.map((elem) => {
+          const pos = getElemPos?.(elem, rect) ?? { x: rect.x + elem.positionX, y: rect.y + elem.positionY };
+          return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rect} isEditMode={isEditMode} onDragStart={onDragStart} />;
+        })
+      ) : (
+        <>
+          <g><rect x={ox4 + 140} y={oy} width={90} height={40} rx={4} fill="#1a1a2e" stroke="#6366f1" strokeOpacity={0.3} strokeWidth={1} /><text x={ox4 + 185} y={oy + 16} fill="#818cf8" fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">NET SWITCH</text><text x={ox4 + 185} y={oy + 30} fill="#4f46e5" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">ToR / Spine</text></g>
+          <g><rect x={ox4 + 140} y={oy + 52} width={100} height={36} rx={4} fill="#0a1628" stroke="#22c55e" strokeOpacity={0.4} strokeWidth={1} /><circle cx={ox4 + 154} cy={oy + 70} r={4} fill="#22c55e" fillOpacity={0.6} /><text x={ox4 + 166} y={oy + 66} fill="#4ade80" fontSize="9" fontWeight="600" fontFamily="system-ui, sans-serif">K8s Master</text><text x={ox4 + 166} y={oy + 78} fill="#166534" fontSize="7" fontFamily="system-ui, sans-serif">master-lab3</text></g>
+          <CoolingUnit x={rect.x + rect.w * 0.55} y={rect.y + rect.h - 52} />
+          <CoolingUnit x={rect.x + rect.w * 0.55 + 90} y={rect.y + rect.h - 52} />
+          <CoolingUnit x={rect.x + rect.w * 0.55 + 180} y={rect.y + rect.h - 52} />
+          {[0, 1, 2].map((i) => { const cx = rect.x + rect.w * 0.55 + 36 + i * 90; const top = rect.y + rect.h - 54; return (<g key={`af-${i}`}><AirflowStream cx={cx - 14} startY={top} direction="up" /><AirflowStream cx={cx} startY={top} direction="up" /><AirflowStream cx={cx + 14} startY={top} direction="up" /></g>); })}
+          <rect x={rect.x + rect.w - 60} y={rect.y + rect.h - 52} width={44} height={34} rx={3} fill="#1a0a0a" stroke="#f59e0b" strokeOpacity={0.3} strokeWidth={0.8} />
+          <text x={rect.x + rect.w - 38} y={rect.y + rect.h - 37} fill="#f59e0b" fillOpacity={0.6} fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">PDU</text>
+          <text x={rect.x + rect.w - 38} y={rect.y + rect.h - 25} fill="#92400e" fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">3-Phase</text>
+        </>
+      )}
     </g>
   );
 }
@@ -680,11 +680,12 @@ function Lab2Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
 }
 
 /* ─── Lab-1 interior ─── */
-function Lab1Interior({ rect, room, isEditMode, getRackPos, onRackDragStart }: {
+function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart }: {
   rect: Rect; room?: RoomData;
   isEditMode?: boolean;
   getRackPos?: (id: string, dx: number, dy: number, rack?: RackData, rect?: Rect) => { x: number; y: number };
-  onRackDragStart?: (id: string, x: number, y: number, w: number, h: number, r: Rect, e: React.MouseEvent) => void;
+  getElemPos?: (elem: RoomElementData, rect: Rect) => { x: number; y: number };
+  onDragStart?: (kind: "rack" | "element", id: string, x: number, y: number, w: number, h: number, r: Rect, e: React.MouseEvent) => void;
 }) {
   const rw = 52;
   const rh = 46;
@@ -725,30 +726,26 @@ function Lab1Interior({ rect, room, isEditMode, getRackPos, onRackDragStart }: {
             servers={perRackServers}
             utilPct={rackUtil}
             isEditMode={isEditMode}
-            onMouseDown={isEditMode ? (e) => onRackDragStart?.(rack.id, pos.x, pos.y, rw, rh, rect, e) : undefined}
+            onMouseDown={isEditMode ? (e) => onDragStart?.("rack", rack.id, pos.x, pos.y, rw, rh, rect, e) : undefined}
           />
         );
       })}
 
-      {/* Network switch area */}
-      <g>
-        <rect x={rect.x + 30} y={oy} width={90} height={40} rx={4} fill="#0c1929" stroke="#3b82f6" strokeOpacity={0.3} strokeWidth={1} />
-        <text x={rect.x + 75} y={oy + 16} fill="#60a5fa" fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">NET SWITCH</text>
-        <text x={rect.x + 75} y={oy + 30} fill="#1d4ed8" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">ToR / Spine</text>
-      </g>
-
-      {/* PDU */}
-      <rect x={rect.x + 30} y={oy + 60} width={44} height={34} rx={3} fill="#1a0a0a" stroke="#f59e0b" strokeOpacity={0.3} strokeWidth={0.8} />
-      <text x={rect.x + 52} y={oy + 75} fill="#f59e0b" fillOpacity={0.6} fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">PDU</text>
-      <text x={rect.x + 52} y={oy + 87} fill="#92400e" fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">3-Phase</text>
-
-      {/* K8s Master / DCIM Server marker */}
-      <g>
-        <rect x={rect.x + 30} y={oy + 120} width={100} height={36} rx={4} fill="#0a1628" stroke="#22c55e" strokeOpacity={0.4} strokeWidth={1} />
-        <circle cx={rect.x + 44} cy={oy + 138} r={4} fill="#22c55e" fillOpacity={0.6} />
-        <text x={rect.x + 56} y={oy + 134} fill="#4ade80" fontSize="9" fontWeight="600" fontFamily="system-ui, sans-serif">K8s Master</text>
-        <text x={rect.x + 56} y={oy + 146} fill="#166534" fontSize="7" fontFamily="system-ui, sans-serif">k8-master (DCIM)</text>
-      </g>
+      {/* Infrastructure elements */}
+      {room?.elements && room.elements.length > 0 ? (
+        room.elements.map((elem) => {
+          const pos = getElemPos?.(elem, rect) ?? { x: rect.x + elem.positionX, y: rect.y + elem.positionY };
+          return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rect} isEditMode={isEditMode} onDragStart={onDragStart} />;
+        })
+      ) : (
+        <>
+          <g><rect x={rect.x + 30} y={oy} width={90} height={40} rx={4} fill="#0c1929" stroke="#3b82f6" strokeOpacity={0.3} strokeWidth={1} /><text x={rect.x + 75} y={oy + 16} fill="#60a5fa" fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">NET SWITCH</text><text x={rect.x + 75} y={oy + 30} fill="#1d4ed8" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">ToR / Spine</text></g>
+          <rect x={rect.x + 30} y={oy + 60} width={44} height={34} rx={3} fill="#1a0a0a" stroke="#f59e0b" strokeOpacity={0.3} strokeWidth={0.8} />
+          <text x={rect.x + 52} y={oy + 75} fill="#f59e0b" fillOpacity={0.6} fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">PDU</text>
+          <text x={rect.x + 52} y={oy + 87} fill="#92400e" fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">3-Phase</text>
+          <g><rect x={rect.x + 30} y={oy + 120} width={100} height={36} rx={4} fill="#0a1628" stroke="#22c55e" strokeOpacity={0.4} strokeWidth={1} /><circle cx={rect.x + 44} cy={oy + 138} r={4} fill="#22c55e" fillOpacity={0.6} /><text x={rect.x + 56} y={oy + 134} fill="#4ade80" fontSize="9" fontWeight="600" fontFamily="system-ui, sans-serif">K8s Master</text><text x={rect.x + 56} y={oy + 146} fill="#166534" fontSize="7" fontFamily="system-ui, sans-serif">k8-master (DCIM)</text></g>
+        </>
+      )}
     </g>
   );
 }
@@ -832,6 +829,87 @@ function RoomBlock({
       )}
     </g>
   );
+}
+
+/* ─── Element icon (DB-driven infrastructure elements) ─── */
+function ElementIcon({ elem, pos, rect, isEditMode, onDragStart }: {
+  elem: RoomElementData;
+  pos: { x: number; y: number };
+  rect: Rect;
+  isEditMode?: boolean;
+  onDragStart?: (kind: "element", id: string, x: number, y: number, w: number, h: number, r: Rect, e: React.MouseEvent) => void;
+}) {
+  const w = elem.width || 72;
+  const h = elem.height || 32;
+  const meta = (elem.metadata || {}) as Record<string, string | number>;
+
+  const mouseDown = isEditMode
+    ? (e: React.MouseEvent) => onDragStart?.("element", elem.id, pos.x, pos.y, w, h, rect, e)
+    : undefined;
+
+  const editOverlay = isEditMode && (
+    <>
+      <rect x={pos.x} y={pos.y} width={w} height={h} rx={3} fill="transparent" stroke="#22d3ee" strokeOpacity={0.6} strokeWidth={1.5} strokeDasharray="4 2" />
+      {[0, 1, 2].map((i) => (
+        <circle key={i} cx={pos.x + w / 2 - 4 + i * 4} cy={pos.y + h / 2} r={1.2} fill="#22d3ee" fillOpacity={0.6} />
+      ))}
+    </>
+  );
+
+  if (elem.type === "COOLING") {
+    const dir = (String(meta.airflowDirection || "up")) as "up" | "down";
+    const len = Number(meta.airflowLength) || 45;
+    const sy = dir === "up" ? pos.y - 2 : pos.y + h + 2;
+    return (
+      <g style={{ cursor: isEditMode ? "move" : undefined }} onMouseDown={mouseDown}>
+        <CoolingUnit x={pos.x} y={pos.y} w={w} h={h} />
+        <AirflowStream cx={pos.x + w * 0.25} startY={sy} direction={dir} length={len} />
+        <AirflowStream cx={pos.x + w * 0.5} startY={sy} direction={dir} length={len} />
+        <AirflowStream cx={pos.x + w * 0.75} startY={sy} direction={dir} length={len} />
+        {editOverlay}
+      </g>
+    );
+  }
+
+  if (elem.type === "SWITCH") {
+    return (
+      <g style={{ cursor: isEditMode ? "move" : undefined }} onMouseDown={mouseDown}>
+        <rect x={pos.x} y={pos.y} width={w} height={h} rx={4} fill="#1a1a2e" stroke="#6366f1" strokeOpacity={0.3} strokeWidth={1} />
+        <text x={pos.x + w / 2} y={pos.y + 16} fill="#818cf8" fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">{elem.name || "NET SWITCH"}</text>
+        {meta.subLabel && <text x={pos.x + w / 2} y={pos.y + 30} fill="#4f46e5" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">{String(meta.subLabel)}</text>}
+        {editOverlay}
+      </g>
+    );
+  }
+
+  if (elem.type === "PDU") {
+    return (
+      <g style={{ cursor: isEditMode ? "move" : undefined }} onMouseDown={mouseDown}>
+        <rect x={pos.x} y={pos.y} width={w} height={h} rx={3} fill="#1a0a0a" stroke="#f59e0b" strokeOpacity={0.3} strokeWidth={0.8} />
+        <text x={pos.x + w / 2} y={pos.y + h * 0.42} fill="#f59e0b" fillOpacity={0.6} fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">{elem.name || "PDU"}</text>
+        {meta.subLabel && <text x={pos.x + w / 2} y={pos.y + h * 0.78} fill="#92400e" fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">{String(meta.subLabel)}</text>}
+        {editOverlay}
+      </g>
+    );
+  }
+
+  if (elem.type === "MASTER_SERVER") {
+    return (
+      <g style={{ cursor: isEditMode ? "move" : undefined }} onMouseDown={mouseDown}>
+        <rect x={pos.x} y={pos.y} width={w} height={h} rx={4} fill="#0a1628" stroke="#22c55e" strokeOpacity={0.4} strokeWidth={1} />
+        <circle cx={pos.x + 14} cy={pos.y + h / 2} r={4} fill="#22c55e" fillOpacity={0.6} />
+        <text x={pos.x + 26} y={pos.y + h * 0.42} fill="#4ade80" fontSize="9" fontWeight="600" fontFamily="system-ui, sans-serif">K8s Master</text>
+        {meta.hostname && (
+          <text x={pos.x + 26} y={pos.y + h * 0.78} fill="#166534" fontSize="7" fontFamily="system-ui, sans-serif">
+            {String(meta.hostname)}{meta.role ? ` (${meta.role})` : ""}
+          </text>
+        )}
+        {editOverlay}
+      </g>
+    );
+  }
+
+  return null;
 }
 
 /* ─── Animated cooling airflow ─── */
