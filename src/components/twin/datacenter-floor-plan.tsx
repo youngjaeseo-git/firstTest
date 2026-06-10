@@ -77,7 +77,10 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     const map = new Map<string, RoomData>();
     for (const r of rooms) {
       const key = r.name.toLowerCase().replace(/[\s-]/g, "");
-      map.set(key, r);
+      const existing = map.get(key);
+      if (!existing || r.racks.length > existing.racks.length) {
+        map.set(key, r);
+      }
     }
     return map;
   }, [rooms]);
@@ -493,6 +496,14 @@ function Lab3Interior({ rect, room }: { rect: { x: number; y: number; w: number;
         <text x={ox4 + 185} y={oy + 30} fill="#4f46e5" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">ToR / Spine</text>
       </g>
 
+      {/* K8s Master marker */}
+      <g>
+        <rect x={ox4 + 140} y={oy + 52} width={100} height={36} rx={4} fill="#0a1628" stroke="#22c55e" strokeOpacity={0.4} strokeWidth={1} />
+        <circle cx={ox4 + 154} cy={oy + 70} r={4} fill="#22c55e" fillOpacity={0.6} />
+        <text x={ox4 + 166} y={oy + 66} fill="#4ade80" fontSize="9" fontWeight="600" fontFamily="system-ui, sans-serif">K8s Master</text>
+        <text x={ox4 + 166} y={oy + 78} fill="#166534" fontSize="7" fontFamily="system-ui, sans-serif">master-lab3</text>
+      </g>
+
       {/* Cooling units */}
       <CoolingUnit x={rect.x + rect.w * 0.55} y={rect.y + rect.h - 52} />
       <CoolingUnit x={rect.x + rect.w * 0.55 + 90} y={rect.y + rect.h - 52} />
@@ -536,11 +547,11 @@ function Lab2Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
 
 /* ─── Lab-1 interior ─── */
 function Lab1Interior({ rect, room }: { rect: { x: number; y: number; w: number; h: number }; room?: RoomData }) {
-  const rw = 54;
-  const rh = 50;
-  const gap = 8;
+  const rw = 52;
+  const rh = 46;
+  const gap = 6;
   const ox = rect.x + rect.w - rw - 40;
-  const oy = rect.y + 80;
+  const oy = rect.y + 72;
 
   const rackNames = room?.racks.map((r) => r.name || "") || [];
   const stats = room ? computeStats(room) : null;
@@ -559,11 +570,11 @@ function Lab1Interior({ rect, room }: { rect: { x: number; y: number; w: number;
     <g>
       <FloorTiles x={rect.x} y={rect.y} w={rect.w} h={rect.h} accent="#3b82f6" />
 
-      {/* Cooling unit + airflow */}
+      {/* Cooling unit + airflow (duct → ceiling) */}
       <CoolingUnit x={ox - 10} y={rect.y + 36} />
-      <AirflowStream cx={ox + 12} startY={rect.y + 70} direction="down" length={35} />
-      <AirflowStream cx={ox + 26} startY={rect.y + 70} direction="down" length={35} />
-      <AirflowStream cx={ox + 40} startY={rect.y + 70} direction="down" length={35} />
+      <AirflowStream cx={ox + 12} startY={rect.y + 34} direction="up" length={30} />
+      <AirflowStream cx={ox + 26} startY={rect.y + 34} direction="up" length={30} />
+      <AirflowStream cx={ox + 40} startY={rect.y + 34} direction="up" length={30} />
 
       {/* Main racks */}
       {racks.map((r) => (
@@ -591,12 +602,12 @@ function Lab1Interior({ rect, room }: { rect: { x: number; y: number; w: number;
       <text x={rect.x + 52} y={oy + 75} fill="#f59e0b" fillOpacity={0.6} fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">PDU</text>
       <text x={rect.x + 52} y={oy + 87} fill="#92400e" fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">3-Phase</text>
 
-      {/* DCIM Server marker */}
+      {/* K8s Master / DCIM Server marker */}
       <g>
         <rect x={rect.x + 30} y={oy + 120} width={100} height={36} rx={4} fill="#0a1628" stroke="#22c55e" strokeOpacity={0.4} strokeWidth={1} />
         <circle cx={rect.x + 44} cy={oy + 138} r={4} fill="#22c55e" fillOpacity={0.6} />
-        <text x={rect.x + 56} y={oy + 134} fill="#4ade80" fontSize="9" fontWeight="600" fontFamily="system-ui, sans-serif">DCIM</text>
-        <text x={rect.x + 56} y={oy + 146} fill="#166534" fontSize="7" fontFamily="system-ui, sans-serif">k8-master</text>
+        <text x={rect.x + 56} y={oy + 134} fill="#4ade80" fontSize="9" fontWeight="600" fontFamily="system-ui, sans-serif">K8s Master</text>
+        <text x={rect.x + 56} y={oy + 146} fill="#166534" fontSize="7" fontFamily="system-ui, sans-serif">k8-master (DCIM)</text>
       </g>
     </g>
   );
