@@ -131,3 +131,45 @@ try:
   print(f'status={st} total={len(t)} up={up} down={len(t)-up}')
 except Exception as e: print(f'parse-err: {e}')
 " 2>/dev/null
+
+echo ""
+echo "=== 14. Lab-3 ConfigMap 상세 추출 ==="
+echo "-- ConfigMap 목록 --"
+kubectl get configmap -n monitoring 2>/dev/null | grep -i prom
+echo "-- job별 타겟 요약 --"
+kubectl get configmap prometheus-server-conf -n monitoring -o jsonpath='{.data}' 2>/dev/null | python3 -c "
+import json,sys,yaml
+try:
+  data=json.loads(sys.stdin.read())
+  for fname,content in data.items():
+    cfg=yaml.safe_load(content)
+    if not isinstance(cfg, dict) or 'scrape_configs' not in cfg: continue
+    print(f'file={fname}')
+    for j in cfg['scrape_configs']:
+      name=j.get('job_name','?')
+      path=j.get('metrics_path','/metrics')
+      honor=j.get('honor_labels',False)
+      sd=[]
+      if 'static_configs' in j: sd.append('static')
+      if 'kubernetes_sd_configs' in j: sd.append('k8s_sd')
+      targets=[]
+      for sc in j.get('static_configs',[]):
+        targets.extend(sc.get('targets',[]))
+      print(f'  {name} sd={\",\".join(sd)} path={path} honor={honor} targets={len(targets)} sample={targets[:2]}')
+except Exception as e: print(f'err: {e}')
+" 2>/dev/null
+
+echo ""
+echo "=== 15. Lab-3 ConfigMap federation/포트 확인 ==="
+kubectl get configmap prometheus-server-conf -n monitoring -o jsonpath='{.data}' 2>/dev/null | python3 -c "
+import json,sys,re
+try:
+  data=json.loads(sys.stdin.read())
+  for fname,content in data.items():
+    fed='/federate' in content
+    honor='honor_labels: true' in content
+    match='match[]' in content
+    ports=set(re.findall(r':(\d{4,5})', content))
+    print(f'{fname}: /federate={fed} honor={honor} match[]={match} ports={sorted(ports)}')
+except Exception as e: print(f'err: {e}')
+" 2>/dev/null
