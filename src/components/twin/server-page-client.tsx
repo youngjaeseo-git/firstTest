@@ -73,9 +73,10 @@ interface ServerPageClientProps {
     rackPosition: number | null;
     totalMemoryGB: number | null;
   }>;
+  initialView?: "list" | "twin";
 }
 
-export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
+export function ServerPageClient({ rooms, servers, initialView = "list" }: ServerPageClientProps) {
   const t = useT();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
@@ -85,7 +86,7 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
     ? rooms.find((r) => r.racks.some((rk) => rk.id === initialRackId))?.id ?? null
     : null;
 
-  const [view, setView] = useState<"list" | "twin">(initialRackId ? "twin" : "list");
+  const [view, setView] = useState<"list" | "twin">(initialRackId ? "twin" : initialView);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(initialRoomId);
   const [selectedRack, setSelectedRack] = useState<string | null>(initialRackId);
   const [query, setQuery] = useState(initialQuery);
@@ -227,8 +228,8 @@ export function ServerPageClient({ rooms, servers }: ServerPageClientProps) {
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={Server}
-        title={t("servers.title")}
+        icon={view === "twin" ? Building2 : Server}
+        title={view === "twin" ? t("nav.digitalTwin") : t("servers.title")}
         subtitle={
           <>
             {filteredServers.length}

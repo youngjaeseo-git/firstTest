@@ -14,6 +14,7 @@ export const translations: Record<Language, Record<string, string>> = {
     // ── Navigation ──
     "nav.dashboard": "Dashboard",
     "nav.servers": "Servers",
+    "nav.digitalTwin": "Digital Twin",
     "nav.infrastructure": "Infrastructure",
     "nav.assignments": "Assignments",
     "nav.racks": "Racks",
@@ -580,6 +581,7 @@ export const translations: Record<Language, Record<string, string>> = {
     // ── Navigation ──
     "nav.dashboard": "대시보드",
     "nav.servers": "서버",
+    "nav.digitalTwin": "디지털 트윈",
     "nav.infrastructure": "인프라",
     "nav.assignments": "사용 현황",
     "nav.racks": "랙",

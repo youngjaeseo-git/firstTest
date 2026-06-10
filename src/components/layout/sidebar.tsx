@@ -21,11 +21,13 @@ import {
   History,
   Zap,
   Users,
+  Map,
 } from "lucide-react";
 
 const navigation = [
   { key: "nav.dashboard", href: "/", icon: LayoutDashboard },
   { key: "nav.servers", href: "/servers", icon: Server },
+  { key: "nav.digitalTwin", href: "/digital-twin", icon: Map },
   { key: "nav.infrastructure", href: "/infrastructure", icon: Building2 },
   { key: "nav.assignments", href: "/assignments", icon: Users },
   { key: "nav.racks", href: "/racks", icon: Layers },
