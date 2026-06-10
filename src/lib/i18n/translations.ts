@@ -526,6 +526,8 @@ export const translations: Record<Language, Record<string, string>> = {
     "twin.floorPlan.clickRoom": "Click a room to view rack layout",
     "twin.floorPlan.noManagedServers": "No managed servers",
     "twin.floorPlan.noData": "No room data",
+    "twin.editMode": "Edit Layout",
+    "twin.editModeDone": "Done",
 
     // ── Assignment ──
     "assignment.title": "Server Assignment",
@@ -1093,6 +1095,8 @@ export const translations: Record<Language, Record<string, string>> = {
     "twin.floorPlan.clickRoom": "방을 클릭하면 랙 배치도로 이동합니다",
     "twin.floorPlan.noManagedServers": "관리 대상 서버 없음",
     "twin.floorPlan.noData": "데이터 없음",
+    "twin.editMode": "배치 편집",
+    "twin.editModeDone": "완료",
 
     // ── Assignment ──
     "assignment.title": "서버 사용 현황",

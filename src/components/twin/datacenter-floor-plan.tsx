@@ -2,19 +2,28 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Minus, Plus, Maximize2 } from "lucide-react";
+import { Minus, Plus, Maximize2, Pencil, Check } from "lucide-react";
+
+interface Rect {
+  x: number; y: number; w: number; h: number;
+}
+
+interface RackData {
+  id: string;
+  name?: string;
+  positionX?: number | null;
+  positionY?: number | null;
+  equipment: Array<{
+    status: string;
+    rackHeight: number;
+  }>;
+  totalUnits: number;
+}
 
 interface RoomData {
   id: string;
   name: string;
-  racks: Array<{
-    name?: string;
-    equipment: Array<{
-      status: string;
-      rackHeight: number;
-    }>;
-    totalUnits: number;
-  }>;
+  racks: RackData[];
 }
 
 interface DataCenterFloorPlanProps {
@@ -72,6 +81,18 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
   const panStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
   const isMouseDown = useRef(false);
   const hasDragged = useRef(false);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [posOverrides, setPosOverrides] = useState<Record<string, { x: number; y: number }>>({});
+  const [dragState, setDragState] = useState<{ rackId: string; x: number; y: number } | null>(null);
+  const dragRef = useRef<{
+    rackId: string;
+    roomRect: Rect;
+    rackW: number;
+    rackH: number;
+    offsetX: number;
+    offsetY: number;
+  } | null>(null);
 
   const roomMap = useMemo(() => {
     const map = new Map<string, RoomData>();
@@ -111,6 +132,65 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     h: H - MID_Y - P - GAP / 2,
   };
 
+  const clientToSVG = useCallback((clientX: number, clientY: number) => {
+    const svg = svgRef.current;
+    if (!svg) return { x: 0, y: 0 };
+    const pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return { x: 0, y: 0 };
+    const r = pt.matrixTransform(ctm.inverse());
+    return { x: r.x, y: r.y };
+  }, []);
+
+  const getRackPos = useCallback((
+    rackId: string, defaultX: number, defaultY: number,
+    rack?: { positionX?: number | null; positionY?: number | null },
+    roomRect?: Rect,
+  ) => {
+    if (dragState?.rackId === rackId) return { x: dragState.x, y: dragState.y };
+    const ov = posOverrides[rackId];
+    if (ov && roomRect) return { x: roomRect.x + ov.x, y: roomRect.y + ov.y };
+    if (rack?.positionX != null && rack?.positionY != null && roomRect) {
+      return { x: roomRect.x + rack.positionX, y: roomRect.y + rack.positionY };
+    }
+    return { x: defaultX, y: defaultY };
+  }, [dragState, posOverrides]);
+
+  const handleRackDragStart = useCallback((
+    rackId: string, rackX: number, rackY: number,
+    rackW: number, rackH: number, roomRect: Rect, e: React.MouseEvent,
+  ) => {
+    if (!isEditMode) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const svgPt = clientToSVG(e.clientX, e.clientY);
+    dragRef.current = {
+      rackId, roomRect, rackW, rackH,
+      offsetX: svgPt.x - rackX,
+      offsetY: svgPt.y - rackY,
+    };
+    isMouseDown.current = true;
+    setDragState({ rackId, x: rackX, y: rackY });
+  }, [isEditMode, clientToSVG]);
+
+  const saveRackPosition = useCallback(async (rackId: string, posX: number, posY: number) => {
+    try {
+      await fetch(`/api/racks/${rackId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ positionX: Math.round(posX), positionY: Math.round(posY) }),
+      });
+    } catch {
+      setPosOverrides((prev) => {
+        const next = { ...prev };
+        delete next[rackId];
+        return next;
+      });
+    }
+  }, []);
+
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
@@ -119,12 +199,21 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
+    if (isEditMode) return;
     isMouseDown.current = true;
     hasDragged.current = false;
     panStart.current = { x: e.clientX, y: e.clientY, tx: translate.x, ty: translate.y };
-  }, [translate]);
+  }, [translate, isEditMode]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (dragRef.current && isMouseDown.current) {
+      const svgPt = clientToSVG(e.clientX, e.clientY);
+      const dr = dragRef.current;
+      const nx = Math.max(dr.roomRect.x + 4, Math.min(dr.roomRect.x + dr.roomRect.w - dr.rackW - 4, svgPt.x - dr.offsetX));
+      const ny = Math.max(dr.roomRect.y + 4, Math.min(dr.roomRect.y + dr.roomRect.h - dr.rackH - 4, svgPt.y - dr.offsetY));
+      setDragState({ rackId: dr.rackId, x: nx, y: ny });
+      return;
+    }
     if (!isMouseDown.current) return;
     const dx = e.clientX - panStart.current.x;
     const dy = e.clientY - panStart.current.y;
@@ -132,12 +221,21 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     hasDragged.current = true;
     setIsPanning(true);
     setTranslate({ x: panStart.current.tx + dx, y: panStart.current.ty + dy });
-  }, []);
+  }, [clientToSVG]);
 
   const handleMouseUp = useCallback(() => {
+    if (dragRef.current && dragState) {
+      const dr = dragRef.current;
+      const rx = dragState.x - dr.roomRect.x;
+      const ry = dragState.y - dr.roomRect.y;
+      setPosOverrides((prev) => ({ ...prev, [dr.rackId]: { x: rx, y: ry } }));
+      saveRackPosition(dr.rackId, rx, ry);
+      dragRef.current = null;
+      setDragState(null);
+    }
     isMouseDown.current = false;
     setIsPanning(false);
-  }, []);
+  }, [dragState, saveRackPosition]);
 
   const handleClickCapture = useCallback((e: React.MouseEvent) => {
     if (hasDragged.current) {
@@ -162,6 +260,18 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
           <span className="font-medium">{t("twin.floorPlan.title")}</span>
         </div>
         <div className="flex items-center gap-1">
+          <button
+            onClick={() => { setIsEditMode((p) => !p); dragRef.current = null; setDragState(null); }}
+            className={cn(
+              "mr-2 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5",
+              isEditMode
+                ? "border-cyan-500/50 bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30"
+                : "border-gray-700 bg-gray-800/80 text-gray-400 hover:bg-gray-700 hover:text-gray-200",
+            )}
+          >
+            {isEditMode ? <Check className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+            {isEditMode ? t("twin.editModeDone") : t("twin.editMode")}
+          </button>
           <span className="mr-2 text-xs text-gray-600 tabular-nums">{Math.round(scale * 100)}%</span>
           <button
             onClick={() => setScale((s) => Math.max(0.5, s / 1.2))}
@@ -190,8 +300,11 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
       <div
         ref={containerRef}
         className={cn(
-          "relative overflow-hidden rounded-xl border border-gray-600/40 bg-[#060a14] shadow-2xl shadow-black/40 select-none",
-          isPanning ? "cursor-grabbing" : "cursor-grab",
+          "relative overflow-hidden rounded-xl shadow-2xl shadow-black/40 select-none",
+          isEditMode
+            ? "border-2 border-dashed border-cyan-500/40 bg-[#060a14]"
+            : "border border-gray-600/40 bg-[#060a14]",
+          isPanning ? "cursor-grabbing" : isEditMode ? "cursor-default" : "cursor-grab",
         )}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
@@ -207,6 +320,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
           }}
         >
           <svg
+            ref={svgRef}
             viewBox={`0 0 ${W} ${H}`}
             className="w-full"
             preserveAspectRatio="xMidYMid meet"
@@ -280,10 +394,10 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               gradient="url(#grad-purple)"
               glowFilter="url(#glow-purple)"
               hasServers
-              onClick={() => lab3 && onSelectRoom(lab3.id)}
+              onClick={() => !isEditMode && lab3 && onSelectRoom(lab3.id)}
               t={t}
             />
-            <Lab3Interior rect={lab3Rect} room={lab3} />
+            <Lab3Interior rect={lab3Rect} room={lab3} isEditMode={isEditMode} getRackPos={getRackPos} onRackDragStart={handleRackDragStart} />
 
             {/* === Lab-2: bottom-left === */}
             <RoomBlock
@@ -293,7 +407,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               accent="#6b7280"
               gradient="url(#grad-gray)"
               hasServers={false}
-              onClick={() => lab2 && onSelectRoom(lab2.id)}
+              onClick={() => !isEditMode && lab2 && onSelectRoom(lab2.id)}
               t={t}
             />
             <Lab2Interior rect={lab2Rect} />
@@ -307,10 +421,10 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               gradient="url(#grad-blue)"
               glowFilter="url(#glow-blue)"
               hasServers
-              onClick={() => lab1 && onSelectRoom(lab1.id)}
+              onClick={() => !isEditMode && lab1 && onSelectRoom(lab1.id)}
               t={t}
             />
-            <Lab1Interior rect={lab1Rect} room={lab1} />
+            <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} onRackDragStart={handleRackDragStart} />
 
             {/* Walls */}
             <line x1={P} y1={MID_Y} x2={W - P} y2={MID_Y} stroke="#374151" strokeWidth="3" />
@@ -326,8 +440,8 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
         </div>
 
         {/* Pan hint */}
-        <div className="absolute bottom-2 left-3 text-[10px] text-gray-700 pointer-events-none select-none">
-          Drag: Pan &middot; Scroll: Zoom
+        <div className="absolute bottom-2 left-3 text-[10px] pointer-events-none select-none" style={{ color: isEditMode ? "#22d3ee" : "#374151" }}>
+          {isEditMode ? "Drag racks to reposition · Scroll: Zoom" : "Drag: Pan · Scroll: Zoom"}
         </div>
       </div>
 
@@ -362,14 +476,17 @@ function DoorMarker({ x, y, horizontal, top }: { x: number; y: number; horizonta
 /* ─── Rack element inside room ─── */
 function RackIcon({
   x, y, w, h, label, accent, gradId, servers, utilPct,
+  isEditMode, onMouseDown,
 }: {
   x: number; y: number; w: number; h: number;
   label: string; accent: string; gradId: string;
   servers?: number; utilPct?: number;
+  isEditMode?: boolean;
+  onMouseDown?: (e: React.MouseEvent) => void;
 }) {
   const barH = Math.max(0, (h - 20) * Math.min((utilPct || 0) / 100, 1));
   return (
-    <g>
+    <g style={{ cursor: isEditMode ? "move" : undefined }} onMouseDown={onMouseDown}>
       <rect x={x} y={y} width={w} height={h} rx={3} fill={`url(#${gradId})`} stroke={accent} strokeOpacity={0.5} strokeWidth={1.2} />
       {/* U fill bar */}
       <rect x={x + 2} y={y + h - 2 - barH} width={w - 4} height={barH} rx={1.5} fill={utilColor(utilPct || 0)} fillOpacity={0.3} />
@@ -382,6 +499,15 @@ function RackIcon({
         <text x={x + w / 2} y={y + h - 6} fill="#9ca3af" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">
           {servers}srv
         </text>
+      )}
+      {/* Edit mode indicator */}
+      {isEditMode && (
+        <>
+          <rect x={x} y={y} width={w} height={h} rx={3} fill="transparent" stroke="#22d3ee" strokeOpacity={0.6} strokeWidth={1.5} strokeDasharray="4 2" />
+          {[0, 1, 2].map((i) => (
+            <circle key={i} cx={x + w / 2 - 4 + i * 4} cy={y + h / 2} r={1.2} fill="#22d3ee" fillOpacity={0.6} />
+          ))}
+        </>
       )}
     </g>
   );
@@ -425,21 +551,20 @@ function FloorTiles({ x, y, w, h, accent }: { x: number; y: number; w: number; h
 }
 
 /* ─── Lab-3 interior ─── */
-function Lab3Interior({ rect, room }: { rect: { x: number; y: number; w: number; h: number }; room?: RoomData }) {
+function Lab3Interior({ rect, room, isEditMode, getRackPos, onRackDragStart }: {
+  rect: Rect; room?: RoomData;
+  isEditMode?: boolean;
+  getRackPos?: (id: string, dx: number, dy: number, rack?: RackData, rect?: Rect) => { x: number; y: number };
+  onRackDragStart?: (id: string, x: number, y: number, w: number, h: number, r: Rect, e: React.MouseEvent) => void;
+}) {
   const rw = 54;
   const rh = 50;
   const gap = 8;
   const oy = rect.y + 80;
 
-  const rackNames = room?.racks.map((r) => r.name || "") || [];
   const stats = room ? computeStats(room) : null;
 
-  const rackRows = [
-    { label: rackNames[3] || "Rack 3-4", col: 0, row: 0 },
-    { label: rackNames[2] || "Rack 3-3", col: 0, row: 1 },
-    { label: rackNames[1] || "Rack 3-2", col: 0, row: 2 },
-    { label: rackNames[0] || "Rack 3-1", col: 0, row: 3 },
-  ];
+  const displayOrder = [3, 2, 1, 0];
 
   const ox1 = rect.x + 30;
   const ox2 = rect.x + rect.w * 0.18;
@@ -447,25 +572,34 @@ function Lab3Interior({ rect, room }: { rect: { x: number; y: number; w: number;
   const ox4 = rect.x + rect.w * 0.50;
 
   const rackUtil = stats ? stats.utilPct : 0;
+  const perRackServers = room ? Math.ceil((stats?.equipmentCount || 0) / Math.max(stats?.rackCount || 1, 1)) : undefined;
 
   return (
     <g>
       <FloorTiles x={rect.x} y={rect.y} w={rect.w} h={rect.h} accent="#8b5cf6" />
 
       {/* Primary rack column */}
-      {rackRows.map((r) => (
-        <RackIcon
-          key={r.label}
-          x={ox1 + r.col * (rw + gap)}
-          y={oy + r.row * (rh + gap)}
-          w={rw} h={rh}
-          label={r.label}
-          accent="#a78bfa"
-          gradId="grad-rack-purple"
-          servers={room ? Math.ceil((stats?.equipmentCount || 0) / Math.max(stats?.rackCount || 1, 1)) : undefined}
-          utilPct={rackUtil}
-        />
-      ))}
+      {displayOrder.map((rackIdx, row) => {
+        const rack = room?.racks[rackIdx];
+        if (!rack) return null;
+        const defaultX = ox1;
+        const defaultY = oy + row * (rh + gap);
+        const pos = getRackPos?.(rack.id, defaultX, defaultY, rack, rect) ?? { x: defaultX, y: defaultY };
+        return (
+          <RackIcon
+            key={rack.id}
+            x={pos.x} y={pos.y}
+            w={rw} h={rh}
+            label={rack.name || `Rack 3-${rackIdx + 1}`}
+            accent="#a78bfa"
+            gradId="grad-rack-purple"
+            servers={perRackServers}
+            utilPct={rackUtil}
+            isEditMode={isEditMode}
+            onMouseDown={isEditMode ? (e) => onRackDragStart?.(rack.id, pos.x, pos.y, rw, rh, rect, e) : undefined}
+          />
+        );
+      })}
 
       {/* Future expansion zones */}
       {[0, 1].map((col) => (
@@ -546,22 +680,19 @@ function Lab2Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
 }
 
 /* ─── Lab-1 interior ─── */
-function Lab1Interior({ rect, room }: { rect: { x: number; y: number; w: number; h: number }; room?: RoomData }) {
+function Lab1Interior({ rect, room, isEditMode, getRackPos, onRackDragStart }: {
+  rect: Rect; room?: RoomData;
+  isEditMode?: boolean;
+  getRackPos?: (id: string, dx: number, dy: number, rack?: RackData, rect?: Rect) => { x: number; y: number };
+  onRackDragStart?: (id: string, x: number, y: number, w: number, h: number, r: Rect, e: React.MouseEvent) => void;
+}) {
   const rw = 52;
   const rh = 46;
   const gap = 6;
   const ox = rect.x + rect.w - rw - 40;
   const oy = rect.y + 72;
 
-  const rackNames = room?.racks.map((r) => r.name || "") || [];
   const stats = room ? computeStats(room) : null;
-
-  const racks = [
-    { label: rackNames[0] || "Rack 1-1", row: 0 },
-    { label: rackNames[1] || "Rack 1-2", row: 1 },
-    { label: rackNames[2] || "Rack 1-3", row: 2 },
-    { label: rackNames[3] || "Rack 1-4", row: 3 },
-  ];
 
   const rackUtil = stats ? stats.utilPct : 0;
   const perRackServers = room ? Math.ceil((stats?.equipmentCount || 0) / Math.max(stats?.rackCount || 1, 1)) : undefined;
@@ -577,18 +708,27 @@ function Lab1Interior({ rect, room }: { rect: { x: number; y: number; w: number;
       <AirflowStream cx={ox + 40} startY={rect.y + 34} direction="up" length={30} />
 
       {/* Main racks */}
-      {racks.map((r) => (
-        <RackIcon
-          key={r.label}
-          x={ox} y={oy + r.row * (rh + gap)}
-          w={rw} h={rh}
-          label={r.label}
-          accent="#60a5fa"
-          gradId="grad-rack-blue"
-          servers={perRackServers}
-          utilPct={rackUtil}
-        />
-      ))}
+      {[0, 1, 2, 3].map((rackIdx) => {
+        const rack = room?.racks[rackIdx];
+        if (!rack) return null;
+        const defaultX = ox;
+        const defaultY = oy + rackIdx * (rh + gap);
+        const pos = getRackPos?.(rack.id, defaultX, defaultY, rack, rect) ?? { x: defaultX, y: defaultY };
+        return (
+          <RackIcon
+            key={rack.id}
+            x={pos.x} y={pos.y}
+            w={rw} h={rh}
+            label={rack.name || `Rack 1-${rackIdx + 1}`}
+            accent="#60a5fa"
+            gradId="grad-rack-blue"
+            servers={perRackServers}
+            utilPct={rackUtil}
+            isEditMode={isEditMode}
+            onMouseDown={isEditMode ? (e) => onRackDragStart?.(rack.id, pos.x, pos.y, rw, rh, rect, e) : undefined}
+          />
+        );
+      })}
 
       {/* Network switch area */}
       <g>
