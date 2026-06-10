@@ -70,6 +70,8 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const panStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
+  const isMouseDown = useRef(false);
+  const hasDragged = useRef(false);
 
   const roomMap = useMemo(() => {
     const map = new Map<string, RoomData>();
@@ -113,20 +115,34 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
   }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 1 && !e.altKey) return;
-    e.preventDefault();
-    setIsPanning(true);
+    if (e.button !== 0) return;
+    isMouseDown.current = true;
+    hasDragged.current = false;
     panStart.current = { x: e.clientX, y: e.clientY, tx: translate.x, ty: translate.y };
   }, [translate]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isPanning) return;
+    if (!isMouseDown.current) return;
     const dx = e.clientX - panStart.current.x;
     const dy = e.clientY - panStart.current.y;
+    if (!hasDragged.current && Math.abs(dx) + Math.abs(dy) < 5) return;
+    hasDragged.current = true;
+    setIsPanning(true);
     setTranslate({ x: panStart.current.tx + dx, y: panStart.current.ty + dy });
-  }, [isPanning]);
+  }, []);
 
-  const handleMouseUp = useCallback(() => setIsPanning(false), []);
+  const handleMouseUp = useCallback(() => {
+    isMouseDown.current = false;
+    setIsPanning(false);
+  }, []);
+
+  const handleClickCapture = useCallback((e: React.MouseEvent) => {
+    if (hasDragged.current) {
+      e.stopPropagation();
+      e.preventDefault();
+      hasDragged.current = false;
+    }
+  }, []);
 
   const resetView = useCallback(() => {
     setScale(1);
@@ -171,14 +187,15 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
       <div
         ref={containerRef}
         className={cn(
-          "relative overflow-hidden rounded-xl border border-gray-600/40 bg-[#060a14] shadow-2xl shadow-black/40",
-          isPanning ? "cursor-grabbing" : "cursor-default",
+          "relative overflow-hidden rounded-xl border border-gray-600/40 bg-[#060a14] shadow-2xl shadow-black/40 select-none",
+          isPanning ? "cursor-grabbing" : "cursor-grab",
         )}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onClickCapture={handleClickCapture}
       >
         <div
           className="transition-transform duration-75 origin-center"
@@ -307,7 +324,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
 
         {/* Pan hint */}
         <div className="absolute bottom-2 left-3 text-[10px] text-gray-700 pointer-events-none select-none">
-          Alt+Drag: Pan &middot; Scroll: Zoom
+          Drag: Pan &middot; Scroll: Zoom
         </div>
       </div>
 
@@ -481,17 +498,18 @@ function Lab3Interior({ rect, room }: { rect: { x: number; y: number; w: number;
       <CoolingUnit x={rect.x + rect.w * 0.55 + 90} y={rect.y + rect.h - 52} />
       <CoolingUnit x={rect.x + rect.w * 0.55 + 180} y={rect.y + rect.h - 52} />
 
-      {/* Airflow arrows */}
-      {[0, 1, 2].map((i) => (
-        <g key={`air-${i}`}>
-          <line
-            x1={rect.x + rect.w * 0.55 + 36 + i * 90} y1={rect.y + rect.h - 56}
-            x2={rect.x + rect.w * 0.55 + 36 + i * 90} y2={rect.y + rect.h - 66}
-            stroke="#22d3ee" strokeOpacity={0.2} strokeWidth={1} markerEnd="none"
-          />
-          <text x={rect.x + rect.w * 0.55 + 36 + i * 90} y={rect.y + rect.h - 70} fill="#22d3ee" fillOpacity={0.2} fontSize="8" textAnchor="middle">&#9650;</text>
-        </g>
-      ))}
+      {/* Animated airflow from AC units */}
+      {[0, 1, 2].map((i) => {
+        const acCx = rect.x + rect.w * 0.55 + 36 + i * 90;
+        const acTop = rect.y + rect.h - 54;
+        return (
+          <g key={`airflow-${i}`}>
+            <AirflowStream cx={acCx - 14} startY={acTop} direction="up" />
+            <AirflowStream cx={acCx} startY={acTop} direction="up" />
+            <AirflowStream cx={acCx + 14} startY={acTop} direction="up" />
+          </g>
+        );
+      })}
 
       {/* PDU markers */}
       <rect x={rect.x + rect.w - 60} y={rect.y + rect.h - 52} width={44} height={34} rx={3} fill="#1a0a0a" stroke="#f59e0b" strokeOpacity={0.3} strokeWidth={0.8} />
@@ -541,8 +559,11 @@ function Lab1Interior({ rect, room }: { rect: { x: number; y: number; w: number;
     <g>
       <FloorTiles x={rect.x} y={rect.y} w={rect.w} h={rect.h} accent="#3b82f6" />
 
-      {/* Cooling unit */}
+      {/* Cooling unit + airflow */}
       <CoolingUnit x={ox - 10} y={rect.y + 36} />
+      <AirflowStream cx={ox + 12} startY={rect.y + 70} direction="down" length={35} />
+      <AirflowStream cx={ox + 26} startY={rect.y + 70} direction="down" length={35} />
+      <AirflowStream cx={ox + 40} startY={rect.y + 70} direction="down" length={35} />
 
       {/* Main racks */}
       {racks.map((r) => (
@@ -630,25 +651,27 @@ function RoomBlock({
         </g>
       )}
 
-      {/* Stats row */}
+      {/* Stats */}
       {stats && hasServers ? (
         <>
-          <g transform={`translate(${rect.x + 24}, ${rect.y + 48})`}>
-            <StatChip x={0} value={stats.rackCount} label={t("twin.statRacks")} icon="rack" accent={accent} />
-            <StatChip x={90} value={stats.equipmentCount} label={t("twin.statEquipment")} icon="server" accent={accent} />
-            <StatChip x={180} value={stats.activeCount} label={t("twin.statActive")} icon="active" accent="#22c55e" />
-          </g>
-
-          {/* Utilization bar */}
-          <g transform={`translate(${rect.x + 24}, ${rect.y + rect.h - 30})`}>
-            <text x={0} y={0} fill="#6b7280" fontSize="10" fontWeight="500" fontFamily="system-ui, sans-serif">
-              U {t("twin.statUtil")}
+          <text x={rect.x + 24} y={rect.y + 52} fontSize="11" fontFamily="system-ui, sans-serif">
+            <tspan fill={accent} fontWeight="700">{stats.rackCount}</tspan>
+            <tspan fill="#4b5563"> Racks  </tspan>
+            <tspan fill="#374151">·</tspan>
+            <tspan fill="#4b5563">  </tspan>
+            <tspan fill={accent} fontWeight="700">{stats.equipmentCount}</tspan>
+            <tspan fill="#4b5563"> Servers  </tspan>
+            <tspan fill="#374151">·</tspan>
+            <tspan fill="#4b5563">  </tspan>
+            <tspan fill="#22c55e" fontWeight="700">{stats.activeCount}</tspan>
+            <tspan fill="#4b5563"> Active</tspan>
+          </text>
+          <g transform={`translate(${rect.x + 24}, ${rect.y + 60})`}>
+            <rect x={0} y={0} width={180} height={4} rx={2} fill="#1f2937" />
+            <rect x={0} y={0} width={180 * Math.min(stats.utilPct / 100, 1)} height={4} rx={2} fill={utilColor(stats.utilPct)} />
+            <text x={188} y={5} fill="#4b5563" fontSize="9" fontFamily="system-ui, sans-serif">
+              {stats.utilPct}% ({stats.usedU}/{stats.totalU}U)
             </text>
-            <text x={Math.min(rect.w - 48, 300)} y={0} fill="#9ca3af" fontSize="10" fontWeight="600" textAnchor="end" fontFamily="system-ui, sans-serif">
-              {stats.usedU}/{stats.totalU}U ({stats.utilPct}%)
-            </text>
-            <rect x={0} y={6} width={Math.min(rect.w - 48, 300)} height={6} rx={3} fill="#1f2937" />
-            <rect x={0} y={6} width={Math.min(rect.w - 48, 300) * Math.min(stats.utilPct / 100, 1)} height={6} rx={3} fill={utilColor(stats.utilPct)} />
           </g>
         </>
       ) : (
@@ -660,20 +683,34 @@ function RoomBlock({
   );
 }
 
-/* ─── Stat chip ─── */
-function StatChip({ x, value, label, icon, accent }: {
-  x: number; value: number; label: string; icon: string; accent: string;
+/* ─── Animated cooling airflow ─── */
+function AirflowStream({ cx, startY, direction, length = 45 }: {
+  cx: number; startY: number; direction: "up" | "down"; length?: number;
 }) {
+  const sign = direction === "up" ? -1 : 1;
   return (
-    <g transform={`translate(${x}, 0)`}>
-      <rect width={78} height={32} rx={6} fill="#111827" fillOpacity={0.6} stroke="#1f2937" strokeWidth={0.8} />
-      <text x={10} y={14} fill={accent} fontSize="16" fontWeight="700" fontFamily="system-ui, sans-serif">
-        {value}
-      </text>
-      <text x={10} y={26} fill="#6b7280" fontSize="8" fontFamily="system-ui, sans-serif">
-        {label}
-      </text>
-      {icon === "active" && <circle cx={68} cy={16} r={3} fill={accent} fillOpacity={0.6} />}
+    <g>
+      {[0, 1, 2].map((i) => {
+        const delay = `${i * 0.7}s`;
+        const tipY = startY;
+        const d = direction === "up"
+          ? `M${cx - 4},${tipY + 5} L${cx},${tipY} L${cx + 4},${tipY + 5}`
+          : `M${cx - 4},${tipY - 5} L${cx},${tipY} L${cx + 4},${tipY - 5}`;
+        return (
+          <path
+            key={i}
+            d={d}
+            fill="none"
+            stroke="#22d3ee"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            strokeOpacity="0"
+          >
+            <animate attributeName="stroke-opacity" values="0;0.55;0.25;0" dur="2.1s" begin={delay} repeatCount="indefinite" />
+            <animateTransform attributeName="transform" type="translate" from="0 0" to={`0 ${sign * length}`} dur="2.1s" begin={delay} repeatCount="indefinite" />
+          </path>
+        );
+      })}
     </g>
   );
 }
