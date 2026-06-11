@@ -296,7 +296,8 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
   const handleToggleDirection = useCallback(async (elemId: string, currentMeta: Record<string, unknown>) => {
     if (!isEditMode) return;
     const cur = String(currentMeta.airflowDirection || "up");
-    const next = cur === "up" ? "down" : "up";
+    const cycle = ["up", "right", "down", "left"];
+    const next = cycle[(cycle.indexOf(cur) + 1) % 4];
     const newMeta = { ...currentMeta, airflowDirection: next };
     setElemMetaOverrides((prev) => ({ ...prev, [elemId]: newMeta }));
     try {
@@ -663,7 +664,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             {/* Door markers — DB elements (building-wide drag), hardcoded fallback */}
             {(() => {
               const dbDoors = rooms.flatMap((r) => (r.elements || []).filter((e) => e.type === "DOOR" && !removedIds.has(e.id)));
-              const addedDoors = addedElems.filter((e) => e.type === "DOOR");
+              const addedDoors = addedElems.filter((e) => e.type === "DOOR" && !removedIds.has(e.id));
               const allDoors = [...dbDoors, ...addedDoors];
               if (allDoors.length > 0) {
                 return allDoors.map((elem) => {
@@ -1045,7 +1046,7 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
       {/* Infrastructure elements (DOOR rendered at building level) */}
       {(() => {
         const dbElems = (room?.elements || []).filter((e) => e.type !== "DOOR" && !removedIds?.has(e.id));
-        const added = (addedElems || []).filter((e) => e.type !== "DOOR");
+        const added = (addedElems || []).filter((e) => e.type !== "DOOR" && !removedIds?.has(e.id));
         const allElems = [...dbElems, ...added];
         if (allElems.length > 0 || (room?.elements && room.elements.length > 0)) {
           return allElems.map((elem) => {
@@ -1149,7 +1150,7 @@ function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
       {/* Infrastructure elements (DOOR rendered at building level) */}
       {(() => {
         const dbElems = (room?.elements || []).filter((e) => e.type !== "DOOR" && !removedIds?.has(e.id));
-        const added = (addedElems || []).filter((e) => e.type !== "DOOR");
+        const added = (addedElems || []).filter((e) => e.type !== "DOOR" && !removedIds?.has(e.id));
         const allElems = [...dbElems, ...added];
         if (allElems.length > 0 || (room?.elements && room.elements.length > 0)) {
           return allElems.map((elem) => {
@@ -1290,23 +1291,37 @@ function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onToggleDirecti
   );
 
   if (elem.type === "COOLING") {
-    const dir = (String(meta.airflowDirection || "up")) as "up" | "down";
+    const dir = String(meta.airflowDirection || "up") as "up" | "down" | "left" | "right";
     const len = Number(meta.airflowLength) || 45;
-    const sy = dir === "up" ? pos.y - 2 : pos.y + h + 2;
+    const isVert = dir === "up" || dir === "down";
     const handleContext = isEditMode ? (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
       onToggleDirection?.(elem.id, overriddenMeta || (elem.metadata as Record<string, unknown>) || {});
     } : undefined;
+
+    const airflows = isVert ? (
+      <>
+        <AirflowStream cx={pos.x + w * 0.25} startY={dir === "up" ? pos.y - 2 : pos.y + h + 2} direction={dir} length={len} />
+        <AirflowStream cx={pos.x + w * 0.5} startY={dir === "up" ? pos.y - 2 : pos.y + h + 2} direction={dir} length={len} />
+        <AirflowStream cx={pos.x + w * 0.75} startY={dir === "up" ? pos.y - 2 : pos.y + h + 2} direction={dir} length={len} />
+      </>
+    ) : (
+      <>
+        <AirflowStream cx={dir === "left" ? pos.x - 2 : pos.x + w + 2} startY={pos.y + h * 0.25} direction={dir} length={len} />
+        <AirflowStream cx={dir === "left" ? pos.x - 2 : pos.x + w + 2} startY={pos.y + h * 0.5} direction={dir} length={len} />
+        <AirflowStream cx={dir === "left" ? pos.x - 2 : pos.x + w + 2} startY={pos.y + h * 0.75} direction={dir} length={len} />
+      </>
+    );
+
+    const dirLabel = { up: "↑", right: "→", down: "↓", left: "←" }[dir];
     return (
       <g style={{ cursor: isEditMode ? "move" : undefined }} onMouseDown={mouseDown} onContextMenu={handleContext}>
         <CoolingUnit x={pos.x} y={pos.y} w={w} h={h} />
-        <AirflowStream cx={pos.x + w * 0.25} startY={sy} direction={dir} length={len} />
-        <AirflowStream cx={pos.x + w * 0.5} startY={sy} direction={dir} length={len} />
-        <AirflowStream cx={pos.x + w * 0.75} startY={sy} direction={dir} length={len} />
+        {airflows}
         {isEditMode && (
-          <text x={pos.x + w / 2} y={pos.y + h + (dir === "down" ? len + 14 : -len - 4)} fill="#22d3ee" fillOpacity={0.5} fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">
-            R-click: flip
+          <text x={pos.x + w / 2} y={pos.y - 6} fill="#22d3ee" fillOpacity={0.5} fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">
+            R-click: {dirLabel} rotate
           </text>
         )}
         {editOverlay}
@@ -1355,8 +1370,10 @@ function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onToggleDirecti
   if (elem.type === "DOOR") {
     const orientation = String(meta.orientation || "horizontal");
     const isH = orientation === "horizontal";
-    const dw = isH ? w : 4;
-    const dh = isH ? 4 : h;
+    const longSide = Math.max(w, h);
+    const shortSide = Math.min(w, h, 6);
+    const dw = isH ? longSide : shortSide;
+    const dh = isH ? shortSide : longSide;
     const handleDoorContext = isEditMode ? (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
@@ -1365,8 +1382,8 @@ function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onToggleDirecti
     return (
       <g style={{ cursor: isEditMode ? "move" : undefined }} onMouseDown={isEditMode ? (e: React.MouseEvent) => onDragStart?.("element", elem.id, pos.x, pos.y, dw, dh, rect, e) : undefined} onContextMenu={handleDoorContext}>
         <rect x={pos.x} y={pos.y} width={dw} height={dh} rx={2} fill="#1f2937" />
-        <rect x={pos.x + (isH ? 4 : 1)} y={pos.y + (isH ? 1 : 4)} width={isH ? dw - 8 : dh - 8} height={isH ? 2 : 2} rx={1} fill="#374151" transform={isH ? undefined : `rotate(90,${pos.x + 2},${pos.y + 4})`} />
-        <text x={pos.x + dw / 2} y={pos.y + (isH ? 14 : dh / 2 + 3)} fill="#4b5563" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">
+        <rect x={pos.x + (isH ? 4 : 1)} y={pos.y + (isH ? 1 : 4)} width={isH ? dw - 8 : 2} height={isH ? 2 : dh - 8} rx={1} fill="#374151" />
+        <text x={isH ? pos.x + dw / 2 : pos.x + dw + 8} y={isH ? pos.y + dh + 12 : pos.y + dh / 2 + 3} fill="#4b5563" fontSize="8" textAnchor={isH ? "middle" : "start"} fontFamily="system-ui, sans-serif">
           {elem.name || "DOOR"}
         </text>
         {isEditMode && (
@@ -1395,17 +1412,28 @@ function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onToggleDirecti
 
 /* ─── Animated cooling airflow ─── */
 function AirflowStream({ cx, startY, direction, length = 45 }: {
-  cx: number; startY: number; direction: "up" | "down"; length?: number;
+  cx: number; startY: number; direction: "up" | "down" | "left" | "right"; length?: number;
 }) {
-  const sign = direction === "up" ? -1 : 1;
+  const isVert = direction === "up" || direction === "down";
   return (
     <g>
       {[0, 1, 2].map((i) => {
         const delay = `${i * 0.7}s`;
-        const tipY = startY;
-        const d = direction === "up"
-          ? `M${cx - 4},${tipY + 5} L${cx},${tipY} L${cx + 4},${tipY + 5}`
-          : `M${cx - 4},${tipY - 5} L${cx},${tipY} L${cx + 4},${tipY - 5}`;
+        let d: string;
+        let translateTo: string;
+        if (direction === "up") {
+          d = `M${cx - 4},${startY + 5} L${cx},${startY} L${cx + 4},${startY + 5}`;
+          translateTo = `0 ${-length}`;
+        } else if (direction === "down") {
+          d = `M${cx - 4},${startY - 5} L${cx},${startY} L${cx + 4},${startY - 5}`;
+          translateTo = `0 ${length}`;
+        } else if (direction === "left") {
+          d = `M${cx + 5},${startY - 4} L${cx},${startY} L${cx + 5},${startY + 4}`;
+          translateTo = `${-length} 0`;
+        } else {
+          d = `M${cx - 5},${startY - 4} L${cx},${startY} L${cx - 5},${startY + 4}`;
+          translateTo = `${length} 0`;
+        }
         return (
           <path
             key={i}
@@ -1417,7 +1445,7 @@ function AirflowStream({ cx, startY, direction, length = 45 }: {
             strokeOpacity="0"
           >
             <animate attributeName="stroke-opacity" values="0;0.55;0.25;0" dur="2.1s" begin={delay} repeatCount="indefinite" />
-            <animateTransform attributeName="transform" type="translate" from="0 0" to={`0 ${sign * length}`} dur="2.1s" begin={delay} repeatCount="indefinite" />
+            <animateTransform attributeName="transform" type="translate" from="0 0" to={translateTo} dur="2.1s" begin={delay} repeatCount="indefinite" />
           </path>
         );
       })}

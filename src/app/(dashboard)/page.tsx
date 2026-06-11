@@ -25,98 +25,118 @@ export default async function DashboardPage() {
   const lab3Where = { ipAddress: { startsWith: "10.144.131." } };
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  const [
-    statusBreakdown,
-    lab1StatusBreakdown,
-    lab3StatusBreakdown,
-    maintenanceEquipmentList,
-    failedEquipmentList,
-    activeEquipmentList,
-    totalRacks,
-    totalRooms,
-    firingAlerts,
-    recentAlerts,
-    equipmentMapping,
-    allEquipmentForPlatform,
-    promTargets,
-    alerts24hBySeverity,
-    firingBySeverity,
-  ] = await Promise.all([
-    prisma.equipment.groupBy({
-      by: ["status"],
-      _count: true,
-    }),
-    prisma.equipment.groupBy({
-      by: ["status"],
-      where: lab1Where,
-      _count: true,
-    }),
-    prisma.equipment.groupBy({
-      by: ["status"],
-      where: lab3Where,
-      _count: true,
-    }),
-    prisma.equipment.findMany({
-      where: { status: { in: ["MAINTENANCE", "REPAIR"] } },
-      select: {
-        id: true,
-        hostname: true,
-        status: true,
-        ipAddress: true,
-      },
-      take: 10,
-    }),
-    prisma.equipment.findMany({
-      where: { status: "FAILED" },
-      select: {
-        id: true,
-        hostname: true,
-        status: true,
-        ipAddress: true,
-      },
-      take: 10,
-    }),
-    prisma.equipment.findMany({
-      where: { status: "ACTIVE" },
-      select: {
-        id: true,
-        hostname: true,
-        status: true,
-        ipAddress: true,
-      },
-      take: 10,
-    }),
-    prisma.rack.count(),
-    prisma.room.count(),
-    prisma.alert.count({ where: { status: "FIRING" } }),
-    prisma.alert.findMany({
-      where: { status: "FIRING" },
-      orderBy: { firedAt: "desc" },
-      take: 5,
-    }),
-    prisma.equipment.findMany({
-      where: { ipAddress: { not: null } },
-      select: { hostname: true, ipAddress: true },
-    }),
-    prisma.equipment.findMany({
-      where: { type: "SERVER" },
-      select: { hostname: true, model: true, status: true },
-    }),
-    prisma.prometheusTarget.findMany({
-      where: { hostname: { not: null } },
-      select: { instance: true, hostname: true },
-    }),
-    prisma.alert.groupBy({
-      by: ["severity"],
-      where: { firedAt: { gte: since24h } },
-      _count: true,
-    }),
-    prisma.alert.groupBy({
-      by: ["severity"],
-      where: { status: "FIRING" },
-      _count: true,
-    }),
-  ]);
+  let statusBreakdown: { status: string; _count: number }[] = [];
+  let lab1StatusBreakdown: { status: string; _count: number }[] = [];
+  let lab3StatusBreakdown: { status: string; _count: number }[] = [];
+  let maintenanceEquipmentList: { id: string; hostname: string | null; status: string; ipAddress: string | null }[] = [];
+  let failedEquipmentList: { id: string; hostname: string | null; status: string; ipAddress: string | null }[] = [];
+  let activeEquipmentList: { id: string; hostname: string | null; status: string; ipAddress: string | null }[] = [];
+  let totalRacks = 0;
+  let totalRooms = 0;
+  let firingAlerts = 0;
+  let recentAlerts: { id: string; severity: string; summary: string; source: string | null; firedAt: Date; status: string }[] = [];
+  let equipmentMapping: { hostname: string | null; ipAddress: string | null }[] = [];
+  let allEquipmentForPlatform: { hostname: string | null; model: string | null; status: string }[] = [];
+  let promTargets: { instance: string; hostname: string | null }[] = [];
+  let alerts24hBySeverity: { severity: string; _count: number }[] = [];
+  let firingBySeverity: { severity: string; _count: number }[] = [];
+
+  try {
+    [
+      statusBreakdown,
+      lab1StatusBreakdown,
+      lab3StatusBreakdown,
+      maintenanceEquipmentList,
+      failedEquipmentList,
+      activeEquipmentList,
+      totalRacks,
+      totalRooms,
+      firingAlerts,
+      recentAlerts,
+      equipmentMapping,
+      allEquipmentForPlatform,
+      promTargets,
+      alerts24hBySeverity,
+      firingBySeverity,
+    ] = await Promise.all([
+      prisma.equipment.groupBy({
+        by: ["status"],
+        _count: true,
+      }),
+      prisma.equipment.groupBy({
+        by: ["status"],
+        where: lab1Where,
+        _count: true,
+      }),
+      prisma.equipment.groupBy({
+        by: ["status"],
+        where: lab3Where,
+        _count: true,
+      }),
+      prisma.equipment.findMany({
+        where: { status: { in: ["MAINTENANCE", "REPAIR"] } },
+        select: {
+          id: true,
+          hostname: true,
+          status: true,
+          ipAddress: true,
+        },
+        take: 10,
+      }),
+      prisma.equipment.findMany({
+        where: { status: "FAILED" },
+        select: {
+          id: true,
+          hostname: true,
+          status: true,
+          ipAddress: true,
+        },
+        take: 10,
+      }),
+      prisma.equipment.findMany({
+        where: { status: "ACTIVE" },
+        select: {
+          id: true,
+          hostname: true,
+          status: true,
+          ipAddress: true,
+        },
+        take: 10,
+      }),
+      prisma.rack.count(),
+      prisma.room.count(),
+      prisma.alert.count({ where: { status: "FIRING" } }),
+      prisma.alert.findMany({
+        where: { status: "FIRING" },
+        orderBy: { firedAt: "desc" },
+        take: 5,
+      }),
+      prisma.equipment.findMany({
+        where: { ipAddress: { not: null } },
+        select: { hostname: true, ipAddress: true },
+      }),
+      prisma.equipment.findMany({
+        where: { type: "SERVER" },
+        select: { hostname: true, model: true, status: true },
+      }),
+      prisma.prometheusTarget.findMany({
+        where: { hostname: { not: null } },
+        select: { instance: true, hostname: true },
+      }),
+      prisma.alert.groupBy({
+        by: ["severity"],
+        where: { firedAt: { gte: since24h } },
+        _count: true,
+      }),
+      prisma.alert.groupBy({
+        by: ["severity"],
+        where: { status: "FIRING" },
+        _count: true,
+      }),
+    ]) as [typeof statusBreakdown, typeof lab1StatusBreakdown, typeof lab3StatusBreakdown, typeof maintenanceEquipmentList, typeof failedEquipmentList, typeof activeEquipmentList, typeof totalRacks, typeof totalRooms, typeof firingAlerts, typeof recentAlerts, typeof equipmentMapping, typeof allEquipmentForPlatform, typeof promTargets, typeof alerts24hBySeverity, typeof firingBySeverity];
+  } catch (err) {
+    console.error("Dashboard data fetch failed:", err);
+  }
 
   // ExpiryTracker may not exist if DB migration hasn't run yet
   let expiringItems: { id: string; name: string; expiresAt: Date; category: string; source: string | null }[] = [];
