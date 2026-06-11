@@ -15,6 +15,8 @@ interface RackData {
   name?: string;
   positionX?: number | null;
   positionY?: number | null;
+  width?: number | null;
+  height?: number | null;
   equipment: Array<{
     status: string;
     rackHeight: number;
@@ -423,12 +425,6 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     }
   }, []);
 
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setScale((s) => Math.max(0.5, Math.min(4, s * delta)));
-  }, []);
-
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
     if (isEditMode) return;
@@ -614,7 +610,6 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             : "border border-gray-600/40 bg-[#060a14]",
           isPanning ? "cursor-grabbing" : isEditMode ? "cursor-default" : "cursor-grab",
         )}
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -803,7 +798,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
 
         {/* Pan hint */}
         <div className="absolute bottom-2 left-3 text-[10px] pointer-events-none select-none" style={{ color: isEditMode ? "#22d3ee" : "#374151" }}>
-          {isEditMode ? "Drag: Move · R-click: Toggle · +: Add element · ×: Delete" : "Drag: Pan · Scroll: Zoom"}
+          {isEditMode ? "L-drag: Resize · R-drag: Move · R-tap: Toggle · +: Add · ×: Delete" : "Drag: Pan · Zoom: +/- buttons"}
         </div>
       </div>
 
@@ -898,19 +893,26 @@ function RackTooltip({ x, y, rack, avgTemp }: {
 function DoorMarker({ x, y, horizontal, top }: { x: number; y: number; horizontal?: boolean; top?: boolean }) {
   if (horizontal) {
     const dy = top ? -1 : 0;
+    const arcY = top ? y - 2 + dy - 18 : y + 4 + dy;
+    const arcDir = top ? 1 : 0;
     return (
       <g>
-        <rect x={x - 20} y={y - 2 + dy} width={40} height={4} rx={2} fill="#1f2937" />
-        <rect x={x - 16} y={y - 1 + dy} width={32} height={2} rx={1} fill="#374151" />
-        <text x={x} y={y + (top ? -6 : 14)} fill="#4b5563" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">DOOR</text>
+        <rect x={x - 20} y={y - 3 + dy} width={40} height={6} rx={2} fill="#78350f" stroke="#d97706" strokeOpacity={0.6} strokeWidth={0.8} />
+        <rect x={x - 16} y={y - 1 + dy} width={32} height={2} rx={1} fill="#a16207" fillOpacity={0.7} />
+        <path d={`M ${x - 18} ${y + (top ? -3 : 3) + dy} A 18 18 0 0 ${arcDir} ${x + 18} ${y + (top ? -3 : 3) + dy}`} fill="none" stroke="#d97706" strokeOpacity={0.3} strokeWidth={0.8} strokeDasharray="3 2" />
+        <circle cx={x + 12} cy={y + dy} r={1.5} fill="#fbbf24" fillOpacity={0.7} />
+        <text x={x} y={y + (top ? -22 : 20)} fill="#d97706" fillOpacity={0.8} fontSize="8" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">DOOR</text>
       </g>
     );
   }
+  const arcX = x + 4;
   return (
     <g>
-      <rect x={x - 2} y={y - 20} width={4} height={40} rx={2} fill="#1f2937" />
-      <rect x={x - 1} y={y - 16} width={2} height={32} rx={1} fill="#374151" />
-      <text x={x + 10} y={y + 3} fill="#4b5563" fontSize="8" textAnchor="start" fontFamily="system-ui, sans-serif">DOOR</text>
+      <rect x={x - 3} y={y - 20} width={6} height={40} rx={2} fill="#78350f" stroke="#d97706" strokeOpacity={0.6} strokeWidth={0.8} />
+      <rect x={x - 1} y={y - 16} width={2} height={32} rx={1} fill="#a16207" fillOpacity={0.7} />
+      <path d={`M ${arcX} ${y - 18} A 18 18 0 0 1 ${arcX} ${y + 18}`} fill="none" stroke="#d97706" strokeOpacity={0.3} strokeWidth={0.8} strokeDasharray="3 2" />
+      <circle cx={x} cy={y - 8} r={1.5} fill="#fbbf24" fillOpacity={0.7} />
+      <text x={x + 14} y={y + 3} fill="#d97706" fillOpacity={0.8} fontSize="8" fontWeight="600" textAnchor="start" fontFamily="system-ui, sans-serif">DOOR</text>
     </g>
   );
 }
@@ -918,60 +920,65 @@ function DoorMarker({ x, y, horizontal, top }: { x: number; y: number; horizonta
 /* ─── Rack element inside room ─── */
 function RackIcon({
   x, y, w, h, label, accent, gradId, servers, utilPct,
-  isEditMode, onMouseDown,
+  isEditMode, onLeftDrag, onRightDrag,
   overlayColor, overlayOpacity,
   onMouseEnter, onMouseLeave,
+  resizing,
 }: {
   x: number; y: number; w: number; h: number;
   label: string; accent: string; gradId: string;
   servers?: number; utilPct?: number;
   isEditMode?: boolean;
-  onMouseDown?: (e: React.MouseEvent) => void;
+  onLeftDrag?: (e: React.MouseEvent) => void;
+  onRightDrag?: (e: React.MouseEvent) => void;
   overlayColor?: string;
   overlayOpacity?: number;
   onMouseEnter?: (e: React.MouseEvent) => void;
   onMouseLeave?: () => void;
+  resizing?: boolean;
 }) {
   const barH = Math.max(0, (h - 20) * Math.min((utilPct || 0) / 100, 1));
+  const handleMouseDown = isEditMode ? (e: React.MouseEvent) => {
+    if (e.button === 0) onLeftDrag?.(e);
+    else if (e.button === 2) onRightDrag?.(e);
+  } : undefined;
+  const handleContextMenu = isEditMode ? (e: React.MouseEvent) => { e.preventDefault(); } : undefined;
   return (
     <g
-      style={{ cursor: isEditMode ? "move" : "pointer" }}
-      onMouseDown={onMouseDown}
+      style={{ cursor: isEditMode ? "nwse-resize" : "pointer" }}
+      onMouseDown={handleMouseDown}
+      onContextMenu={handleContextMenu}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
       <rect x={x} y={y} width={w} height={h} rx={3} fill={`url(#${gradId})`} stroke={accent} strokeOpacity={0.5} strokeWidth={1.2} />
-      {/* Overlay glow */}
       {overlayColor && (
         <rect x={x} y={y} width={w} height={h} rx={3} fill={overlayColor} fillOpacity={overlayOpacity ?? 0.3} />
       )}
-      {/* U fill bar */}
       {!overlayColor && (
         <rect x={x + 2} y={y + h - 2 - barH} width={w - 4} height={barH} rx={1.5} fill={utilColor(utilPct || 0)} fillOpacity={0.3} />
       )}
-      {/* Label */}
       <text x={x + w / 2} y={y + 12} fill={overlayColor || accent} fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif" fillOpacity={0.9}>
         {label}
       </text>
-      {/* Server count */}
       {servers !== undefined && servers > 0 && (
         <text x={x + w / 2} y={y + h - 6} fill="#9ca3af" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">
           {servers}srv
         </text>
       )}
-      {/* Overlay value badge */}
       {overlayColor && utilPct !== undefined && !overlayColor.startsWith("#22c5") && (
         <text x={x + w / 2} y={y + h / 2 + 4} fill="#ffffff" fontSize="10" fontWeight="700" textAnchor="middle" fontFamily="system-ui, sans-serif" fillOpacity={0.9}>
-          {/* value shown via parent */}
         </text>
       )}
-      {/* Edit mode indicator */}
       {isEditMode && (
         <>
           <rect x={x} y={y} width={w} height={h} rx={3} fill="transparent" stroke="#22d3ee" strokeOpacity={0.6} strokeWidth={1.5} strokeDasharray="4 2" />
-          {[0, 1, 2].map((i) => (
-            <circle key={i} cx={x + w / 2 - 4 + i * 4} cy={y + h / 2} r={1.2} fill="#22d3ee" fillOpacity={0.6} />
-          ))}
+          <rect x={x + w - 6} y={y + h - 6} width={8} height={8} rx={1} fill="#22d3ee" fillOpacity={0.4} stroke="#22d3ee" strokeOpacity={0.7} strokeWidth={0.8} style={{ cursor: "nwse-resize" }} />
+          {resizing && (
+            <text x={x + w + 6} y={y + h + 4} fill="#22d3ee" fillOpacity={0.7} fontSize="8" fontFamily="system-ui, sans-serif">
+              {w}×{h}
+            </text>
+          )}
         </>
       )}
     </g>
@@ -1051,8 +1058,8 @@ function overlayProps(rack: RackData, overlay?: OverlayMode, nodeTemps?: Record<
 
 /* ─── Lab-3 interior ─── */
 function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, elemMetaOverrides, onDeleteElement, addedElems, removedIds, sizeOverrides, resizeState, onElementContextMenu }: InteriorProps) {
-  const rw = 54;
-  const rh = 50;
+  const defaultRw = 54;
+  const defaultRh = 50;
   const gap = 8;
   const oy = rect.y + 80;
 
@@ -1073,8 +1080,12 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
       {displayOrder.map((rackIdx, row) => {
         const rack = room?.racks[rackIdx];
         if (!rack) return null;
+        const rs = resizeState?.id === rack.id ? resizeState : null;
+        const so = sizeOverrides?.[rack.id];
+        const rw = rs?.w ?? so?.w ?? rack.width ?? defaultRw;
+        const rh = rs?.h ?? so?.h ?? rack.height ?? defaultRh;
         const defaultX = ox1;
-        const defaultY = oy + row * (rh + gap);
+        const defaultY = oy + row * (defaultRh + gap);
         const pos = getRackPos?.(rack.id, defaultX, defaultY, rack, rect) ?? { x: defaultX, y: defaultY };
         const op = overlayProps(rack, overlay, nodeTemps);
         return (
@@ -1088,11 +1099,13 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
             servers={perRackServers}
             utilPct={rackUtil}
             isEditMode={isEditMode}
-            onMouseDown={isEditMode ? (e) => onDragStart?.("rack", rack.id, pos.x, pos.y, rw, rh, rect, e) : undefined}
+            onLeftDrag={isEditMode ? (e) => onDragStart?.("rack", rack.id, pos.x, pos.y, rw, rh, rect, e, "resize") : undefined}
+            onRightDrag={isEditMode ? (e) => onDragStart?.("rack", rack.id, pos.x, pos.y, rw, rh, rect, e, "move") : undefined}
             overlayColor={op.overlayColor}
             overlayOpacity={op.overlayOpacity}
             onMouseEnter={onRackHover ? (e) => onRackHover(e, rack) : undefined}
             onMouseLeave={onRackLeave}
+            resizing={!!rs}
           />
         );
       })}
@@ -1108,12 +1121,12 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
               return (
                 <g key={row}>
                   <rect
-                    x={ex} y={oy + row * (rh + gap)}
-                    width={rw + 8} height={rh} rx={3}
+                    x={ex} y={oy + row * (defaultRh + gap)}
+                    width={defaultRw + 8} height={defaultRh} rx={3}
                     fill="#1e1b4b" fillOpacity={0.15}
                     stroke="#7c3aed" strokeOpacity={0.12} strokeWidth={0.8} strokeDasharray="4 3"
                   />
-                  <text x={ex + (rw + 8) / 2} y={oy + row * (rh + gap) + rh / 2 + 3} fill="#4c1d95" fillOpacity={0.4} fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">
+                  <text x={ex + (defaultRw + 8) / 2} y={oy + row * (defaultRh + gap) + defaultRh / 2 + 3} fill="#4c1d95" fillOpacity={0.4} fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">
                     RESERVED
                   </text>
                 </g>
@@ -1174,10 +1187,10 @@ function Lab2Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
 
 /* ─── Lab-1 interior ─── */
 function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, elemMetaOverrides, onDeleteElement, addedElems, removedIds, sizeOverrides, resizeState, onElementContextMenu }: InteriorProps) {
-  const rw = 52;
-  const rh = 46;
+  const defaultRw = 52;
+  const defaultRh = 46;
   const gap = 6;
-  const ox = rect.x + rect.w - rw - 40;
+  const ox = rect.x + rect.w - defaultRw - 40;
   const oy = rect.y + 72;
 
   const stats = room ? computeStats(room) : null;
@@ -1203,8 +1216,12 @@ function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
       {[0, 1, 2, 3].map((rackIdx) => {
         const rack = room?.racks[rackIdx];
         if (!rack) return null;
+        const rs = resizeState?.id === rack.id ? resizeState : null;
+        const so = sizeOverrides?.[rack.id];
+        const rw = rs?.w ?? so?.w ?? rack.width ?? defaultRw;
+        const rh = rs?.h ?? so?.h ?? rack.height ?? defaultRh;
         const defaultX = ox;
-        const defaultY = oy + rackIdx * (rh + gap);
+        const defaultY = oy + rackIdx * (defaultRh + gap);
         const pos = getRackPos?.(rack.id, defaultX, defaultY, rack, rect) ?? { x: defaultX, y: defaultY };
         const op = overlayProps(rack, overlay, nodeTemps);
         return (
@@ -1218,11 +1235,13 @@ function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
             servers={perRackServers}
             utilPct={rackUtil}
             isEditMode={isEditMode}
-            onMouseDown={isEditMode ? (e) => onDragStart?.("rack", rack.id, pos.x, pos.y, rw, rh, rect, e) : undefined}
+            onLeftDrag={isEditMode ? (e) => onDragStart?.("rack", rack.id, pos.x, pos.y, rw, rh, rect, e, "resize") : undefined}
+            onRightDrag={isEditMode ? (e) => onDragStart?.("rack", rack.id, pos.x, pos.y, rw, rh, rect, e, "move") : undefined}
             overlayColor={op.overlayColor}
             overlayOpacity={op.overlayOpacity}
             onMouseEnter={onRackHover ? (e) => onRackHover(e, rack) : undefined}
             onMouseLeave={onRackLeave}
+            resizing={!!rs}
           />
         );
       })}
@@ -1475,11 +1494,18 @@ function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onDelete, elemM
         onDragStart?.("element", elem.id, pos.x, pos.y, dw, dh, rect, e, "move");
       }
     } : undefined;
+    const arcRadius = Math.max(dw, dh) * 0.45;
     return (
       <g style={{ cursor: isEditMode ? "nwse-resize" : undefined }} onMouseDown={handleDoorMouseDown} onContextMenu={elemContextMenu}>
-        <rect x={pos.x} y={pos.y} width={dw} height={dh} rx={2} fill="#1f2937" />
-        <rect x={pos.x + (isH ? 4 : 1)} y={pos.y + (isH ? 1 : 4)} width={isH ? dw - 8 : 2} height={isH ? 2 : dh - 8} rx={1} fill="#374151" />
-        <text x={isH ? pos.x + dw / 2 : pos.x + dw + 8} y={isH ? pos.y + dh + 12 : pos.y + dh / 2 + 3} fill="#4b5563" fontSize="8" textAnchor={isH ? "middle" : "start"} fontFamily="system-ui, sans-serif">
+        <rect x={pos.x} y={pos.y} width={dw} height={dh} rx={2} fill="#78350f" stroke="#d97706" strokeOpacity={0.6} strokeWidth={0.8} />
+        <rect x={pos.x + (isH ? 4 : 1)} y={pos.y + (isH ? 1 : 4)} width={isH ? dw - 8 : 2} height={isH ? 2 : dh - 8} rx={1} fill="#a16207" fillOpacity={0.7} />
+        {isH ? (
+          <path d={`M ${pos.x + 2} ${pos.y + dh} A ${arcRadius} ${arcRadius} 0 0 0 ${pos.x + dw - 2} ${pos.y + dh}`} fill="none" stroke="#d97706" strokeOpacity={0.3} strokeWidth={0.8} strokeDasharray="3 2" />
+        ) : (
+          <path d={`M ${pos.x + dw} ${pos.y + 2} A ${arcRadius} ${arcRadius} 0 0 1 ${pos.x + dw} ${pos.y + dh - 2}`} fill="none" stroke="#d97706" strokeOpacity={0.3} strokeWidth={0.8} strokeDasharray="3 2" />
+        )}
+        <circle cx={isH ? pos.x + dw * 0.7 : pos.x + dw / 2} cy={isH ? pos.y + dh / 2 : pos.y + dh * 0.3} r={1.5} fill="#fbbf24" fillOpacity={0.7} />
+        <text x={isH ? pos.x + dw / 2 : pos.x + dw + 8} y={isH ? pos.y + dh + 12 : pos.y + dh / 2 + 3} fill="#d97706" fillOpacity={0.8} fontSize="8" fontWeight="600" textAnchor={isH ? "middle" : "start"} fontFamily="system-ui, sans-serif">
           {elem.name || "DOOR"}
         </text>
         {isEditMode && (

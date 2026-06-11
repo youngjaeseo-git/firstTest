@@ -128,6 +128,8 @@ model Rack {
   maxPowerWatts Int?
   positionX     Int?       // room layout grid X
   positionY     Int?       // room layout grid Y
+  width         Int?       // SVG width override
+  height        Int?       // SVG height override
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 

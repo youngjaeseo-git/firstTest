@@ -9,6 +9,8 @@ export const CreateRackSchema = z.object({
   maxPowerWatts: z.number().int().min(0).max(1000000).nullable().optional(),
   positionX: z.number().int().min(0).max(9999).nullable().optional(),
   positionY: z.number().int().min(0).max(9999).nullable().optional(),
+  width: z.number().int().min(10).max(500).nullable().optional(),
+  height: z.number().int().min(4).max(500).nullable().optional(),
 });
 
 export const UpdateRackSchema = z.object({
@@ -20,4 +22,6 @@ export const UpdateRackSchema = z.object({
   maxPowerWatts: z.number().int().min(0).max(1000000).nullable().optional(),
   positionX: z.number().int().min(0).max(9999).nullable().optional(),
   positionY: z.number().int().min(0).max(9999).nullable().optional(),
+  width: z.number().int().min(10).max(500).nullable().optional(),
+  height: z.number().int().min(4).max(500).nullable().optional(),
 });
