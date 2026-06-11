@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const CreateRoomElementSchema = z.object({
   roomId: z.string().trim().min(1, "Room ID is required"),
-  type: z.enum(["COOLING", "PDU", "SWITCH", "MASTER_SERVER"]),
+  type: z.enum(["COOLING", "PDU", "SWITCH", "MASTER_SERVER", "DOOR"]),
   name: z.string().trim().max(100).nullable().optional(),
   positionX: z.number().int().min(0).max(9999).optional().default(0),
   positionY: z.number().int().min(0).max(9999).optional().default(0),

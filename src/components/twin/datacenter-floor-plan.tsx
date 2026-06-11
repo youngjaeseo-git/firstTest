@@ -289,6 +289,24 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     } catch { /* optimistic update stays */ }
   }, []);
 
+  /* ─── Toggle airflow direction (edit mode right-click on COOLING) ─── */
+  const [elemMetaOverrides, setElemMetaOverrides] = useState<Record<string, Record<string, unknown>>>({});
+
+  const handleToggleDirection = useCallback(async (elemId: string, currentMeta: Record<string, unknown>) => {
+    if (!isEditMode) return;
+    const cur = String(currentMeta.airflowDirection || "up");
+    const next = cur === "up" ? "down" : "up";
+    const newMeta = { ...currentMeta, airflowDirection: next };
+    setElemMetaOverrides((prev) => ({ ...prev, [elemId]: newMeta }));
+    try {
+      await fetch(`/api/room-elements/${elemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ metadata: newMeta }),
+      });
+    } catch { /* optimistic */ }
+  }, [isEditMode]);
+
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
@@ -544,7 +562,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               onClick={() => !isEditMode && lab3 && onSelectRoom(lab3.id)}
               t={t}
             />
-            <Lab3Interior rect={lab3Rect} room={lab3} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} />
+            <Lab3Interior rect={lab3Rect} room={lab3} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} onToggleDirection={handleToggleDirection} elemMetaOverrides={elemMetaOverrides} />
 
             {/* === Lab-2: bottom-left === */}
             <RoomBlock
@@ -571,7 +589,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               onClick={() => !isEditMode && lab1 && onSelectRoom(lab1.id)}
               t={t}
             />
-            <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} />
+            <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} onToggleDirection={handleToggleDirection} elemMetaOverrides={elemMetaOverrides} />
 
             {/* Walls */}
             <line x1={P} y1={MID_Y} x2={W - P} y2={MID_Y} stroke="#374151" strokeWidth="3" />
@@ -579,10 +597,25 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             <line x1={SPLIT_X} y1={MID_Y} x2={SPLIT_X} y2={H - P} stroke="#374151" strokeWidth="3" />
             <line x1={SPLIT_X} y1={MID_Y} x2={SPLIT_X} y2={H - P} stroke="#6b7280" strokeWidth="1" strokeDasharray="6 3" />
 
-            {/* Door markers */}
-            <DoorMarker x={W / 2} y={MID_Y} horizontal />
-            <DoorMarker x={SPLIT_X} y={MID_Y + (H - MID_Y - P) / 2} />
-            <DoorMarker x={W / 2} y={P} horizontal top />
+            {/* Door markers — DB elements if available, hardcoded fallback */}
+            {(() => {
+              const allElems = rooms.flatMap((r) => (r.elements || []).filter((e) => e.type === "DOOR"));
+              if (allElems.length > 0) {
+                return allElems.map((elem) => {
+                  const parentRoom = rooms.find((r) => (r.elements || []).some((e) => e.id === elem.id));
+                  const rr = parentRoom === lab3 ? lab3Rect : parentRoom === lab1 ? lab1Rect : parentRoom === lab2 ? lab2Rect : lab3Rect;
+                  const pos = getElemPos(elem, rr);
+                  return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rr} isEditMode={isEditMode} onDragStart={handleItemDragStart} elemMetaOverrides={elemMetaOverrides} />;
+                });
+              }
+              return (
+                <>
+                  <DoorMarker x={W / 2} y={MID_Y} horizontal />
+                  <DoorMarker x={SPLIT_X} y={MID_Y + (H - MID_Y - P) / 2} />
+                  <DoorMarker x={W / 2} y={P} horizontal top />
+                </>
+              );
+            })()}
 
             {/* Tooltip */}
             {tooltip && <RackTooltip x={tooltip.x} y={tooltip.y} rack={tooltip.rack} avgTemp={tooltip.avgTemp} />}
@@ -818,6 +851,8 @@ interface InteriorProps {
   nodeTemps?: Record<string, number>;
   onRackHover?: (e: React.MouseEvent, rack: RackData) => void;
   onRackLeave?: () => void;
+  onToggleDirection?: (elemId: string, meta: Record<string, unknown>) => void;
+  elemMetaOverrides?: Record<string, Record<string, unknown>>;
 }
 
 /* ─── Compute overlay props for a rack ─── */
@@ -834,7 +869,7 @@ function overlayProps(rack: RackData, overlay?: OverlayMode, nodeTemps?: Record<
 }
 
 /* ─── Lab-3 interior ─── */
-function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave }: InteriorProps) {
+function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, onToggleDirection, elemMetaOverrides }: InteriorProps) {
   const rw = 54;
   const rh = 50;
   const gap = 8;
@@ -911,7 +946,7 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
       {room?.elements && room.elements.length > 0 ? (
         room.elements.map((elem) => {
           const pos = getElemPos?.(elem, rect) ?? { x: rect.x + elem.positionX, y: rect.y + elem.positionY };
-          return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rect} isEditMode={isEditMode} onDragStart={onDragStart} />;
+          return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rect} isEditMode={isEditMode} onDragStart={onDragStart} onToggleDirection={onToggleDirection} elemMetaOverrides={elemMetaOverrides} />;
         })
       ) : (
         <>
@@ -950,7 +985,7 @@ function Lab2Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
 }
 
 /* ─── Lab-1 interior ─── */
-function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave }: InteriorProps) {
+function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, onToggleDirection, elemMetaOverrides }: InteriorProps) {
   const rw = 52;
   const rh = 46;
   const gap = 6;
@@ -966,11 +1001,15 @@ function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
     <g>
       <FloorTiles x={rect.x} y={rect.y} w={rect.w} h={rect.h} accent="#3b82f6" />
 
-      {/* Cooling unit + airflow (duct → ceiling) */}
-      <CoolingUnit x={ox - 10} y={rect.y + 36} />
-      <AirflowStream cx={ox + 12} startY={rect.y + 34} direction="up" length={30} />
-      <AirflowStream cx={ox + 26} startY={rect.y + 34} direction="up" length={30} />
-      <AirflowStream cx={ox + 40} startY={rect.y + 34} direction="up" length={30} />
+      {/* Cooling unit + airflow — only when no DB elements */}
+      {!(room?.elements && room.elements.length > 0) && (
+        <>
+          <CoolingUnit x={ox - 10} y={rect.y + 36} />
+          <AirflowStream cx={ox + 12} startY={rect.y + 34} direction="up" length={30} />
+          <AirflowStream cx={ox + 26} startY={rect.y + 34} direction="up" length={30} />
+          <AirflowStream cx={ox + 40} startY={rect.y + 34} direction="up" length={30} />
+        </>
+      )}
 
       {/* Main racks */}
       {[0, 1, 2, 3].map((rackIdx) => {
@@ -1004,7 +1043,7 @@ function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
       {room?.elements && room.elements.length > 0 ? (
         room.elements.map((elem) => {
           const pos = getElemPos?.(elem, rect) ?? { x: rect.x + elem.positionX, y: rect.y + elem.positionY };
-          return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rect} isEditMode={isEditMode} onDragStart={onDragStart} />;
+          return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rect} isEditMode={isEditMode} onDragStart={onDragStart} onToggleDirection={onToggleDirection} elemMetaOverrides={elemMetaOverrides} />;
         })
       ) : (
         <>
@@ -1101,16 +1140,19 @@ function RoomBlock({
 }
 
 /* ─── Element icon (DB-driven infrastructure elements) ─── */
-function ElementIcon({ elem, pos, rect, isEditMode, onDragStart }: {
+function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onToggleDirection, elemMetaOverrides }: {
   elem: RoomElementData;
   pos: { x: number; y: number };
   rect: Rect;
   isEditMode?: boolean;
   onDragStart?: (kind: "element", id: string, x: number, y: number, w: number, h: number, r: Rect, e: React.MouseEvent) => void;
+  onToggleDirection?: (elemId: string, meta: Record<string, unknown>) => void;
+  elemMetaOverrides?: Record<string, Record<string, unknown>>;
 }) {
-  const w = elem.width || 72;
-  const h = elem.height || 32;
-  const meta = (elem.metadata || {}) as Record<string, string | number>;
+  const w = elem.width || (elem.type === "DOOR" ? 40 : 72);
+  const h = elem.height || (elem.type === "DOOR" ? 4 : 32);
+  const overriddenMeta = elemMetaOverrides?.[elem.id];
+  const meta = (overriddenMeta || elem.metadata || {}) as Record<string, string | number>;
 
   const mouseDown = isEditMode
     ? (e: React.MouseEvent) => onDragStart?.("element", elem.id, pos.x, pos.y, w, h, rect, e)
@@ -1129,12 +1171,22 @@ function ElementIcon({ elem, pos, rect, isEditMode, onDragStart }: {
     const dir = (String(meta.airflowDirection || "up")) as "up" | "down";
     const len = Number(meta.airflowLength) || 45;
     const sy = dir === "up" ? pos.y - 2 : pos.y + h + 2;
+    const handleContext = isEditMode ? (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onToggleDirection?.(elem.id, overriddenMeta || (elem.metadata as Record<string, unknown>) || {});
+    } : undefined;
     return (
-      <g style={{ cursor: isEditMode ? "move" : undefined }} onMouseDown={mouseDown}>
+      <g style={{ cursor: isEditMode ? "move" : undefined }} onMouseDown={mouseDown} onContextMenu={handleContext}>
         <CoolingUnit x={pos.x} y={pos.y} w={w} h={h} />
         <AirflowStream cx={pos.x + w * 0.25} startY={sy} direction={dir} length={len} />
         <AirflowStream cx={pos.x + w * 0.5} startY={sy} direction={dir} length={len} />
         <AirflowStream cx={pos.x + w * 0.75} startY={sy} direction={dir} length={len} />
+        {isEditMode && (
+          <text x={pos.x + w / 2} y={pos.y + h + (dir === "down" ? len + 14 : -len - 4)} fill="#22d3ee" fillOpacity={0.5} fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">
+            R-click: flip
+          </text>
+        )}
         {editOverlay}
       </g>
     );
@@ -1174,6 +1226,30 @@ function ElementIcon({ elem, pos, rect, isEditMode, onDragStart }: {
           </text>
         )}
         {editOverlay}
+      </g>
+    );
+  }
+
+  if (elem.type === "DOOR") {
+    const orientation = String(meta.orientation || "horizontal");
+    const isH = orientation === "horizontal";
+    const dw = isH ? w : 4;
+    const dh = isH ? 4 : h;
+    return (
+      <g style={{ cursor: isEditMode ? "move" : undefined }} onMouseDown={isEditMode ? (e: React.MouseEvent) => onDragStart?.("element", elem.id, pos.x, pos.y, dw, dh, rect, e) : undefined}>
+        <rect x={pos.x} y={pos.y} width={dw} height={dh} rx={2} fill="#1f2937" />
+        <rect x={pos.x + (isH ? 4 : 1)} y={pos.y + (isH ? 1 : 4)} width={isH ? dw - 8 : dh - 8} height={isH ? 2 : 2} rx={1} fill="#374151" transform={isH ? undefined : `rotate(90,${pos.x + 2},${pos.y + 4})`} />
+        <text x={pos.x + dw / 2} y={pos.y + (isH ? 14 : dh / 2 + 3)} fill="#4b5563" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">
+          {elem.name || "DOOR"}
+        </text>
+        {isEditMode && (
+          <>
+            <rect x={pos.x - 2} y={pos.y - 2} width={dw + 4} height={dh + 4} rx={3} fill="transparent" stroke="#22d3ee" strokeOpacity={0.6} strokeWidth={1.5} strokeDasharray="4 2" />
+            {[0, 1, 2].map((i) => (
+              <circle key={i} cx={pos.x + dw / 2 - 4 + i * 4} cy={pos.y + dh / 2} r={1.2} fill="#22d3ee" fillOpacity={0.6} />
+            ))}
+          </>
+        )}
       </g>
     );
   }
