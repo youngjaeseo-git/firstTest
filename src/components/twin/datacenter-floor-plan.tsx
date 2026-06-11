@@ -37,6 +37,7 @@ interface RoomData {
 
 interface RoomElementData {
   id: string;
+  roomId?: string;
   type: string;
   name?: string | null;
   positionX: number;
@@ -307,6 +308,68 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     } catch { /* optimistic */ }
   }, [isEditMode]);
 
+  /* ─── Toggle door orientation (edit mode right-click on DOOR) ─── */
+  const handleToggleOrientation = useCallback(async (elemId: string, currentMeta: Record<string, unknown>) => {
+    if (!isEditMode) return;
+    const cur = String(currentMeta.orientation || "horizontal");
+    const next = cur === "horizontal" ? "vertical" : "horizontal";
+    const newMeta = { ...currentMeta, orientation: next };
+    setElemMetaOverrides((prev) => ({ ...prev, [elemId]: newMeta }));
+    try {
+      await fetch(`/api/room-elements/${elemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ metadata: newMeta }),
+      });
+    } catch { /* optimistic */ }
+  }, [isEditMode]);
+
+  /* ─── Add / Delete elements ─── */
+  const [addedElems, setAddedElems] = useState<RoomElementData[]>([]);
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
+  const [addMenuRoom, setAddMenuRoom] = useState<string | null>(null);
+
+  const buildingRect: Rect = { x: 2, y: 2, w: W - 4, h: H - 4 };
+
+  const handleAddElement = useCallback(async (roomId: string, type: string) => {
+    setAddMenuRoom(null);
+    const defaults: Record<string, { w: number; h: number; meta: Record<string, unknown> }> = {
+      COOLING: { w: 72, h: 32, meta: { airflowDirection: "up", airflowLength: 45 } },
+      PDU: { w: 44, h: 34, meta: { subLabel: "3-Phase" } },
+      SWITCH: { w: 90, h: 40, meta: { subLabel: "ToR / Spine" } },
+      MASTER_SERVER: { w: 100, h: 36, meta: { hostname: "master" } },
+      DOOR: { w: 40, h: 4, meta: { orientation: "horizontal" } },
+    };
+    const d = defaults[type] || { w: 60, h: 30, meta: {} };
+    const body = {
+      roomId, type,
+      name: type === "DOOR" ? "DOOR" : type === "COOLING" ? "AC" : type,
+      positionX: 50, positionY: 50,
+      width: d.w, height: d.h,
+      metadata: d.meta,
+    };
+    try {
+      const res = await fetch("/api/room-elements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const elem = await res.json();
+        setAddedElems((prev) => [...prev, elem]);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const handleDeleteElement = useCallback(async (elemId: string) => {
+    setRemovedIds((prev) => new Set(prev).add(elemId));
+    try {
+      await fetch(`/api/room-elements/${elemId}`, { method: "DELETE" });
+    } catch {
+      setRemovedIds((prev) => { const s = new Set(prev); s.delete(elemId); return s; });
+    }
+  }, []);
+
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
@@ -538,7 +601,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             </defs>
 
             {/* Background */}
-            <rect width={W} height={H} fill="#060a14" rx="10" />
+            <rect width={W} height={H} fill="#060a14" rx="10" onClick={() => addMenuRoom && setAddMenuRoom(null)} />
             <rect width={W} height={H} fill="url(#fp-grid-fine)" rx="10" />
             <rect width={W} height={H} fill="url(#fp-grid)" rx="10" />
 
@@ -562,7 +625,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               onClick={() => !isEditMode && lab3 && onSelectRoom(lab3.id)}
               t={t}
             />
-            <Lab3Interior rect={lab3Rect} room={lab3} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} onToggleDirection={handleToggleDirection} elemMetaOverrides={elemMetaOverrides} />
+            <Lab3Interior rect={lab3Rect} room={lab3} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} onToggleDirection={handleToggleDirection} elemMetaOverrides={elemMetaOverrides} onDeleteElement={handleDeleteElement} addedElems={lab3 ? addedElems.filter(e => e.type !== "DOOR" && e.roomId === lab3.id) : []} removedIds={removedIds} />
 
             {/* === Lab-2: bottom-left === */}
             <RoomBlock
@@ -589,7 +652,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               onClick={() => !isEditMode && lab1 && onSelectRoom(lab1.id)}
               t={t}
             />
-            <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} onToggleDirection={handleToggleDirection} elemMetaOverrides={elemMetaOverrides} />
+            <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} onToggleDirection={handleToggleDirection} elemMetaOverrides={elemMetaOverrides} onDeleteElement={handleDeleteElement} addedElems={lab1 ? addedElems.filter(e => e.type !== "DOOR" && e.roomId === lab1.id) : []} removedIds={removedIds} />
 
             {/* Walls */}
             <line x1={P} y1={MID_Y} x2={W - P} y2={MID_Y} stroke="#374151" strokeWidth="3" />
@@ -597,15 +660,15 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             <line x1={SPLIT_X} y1={MID_Y} x2={SPLIT_X} y2={H - P} stroke="#374151" strokeWidth="3" />
             <line x1={SPLIT_X} y1={MID_Y} x2={SPLIT_X} y2={H - P} stroke="#6b7280" strokeWidth="1" strokeDasharray="6 3" />
 
-            {/* Door markers — DB elements if available, hardcoded fallback */}
+            {/* Door markers — DB elements (building-wide drag), hardcoded fallback */}
             {(() => {
-              const allElems = rooms.flatMap((r) => (r.elements || []).filter((e) => e.type === "DOOR"));
-              if (allElems.length > 0) {
-                return allElems.map((elem) => {
-                  const parentRoom = rooms.find((r) => (r.elements || []).some((e) => e.id === elem.id));
-                  const rr = parentRoom === lab3 ? lab3Rect : parentRoom === lab1 ? lab1Rect : parentRoom === lab2 ? lab2Rect : lab3Rect;
-                  const pos = getElemPos(elem, rr);
-                  return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rr} isEditMode={isEditMode} onDragStart={handleItemDragStart} elemMetaOverrides={elemMetaOverrides} />;
+              const dbDoors = rooms.flatMap((r) => (r.elements || []).filter((e) => e.type === "DOOR" && !removedIds.has(e.id)));
+              const addedDoors = addedElems.filter((e) => e.type === "DOOR");
+              const allDoors = [...dbDoors, ...addedDoors];
+              if (allDoors.length > 0) {
+                return allDoors.map((elem) => {
+                  const pos = getElemPos(elem, buildingRect);
+                  return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={buildingRect} isEditMode={isEditMode} onDragStart={handleItemDragStart} onToggleOrientation={handleToggleOrientation} onDelete={isEditMode ? handleDeleteElement : undefined} elemMetaOverrides={elemMetaOverrides} />;
                 });
               }
               return (
@@ -617,6 +680,39 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               );
             })()}
 
+            {/* Edit mode: "+" add element buttons per room */}
+            {isEditMode && [
+              { room: lab3, rect: lab3Rect },
+              { room: lab1, rect: lab1Rect },
+              { room: lab2, rect: lab2Rect },
+            ].map(({ room: r, rect: rr }) => r && (
+              <g key={`add-${r.id}`}>
+                <g style={{ cursor: "pointer" }} onClick={() => setAddMenuRoom(addMenuRoom === r.id ? null : r.id)}>
+                  <circle cx={rr.x + rr.w - 24} cy={rr.y + 24} r={12} fill="#062c3a" stroke="#22d3ee" strokeOpacity={0.6} strokeWidth={1.2} />
+                  <text x={rr.x + rr.w - 24} y={rr.y + 29} fill="#22d3ee" fontSize="16" fontWeight="700" textAnchor="middle" fontFamily="system-ui, sans-serif">+</text>
+                </g>
+                {addMenuRoom === r.id && (() => {
+                  const types = ["COOLING", "PDU", "SWITCH", "MASTER_SERVER", "DOOR"];
+                  const mx = rr.x + rr.w - 140;
+                  const my = rr.y + 42;
+                  return (
+                    <g>
+                      <rect x={mx - 6} y={my - 6} width={132} height={types.length * 24 + 12} rx={6} fill="#111827" fillOpacity={0.97} stroke="#374151" strokeWidth={1} />
+                      <text x={mx + 4} y={my + 10} fill="#6b7280" fontSize="8" fontWeight="600" fontFamily="system-ui, sans-serif">ADD ELEMENT</text>
+                      {types.map((type, i) => (
+                        <g key={type} style={{ cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); handleAddElement(r.id, type); }}>
+                          <rect x={mx} y={my + 16 + i * 24} width={120} height={20} rx={3} fill="transparent" className="hover:fill-[#1f2937]" />
+                          <text x={mx + 8} y={my + 16 + i * 24 + 14} fill="#d1d5db" fontSize="10" fontFamily="system-ui, sans-serif">
+                            {type === "MASTER_SERVER" ? "MASTER SERVER" : type}
+                          </text>
+                        </g>
+                      ))}
+                    </g>
+                  );
+                })()}
+              </g>
+            ))}
+
             {/* Tooltip */}
             {tooltip && <RackTooltip x={tooltip.x} y={tooltip.y} rack={tooltip.rack} avgTemp={tooltip.avgTemp} />}
 
@@ -627,7 +723,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
 
         {/* Pan hint */}
         <div className="absolute bottom-2 left-3 text-[10px] pointer-events-none select-none" style={{ color: isEditMode ? "#22d3ee" : "#374151" }}>
-          {isEditMode ? "Drag racks to reposition · Scroll: Zoom" : "Drag: Pan · Scroll: Zoom"}
+          {isEditMode ? "Drag: Move · R-click: Toggle · +: Add element · ×: Delete" : "Drag: Pan · Scroll: Zoom"}
         </div>
       </div>
 
@@ -852,7 +948,11 @@ interface InteriorProps {
   onRackHover?: (e: React.MouseEvent, rack: RackData) => void;
   onRackLeave?: () => void;
   onToggleDirection?: (elemId: string, meta: Record<string, unknown>) => void;
+  onToggleOrientation?: (elemId: string, meta: Record<string, unknown>) => void;
+  onDeleteElement?: (elemId: string) => void;
   elemMetaOverrides?: Record<string, Record<string, unknown>>;
+  addedElems?: RoomElementData[];
+  removedIds?: Set<string>;
 }
 
 /* ─── Compute overlay props for a rack ─── */
@@ -869,7 +969,7 @@ function overlayProps(rack: RackData, overlay?: OverlayMode, nodeTemps?: Record<
 }
 
 /* ─── Lab-3 interior ─── */
-function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, onToggleDirection, elemMetaOverrides }: InteriorProps) {
+function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, onToggleDirection, elemMetaOverrides, onDeleteElement, addedElems, removedIds }: InteriorProps) {
   const rw = 54;
   const rh = 50;
   const gap = 8;
@@ -942,13 +1042,20 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
         );
       })}
 
-      {/* Infrastructure elements */}
-      {room?.elements && room.elements.length > 0 ? (
-        room.elements.map((elem) => {
-          const pos = getElemPos?.(elem, rect) ?? { x: rect.x + elem.positionX, y: rect.y + elem.positionY };
-          return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rect} isEditMode={isEditMode} onDragStart={onDragStart} onToggleDirection={onToggleDirection} elemMetaOverrides={elemMetaOverrides} />;
-        })
-      ) : (
+      {/* Infrastructure elements (DOOR rendered at building level) */}
+      {(() => {
+        const dbElems = (room?.elements || []).filter((e) => e.type !== "DOOR" && !removedIds?.has(e.id));
+        const added = (addedElems || []).filter((e) => e.type !== "DOOR");
+        const allElems = [...dbElems, ...added];
+        if (allElems.length > 0 || (room?.elements && room.elements.length > 0)) {
+          return allElems.map((elem) => {
+            const pos = getElemPos?.(elem, rect) ?? { x: rect.x + elem.positionX, y: rect.y + elem.positionY };
+            return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rect} isEditMode={isEditMode} onDragStart={onDragStart} onToggleDirection={onToggleDirection} onDelete={isEditMode ? onDeleteElement : undefined} elemMetaOverrides={elemMetaOverrides} />;
+          });
+        }
+        return null;
+      })()}
+      {!(room?.elements && room.elements.length > 0) && (
         <>
           {(() => { const ox4 = rect.x + rect.w * 0.50; return (
             <>
@@ -985,7 +1092,7 @@ function Lab2Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
 }
 
 /* ─── Lab-1 interior ─── */
-function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, onToggleDirection, elemMetaOverrides }: InteriorProps) {
+function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, onToggleDirection, elemMetaOverrides, onDeleteElement, addedElems, removedIds }: InteriorProps) {
   const rw = 52;
   const rh = 46;
   const gap = 6;
@@ -1039,13 +1146,20 @@ function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
         );
       })}
 
-      {/* Infrastructure elements */}
-      {room?.elements && room.elements.length > 0 ? (
-        room.elements.map((elem) => {
-          const pos = getElemPos?.(elem, rect) ?? { x: rect.x + elem.positionX, y: rect.y + elem.positionY };
-          return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rect} isEditMode={isEditMode} onDragStart={onDragStart} onToggleDirection={onToggleDirection} elemMetaOverrides={elemMetaOverrides} />;
-        })
-      ) : (
+      {/* Infrastructure elements (DOOR rendered at building level) */}
+      {(() => {
+        const dbElems = (room?.elements || []).filter((e) => e.type !== "DOOR" && !removedIds?.has(e.id));
+        const added = (addedElems || []).filter((e) => e.type !== "DOOR");
+        const allElems = [...dbElems, ...added];
+        if (allElems.length > 0 || (room?.elements && room.elements.length > 0)) {
+          return allElems.map((elem) => {
+            const pos = getElemPos?.(elem, rect) ?? { x: rect.x + elem.positionX, y: rect.y + elem.positionY };
+            return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rect} isEditMode={isEditMode} onDragStart={onDragStart} onToggleDirection={onToggleDirection} onDelete={isEditMode ? onDeleteElement : undefined} elemMetaOverrides={elemMetaOverrides} />;
+          });
+        }
+        return null;
+      })()}
+      {!(room?.elements && room.elements.length > 0) && (
         <>
           <g><rect x={rect.x + 30} y={oy} width={90} height={40} rx={4} fill="#0c1929" stroke="#3b82f6" strokeOpacity={0.3} strokeWidth={1} /><text x={rect.x + 75} y={oy + 16} fill="#60a5fa" fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">NET SWITCH</text><text x={rect.x + 75} y={oy + 30} fill="#1d4ed8" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">ToR / Spine</text></g>
           <rect x={rect.x + 30} y={oy + 60} width={44} height={34} rx={3} fill="#1a0a0a" stroke="#f59e0b" strokeOpacity={0.3} strokeWidth={0.8} />
@@ -1140,13 +1254,15 @@ function RoomBlock({
 }
 
 /* ─── Element icon (DB-driven infrastructure elements) ─── */
-function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onToggleDirection, elemMetaOverrides }: {
+function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onToggleDirection, onToggleOrientation, onDelete, elemMetaOverrides }: {
   elem: RoomElementData;
   pos: { x: number; y: number };
   rect: Rect;
   isEditMode?: boolean;
   onDragStart?: (kind: "element", id: string, x: number, y: number, w: number, h: number, r: Rect, e: React.MouseEvent) => void;
   onToggleDirection?: (elemId: string, meta: Record<string, unknown>) => void;
+  onToggleOrientation?: (elemId: string, meta: Record<string, unknown>) => void;
+  onDelete?: (elemId: string) => void;
   elemMetaOverrides?: Record<string, Record<string, unknown>>;
 }) {
   const w = elem.width || (elem.type === "DOOR" ? 40 : 72);
@@ -1164,6 +1280,12 @@ function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onToggleDirecti
       {[0, 1, 2].map((i) => (
         <circle key={i} cx={pos.x + w / 2 - 4 + i * 4} cy={pos.y + h / 2} r={1.2} fill="#22d3ee" fillOpacity={0.6} />
       ))}
+      {onDelete && (
+        <g style={{ cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); onDelete(elem.id); }}>
+          <circle cx={pos.x + w - 2} cy={pos.y - 2} r={7} fill="#7f1d1d" stroke="#ef4444" strokeWidth={1} />
+          <text x={pos.x + w - 2} y={pos.y + 2} fill="#fca5a5" fontSize="10" fontWeight="700" textAnchor="middle" fontFamily="system-ui, sans-serif">×</text>
+        </g>
+      )}
     </>
   );
 
@@ -1235,8 +1357,13 @@ function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onToggleDirecti
     const isH = orientation === "horizontal";
     const dw = isH ? w : 4;
     const dh = isH ? 4 : h;
+    const handleDoorContext = isEditMode ? (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onToggleOrientation?.(elem.id, overriddenMeta || (elem.metadata as Record<string, unknown>) || {});
+    } : undefined;
     return (
-      <g style={{ cursor: isEditMode ? "move" : undefined }} onMouseDown={isEditMode ? (e: React.MouseEvent) => onDragStart?.("element", elem.id, pos.x, pos.y, dw, dh, rect, e) : undefined}>
+      <g style={{ cursor: isEditMode ? "move" : undefined }} onMouseDown={isEditMode ? (e: React.MouseEvent) => onDragStart?.("element", elem.id, pos.x, pos.y, dw, dh, rect, e) : undefined} onContextMenu={handleDoorContext}>
         <rect x={pos.x} y={pos.y} width={dw} height={dh} rx={2} fill="#1f2937" />
         <rect x={pos.x + (isH ? 4 : 1)} y={pos.y + (isH ? 1 : 4)} width={isH ? dw - 8 : dh - 8} height={isH ? 2 : 2} rx={1} fill="#374151" transform={isH ? undefined : `rotate(90,${pos.x + 2},${pos.y + 4})`} />
         <text x={pos.x + dw / 2} y={pos.y + (isH ? 14 : dh / 2 + 3)} fill="#4b5563" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">
@@ -1248,6 +1375,15 @@ function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onToggleDirecti
             {[0, 1, 2].map((i) => (
               <circle key={i} cx={pos.x + dw / 2 - 4 + i * 4} cy={pos.y + dh / 2} r={1.2} fill="#22d3ee" fillOpacity={0.6} />
             ))}
+            {onDelete && (
+              <g style={{ cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); onDelete(elem.id); }}>
+                <circle cx={pos.x + dw + 4} cy={pos.y - 4} r={7} fill="#7f1d1d" stroke="#ef4444" strokeWidth={1} />
+                <text x={pos.x + dw + 4} y={pos.y} fill="#fca5a5" fontSize="10" fontWeight="700" textAnchor="middle" fontFamily="system-ui, sans-serif">×</text>
+              </g>
+            )}
+            <text x={pos.x + dw / 2} y={pos.y + (isH ? 24 : dh + 14)} fill="#22d3ee" fillOpacity={0.5} fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">
+              R-click: rotate
+            </text>
           </>
         )}
       </g>
