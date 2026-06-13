@@ -55,9 +55,14 @@ export function Sidebar() {
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-600/25 transition-transform duration-200 group-hover:scale-105">
           <Zap className="h-5 w-5 text-white" fill="white" />
         </div>
-        <div className="flex items-baseline gap-0.5">
-          <span className="text-[17px] font-bold tracking-tight text-white">DC</span>
-          <span className="text-[17px] font-semibold tracking-tight text-cyan-400">Express</span>
+        <div className="flex flex-col leading-none">
+          <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">
+            DRAM AE
+          </span>
+          <div className="mt-1 flex items-baseline gap-0.5">
+            <span className="text-[17px] font-bold tracking-tight text-white">DC</span>
+            <span className="text-[17px] font-semibold tracking-tight text-cyan-400">Express</span>
+          </div>
         </div>
       </Link>
 
