@@ -220,301 +220,265 @@ export default async function DashboardPage() {
   const criticalFiringNow =
     alertSeverityStats.find((a) => a.severity === "CRITICAL")?.firingNow ?? 0;
 
+  const hostnameIpMap = (() => {
+    const map: Record<string, string> = {};
+    for (const e of equipmentMapping) {
+      if (e.hostname && e.ipAddress) {
+        map[e.hostname] = e.ipAddress;
+        map[e.ipAddress] = e.hostname;
+      }
+    }
+    for (const pt of promTargets) {
+      const ip = pt.instance.replace(/:\d+$/, "");
+      if (pt.hostname && !map[ip]) {
+        map[ip] = pt.hostname;
+        map[pt.hostname] = ip;
+      }
+    }
+    return map;
+  })();
+
   return (
     <PageTransition>
-      <div className="space-y-6">
-        <PageHeader
-          icon={LayoutDashboard}
-          title="Dashboard"
-          subtitle="Infrastructure overview and live metrics"
-          accent="blue"
-        />
-
-        {/* Prometheus Live Metrics + Fleet Overview (with Lab filter) */}
-        <DashboardClusterView
-          statusCounts={{
-            all: { active: activeEquipmentCount, maintenance: maintenanceCount, failed: failedCount },
-            lab1: { active: lab1Active, maintenance: lab1Maintenance, failed: lab1Failed },
-            lab3: { active: lab3Active, maintenance: lab3Maintenance, failed: lab3Failed },
-          }}
-          hostnameIpMap={(() => {
-            const map: Record<string, string> = {};
-            for (const e of equipmentMapping) {
-              if (e.hostname && e.ipAddress) {
-                map[e.hostname] = e.ipAddress;
-                map[e.ipAddress] = e.hostname;
-              }
-            }
-            for (const t of promTargets) {
-              const ip = t.instance.replace(/:\d+$/, "");
-              if (t.hostname && !map[ip]) {
-                map[ip] = t.hostname;
-                map[t.hostname] = ip;
-              }
-            }
-            return map;
-          })()}
-          platformStats={platformStats}
-        />
-
-        {/* Summary Cards with hover overlay */}
-        <DashboardSummaryCards
-          totalEquipment={totalEquipment}
-          activeCount={activeEquipmentCount}
-          activeList={activeEquipmentList}
-          maintenanceCount={maintenanceCount}
-          maintenanceList={maintenanceEquipmentList}
-          failedCount={failedCount}
-          failedList={failedEquipmentList}
-          totalRacks={totalRacks}
-          totalRooms={totalRooms}
-          firingAlerts={firingAlerts}
-        />
-
-        {/* Status Breakdown Card */}
-        <Card>
-          <SectionHeading icon={ListChecks} title="Status Breakdown" accent="cyan" className="mb-3" />
-          <div className="flex flex-wrap gap-2">
-            {statusBreakdown.map((s) => (
-              <div
-                key={s.status}
-                className="flex items-center gap-2 rounded-lg border border-gray-800/60 bg-gray-800/20 px-3 py-2 transition-colors hover:bg-gray-800/40"
-              >
-                <Badge
-                  variant={
-                    s.status === "ACTIVE"
-                      ? "active"
-                      : s.status === "FAILED"
-                        ? "critical"
-                        : s.status === "MAINTENANCE" || s.status === "REPAIR"
-                          ? "maintenance"
-                          : "info"
-                  }
-                >
-                  {s.status}
-                </Badge>
-                <span className="font-mono text-sm font-semibold text-gray-300">
-                  {s._count}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Alerts by severity: currently firing (primary) + fired in last 24h (context) */}
-        <Card>
-          <SectionHeading
-            icon={Activity}
-            title="Alerts by Severity"
-            accent={criticalFiringNow > 0 ? "red" : totalFiringNow > 0 ? "amber" : "green"}
-            right={
-              <Link
-                href="/alerts/history"
-                className="text-xs text-blue-400 hover:text-blue-300"
-              >
-                History →
-              </Link>
-            }
+      <div className="flex gap-6">
+        {/* ─── Main Content Area ─── */}
+        <div className="min-w-0 flex-1 space-y-6">
+          <PageHeader
+            icon={LayoutDashboard}
+            title="Dashboard"
+            subtitle="Infrastructure overview and live metrics"
+            accent="blue"
           />
-          <div className="grid grid-cols-3 gap-3">
-            {alertSeverityStats.map((a) => {
-              const tone =
-                a.severity === "CRITICAL"
-                  ? { text: "text-red-400", dot: "bg-red-500", border: "border-l-red-500" }
-                  : a.severity === "WARNING"
-                    ? { text: "text-amber-400", dot: "bg-amber-500", border: "border-l-amber-500" }
-                    : { text: "text-blue-400", dot: "bg-blue-500", border: "border-l-blue-500" };
-              return (
-                <div
-                  key={a.severity}
-                  className={`rounded-lg border border-gray-800/60 border-l-2 ${tone.border} bg-gray-800/20 p-3`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
-                    <span className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
-                      {a.severity}
-                    </span>
-                    <span className="ml-auto text-[10px] text-gray-500">firing now</span>
-                  </div>
-                  <p className={`mt-2 text-2xl font-bold ${a.firingNow > 0 ? tone.text : "text-gray-500"}`}>
-                    {a.firingNow}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-gray-500">
-                    {a.fired24h} fired · 24h
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+          {/* Prometheus Live Metrics + Fleet Overview (with Lab filter) */}
+          <DashboardClusterView
+            statusCounts={{
+              all: { active: activeEquipmentCount, maintenance: maintenanceCount, failed: failedCount },
+              lab1: { active: lab1Active, maintenance: lab1Maintenance, failed: lab1Failed },
+              lab3: { active: lab3Active, maintenance: lab3Maintenance, failed: lab3Failed },
+            }}
+            hostnameIpMap={hostnameIpMap}
+            platformStats={platformStats}
+          />
+
+          {/* Summary Cards */}
+          <DashboardSummaryCards
+            totalEquipment={totalEquipment}
+            activeCount={activeEquipmentCount}
+            activeList={activeEquipmentList}
+            maintenanceCount={maintenanceCount}
+            maintenanceList={maintenanceEquipmentList}
+            failedCount={failedCount}
+            failedList={failedEquipmentList}
+            totalRacks={totalRacks}
+            totalRooms={totalRooms}
+            firingAlerts={firingAlerts}
+          />
+
+          {/* Status Breakdown + Alerts Severity (compact row) */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>
-              <SectionHeading icon={LayoutDashboard} title="Quick Links" accent="blue" />
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  {
-                    href: "/servers",
-                    title: "Servers",
-                    desc: "Server monitoring & Digital Twin",
-                    icon: Server,
-                  },
-                  {
-                    href: "/infrastructure",
-                    title: "Infrastructure",
-                    desc: "Equipment management",
-                    icon: Building2,
-                  },
-                  {
-                    href: "/alerts",
-                    title: "Alerts",
-                    desc: "Alert management & history",
-                    icon: Bell,
-                  },
-                  {
-                    href: "/settings/discovery",
-                    title: "Discovery",
-                    desc: "Prometheus target sync",
-                    icon: Radar,
-                  },
-                ].map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="group flex items-start gap-3 rounded-xl border border-gray-700/50 p-4 transition-all duration-200 hover:border-blue-500/40 hover:bg-blue-600/5 hover:shadow-lg hover:shadow-blue-600/5"
+              <SectionHeading icon={ListChecks} title="Status Breakdown" accent="cyan" className="mb-3" />
+              <div className="flex flex-wrap gap-2">
+                {statusBreakdown.map((s) => (
+                  <div
+                    key={s.status}
+                    className="flex items-center gap-2 rounded-lg border border-gray-800/60 bg-gray-800/20 px-3 py-2 transition-colors hover:bg-gray-800/40"
                   >
-                    <div className="rounded-lg bg-gray-800/60 p-2 transition-colors group-hover:bg-blue-500/15">
-                      <link.icon className="h-4 w-4 text-gray-400 transition-colors group-hover:text-blue-300" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-medium text-gray-200 transition-colors group-hover:text-blue-300">
-                        {link.title}
-                      </p>
-                      <p className="mt-1 text-xs text-gray-500">{link.desc}</p>
-                    </div>
-                  </Link>
+                    <Badge
+                      variant={
+                        s.status === "ACTIVE"
+                          ? "active"
+                          : s.status === "FAILED"
+                            ? "critical"
+                            : s.status === "MAINTENANCE" || s.status === "REPAIR"
+                              ? "maintenance"
+                              : "info"
+                      }
+                    >
+                      {s.status}
+                    </Badge>
+                    <span className="font-mono text-sm font-semibold text-gray-300">
+                      {s._count}
+                    </span>
+                  </div>
                 ))}
               </div>
             </Card>
-          </div>
 
-          {/* Alerts + Expiry Feed */}
-          <div className="space-y-6">
             <Card>
               <SectionHeading
-                icon={Bell}
-                title="Active Alerts"
-                accent={firingAlerts > 0 ? "red" : "green"}
+                icon={Activity}
+                title="Alerts by Severity"
+                accent={criticalFiringNow > 0 ? "red" : totalFiringNow > 0 ? "amber" : "green"}
                 right={
-                  firingAlerts > 0 ? (
-                    <span className="rounded-full bg-red-500/15 px-2.5 py-0.5 text-xs font-medium text-red-400 animate-glow-pulse">
-                      {firingAlerts} active
-                    </span>
-                  ) : undefined
+                  <Link href="/alerts/history" className="text-xs text-blue-400 hover:text-blue-300">
+                    History →
+                  </Link>
                 }
               />
-              {recentAlerts.length === 0 ? (
-                <div className="rounded-lg bg-green-500/5 border border-green-500/10 px-4 py-6 text-center">
-                  <p className="text-sm text-green-400 font-medium">All clear</p>
-                  <p className="text-xs text-gray-500 mt-1">No active alerts</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {recentAlerts.map((alert) => (
+              <div className="grid grid-cols-3 gap-3">
+                {alertSeverityStats.map((a) => {
+                  const tone =
+                    a.severity === "CRITICAL"
+                      ? { text: "text-red-400", dot: "bg-red-500", border: "border-l-red-500" }
+                      : a.severity === "WARNING"
+                        ? { text: "text-amber-400", dot: "bg-amber-500", border: "border-l-amber-500" }
+                        : { text: "text-blue-400", dot: "bg-blue-500", border: "border-l-blue-500" };
+                  return (
                     <div
-                      key={alert.id}
-                      className={`rounded-lg border-l-2 p-3 transition-colors hover:bg-gray-800/30 ${
-                        alert.severity === "CRITICAL"
-                          ? "border-l-red-500 bg-red-500/5"
-                          : alert.severity === "WARNING"
-                            ? "border-l-amber-500 bg-amber-500/5"
-                            : "border-l-blue-500 bg-blue-500/5"
-                      }`}
+                      key={a.severity}
+                      className={`rounded-lg border border-gray-800/60 border-l-2 ${tone.border} bg-gray-800/20 p-3`}
                     >
-                      <div className="flex items-start gap-2">
-                        <span
-                          className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${
-                            alert.severity === "CRITICAL"
-                              ? "bg-red-500 animate-pulse"
-                              : alert.severity === "WARNING"
-                                ? "bg-amber-500"
-                                : "bg-blue-500"
-                          }`}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-200">
-                            {alert.summary}
-                          </p>
-                          <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-                            <span>{alert.source || "-"}</span>
-                            <span className="text-gray-700">·</span>
-                            <span>
-                              {new Date(alert.firedAt).toLocaleString("ko-KR")}
-                            </span>
-                          </div>
-                        </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
+                        <span className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
+                          {a.severity}
+                        </span>
+                      </div>
+                      <p className={`mt-2 text-2xl font-bold ${a.firingNow > 0 ? tone.text : "text-gray-500"}`}>
+                        {a.firingNow}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-gray-500">
+                        {a.fired24h} fired · 24h
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          </div>
+
+          {/* Quick Links */}
+          <Card>
+            <SectionHeading icon={LayoutDashboard} title="Quick Links" accent="blue" />
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {[
+                { href: "/servers", title: "Servers", desc: "Server monitoring", icon: Server },
+                { href: "/infrastructure", title: "Infrastructure", desc: "Equipment management", icon: Building2 },
+                { href: "/alerts", title: "Alerts", desc: "Alert management", icon: Bell },
+                { href: "/settings/discovery", title: "Discovery", desc: "Prometheus sync", icon: Radar },
+              ].map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="group flex items-start gap-3 rounded-xl border border-gray-700/50 p-3 transition-all duration-200 hover:border-blue-500/40 hover:bg-blue-600/5"
+                >
+                  <div className="rounded-lg bg-gray-800/60 p-2 transition-colors group-hover:bg-blue-500/15">
+                    <link.icon className="h-4 w-4 text-gray-400 transition-colors group-hover:text-blue-300" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-200 text-sm">{link.title}</p>
+                    <p className="mt-0.5 text-xs text-gray-500">{link.desc}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* ─── Right Sidebar: Active Alerts + Expiry ─── */}
+        <div className="hidden xl:block w-80 flex-shrink-0 space-y-4">
+          <Card className="sticky top-20">
+            <SectionHeading
+              icon={Bell}
+              title="Active Alerts"
+              accent={firingAlerts > 0 ? "red" : "green"}
+              right={
+                <Link href="/alerts" className="text-xs text-blue-400 hover:text-blue-300">
+                  History →
+                </Link>
+              }
+            />
+            {recentAlerts.length === 0 ? (
+              <div className="rounded-lg bg-green-500/5 border border-green-500/10 px-4 py-6 text-center">
+                <p className="text-sm text-green-400 font-medium">All clear</p>
+                <p className="text-xs text-gray-500 mt-1">No active alerts</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {recentAlerts.map((alert) => (
+                  <div
+                    key={alert.id}
+                    className={`rounded-lg border-l-2 p-2.5 transition-colors hover:bg-gray-800/30 ${
+                      alert.severity === "CRITICAL"
+                        ? "border-l-red-500 bg-red-500/5"
+                        : alert.severity === "WARNING"
+                          ? "border-l-amber-500 bg-amber-500/5"
+                          : "border-l-blue-500 bg-blue-500/5"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span
+                        className={`mt-1 h-2 w-2 flex-shrink-0 rounded-full ${
+                          alert.severity === "CRITICAL"
+                            ? "bg-red-500 animate-pulse"
+                            : alert.severity === "WARNING"
+                              ? "bg-amber-500"
+                              : "bg-blue-500"
+                        }`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-gray-200 leading-tight">
+                          {alert.summary}
+                        </p>
+                        <p className="mt-1 text-[10px] text-gray-500">
+                          {alert.source || "-"} · {new Date(alert.firedAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-
-            {/* Expiry Widget */}
-            {expiringItems.length > 0 && (
-              <Card>
-                <SectionHeading
-                  icon={ShieldCheck}
-                  title="만기 임박"
-                  accent="amber"
-                  right={
-                    <Link
-                      href="/settings/expiry-tracker"
-                      className="text-xs text-blue-400 hover:text-blue-300"
-                    >
-                      전체 보기 →
-                    </Link>
-                  }
-                />
-                <div className="space-y-2">
-                  {expiringItems.map((item) => {
-                    const days = Math.ceil(
-                      (new Date(item.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-                    );
-                    const isExpired = days < 0;
-                    return (
-                      <div
-                        key={item.id}
-                        className={`rounded-lg border-l-2 p-3 ${
-                          isExpired || days <= 7
-                            ? "border-l-red-500 bg-red-500/5"
-                            : "border-l-amber-500 bg-amber-500/5"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-200">{item.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {item.source || item.category}
-                            </p>
-                          </div>
-                          <span
-                            className={`text-sm font-bold ${
-                              isExpired ? "text-red-400" : days <= 7 ? "text-red-400" : "text-amber-400"
-                            }`}
-                          >
-                            {isExpired ? "만료" : `D-${days}`}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
+                  </div>
+                ))}
+              </div>
             )}
-          </div>
+          </Card>
+
+          {expiringItems.length > 0 && (
+            <Card>
+              <SectionHeading
+                icon={ShieldCheck}
+                title="Expiring Soon"
+                accent="amber"
+                right={
+                  <Link href="/settings/expiry-tracker" className="text-xs text-blue-400 hover:text-blue-300">
+                    View all →
+                  </Link>
+                }
+              />
+              <div className="space-y-2">
+                {expiringItems.map((item) => {
+                  const days = Math.ceil(
+                    (new Date(item.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+                  );
+                  const isExpired = days < 0;
+                  return (
+                    <div
+                      key={item.id}
+                      className={`rounded-lg border-l-2 p-2.5 ${
+                        isExpired || days <= 7
+                          ? "border-l-red-500 bg-red-500/5"
+                          : "border-l-amber-500 bg-amber-500/5"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-gray-200">{item.name}</p>
+                          <p className="text-[10px] text-gray-500">{item.source || item.category}</p>
+                        </div>
+                        <span
+                          className={`text-xs font-bold ${
+                            isExpired ? "text-red-400" : days <= 7 ? "text-red-400" : "text-amber-400"
+                          }`}
+                        >
+                          {isExpired ? "Expired" : `D-${days}`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     </PageTransition>
