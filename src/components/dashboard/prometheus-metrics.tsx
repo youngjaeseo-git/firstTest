@@ -233,8 +233,8 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {/* Average CPU */}
-        <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">
-          <Card className="border-cyan-500/30 bg-gradient-to-br from-cyan-600/10 via-cyan-600/5 to-transparent hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/5">
+        <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible" className="flex">
+          <Card className="flex-1 border-cyan-500/30 bg-gradient-to-br from-cyan-600/10 via-cyan-600/5 to-transparent hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/5">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-400">{t("dashboard.avgCpu")}</p>
               <div className="rounded-xl bg-cyan-500/15 p-1.5">
@@ -250,8 +250,8 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
         </motion.div>
 
         {/* Average Memory */}
-        <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible">
-          <Card className="border-green-500/30 bg-gradient-to-br from-green-600/10 via-green-600/5 to-transparent hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/5">
+        <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible" className="flex">
+          <Card className="flex-1 border-green-500/30 bg-gradient-to-br from-green-600/10 via-green-600/5 to-transparent hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/5">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-400">{t("dashboard.avgMemory")}</p>
               <div className="rounded-xl bg-green-500/15 p-1.5">
@@ -267,14 +267,12 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
         </motion.div>
 
         {/* Temperature */}
-        <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible">
-          <Card className="border-orange-500/30 bg-gradient-to-br from-orange-600/10 via-orange-600/5 to-transparent hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/5">
+        <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible" className="flex">
+          <Card className="flex-1 border-orange-500/30 bg-gradient-to-br from-orange-600/10 via-orange-600/5 to-transparent hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/5">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-400">{t("dashboard.avgTemperature")}</p>
-              <div className="flex items-center gap-1">
-                <div className="rounded-xl bg-orange-500/15 p-1.5">
-                  <Thermometer className="h-4 w-4 text-orange-400" />
-                </div>
+              <div className="rounded-xl bg-orange-500/15 p-1.5">
+                <Thermometer className="h-4 w-4 text-orange-400" />
               </div>
             </div>
             <div className="mt-2 flex items-baseline gap-3">
@@ -304,8 +302,8 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
         </motion.div>
 
         {/* Total Power */}
-        <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible">
-          <Card className="border-yellow-500/30 bg-gradient-to-br from-yellow-600/10 via-yellow-600/5 to-transparent hover:border-yellow-500/50 hover:shadow-lg hover:shadow-yellow-500/5">
+        <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible" className="flex">
+          <Card className="flex-1 border-yellow-500/30 bg-gradient-to-br from-yellow-600/10 via-yellow-600/5 to-transparent hover:border-yellow-500/50 hover:shadow-lg hover:shadow-yellow-500/5">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-400">{t("dashboard.totalPower")}</p>
               <div className="rounded-xl bg-yellow-500/15 p-1.5">

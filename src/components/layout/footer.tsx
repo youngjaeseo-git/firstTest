@@ -8,7 +8,7 @@ export function Footer() {
         <div className="flex items-center gap-2 text-sm">
           <span className="font-semibold tracking-tight text-gray-200">DC Express</span>
           <span className="text-gray-700">|</span>
-          <span className="font-medium uppercase tracking-[0.15em] text-gray-400">DRAM AE</span>
+          <span className="font-medium text-gray-400">DRAM AE</span>
         </div>
         <p className="text-xs text-gray-600">
           © {year} SK hynix · DRAM AE · DC Express
