@@ -282,6 +282,10 @@ export function demoInstantQuery(query: string): PrometheusQueryResult {
 
   if (matchQuery(query, ["swap"])) return scalar(rand(0, 1000000000));
 
+  if (matchQuery(query, ["pue", "facility_power", "dcim_pue"])) {
+    return scalar(rand(1.25, 1.45));
+  }
+
   return scalar(rand(0, 100));
 }
 
@@ -356,6 +360,25 @@ export function demoRangeQuery(
       durationMin,
       stepSec,
     );
+  }
+
+  if (matchQuery(query, ["pue", "facility_power", "dcim_pue"])) {
+    const points = Math.floor((durationMin * 60) / stepSec);
+    const now = ts();
+    const values: [number, string][] = [];
+    let current = rand(1.30, 1.40);
+    for (let i = 0; i < points; i++) {
+      current += (Math.random() - 0.5) * 0.02;
+      current = Math.max(1.1, Math.min(2.0, current));
+      values.push([now - (points - i) * stepSec, current.toFixed(4)]);
+    }
+    return {
+      status: "success",
+      data: {
+        resultType: "matrix",
+        result: [{ metric: {}, values }],
+      },
+    };
   }
 
   return rangePerInstance(

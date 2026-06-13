@@ -18,6 +18,7 @@
 | Platform 분포 | ✅ 완료 | GNR-AP/GNR-SP/SPR/Ampere/SRF별 장비 수 |
 | 만료 임박 위젯 | ✅ 완료 | ExpiryTracker 기반 D-day 표시 |
 | 알림 심각도별 위젯 | ✅ 완료 | 심각도별 현재 firing 수(주) + 24h 발생 수(보조) 타일 |
+| PUE 위젯 | ✅ 완료 | PUE 게이지 아크 + 효율 등급 + 24h 추이 스파크라인 |
 | Prometheus 연결 상태 | ✅ 완료 | 연결 성공/실패 인디케이터 |
 | 에러 바운더리 | ✅ 완료 | Prometheus 장애 시 UI 깨지지 않음 |
 

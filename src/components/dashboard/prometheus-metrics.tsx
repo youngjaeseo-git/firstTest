@@ -9,7 +9,7 @@ import {
   YAxis,
 } from "recharts";
 import { Card } from "@/components/ui/card";
-import { Cpu, Thermometer, Clock, Wifi, WifiOff, Zap, Database, Network, MemoryStick } from "lucide-react";
+import { Cpu, Thermometer, Clock, Wifi, WifiOff, Zap, Database, Network, MemoryStick, Gauge } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/i18n-context";
 import { queries } from "@/lib/prometheus";
@@ -80,6 +80,57 @@ function MiniSparkline({ data, color }: { data: SparklinePoint[]; color: string 
           />
         </LineChart>
       </ResponsiveContainer>
+    </div>
+  );
+}
+
+function PueGaugeArc({ value }: { value: number | null }) {
+  if (value === null) return null;
+  const min = 1.0;
+  const max = 2.0;
+  const clamped = Math.max(min, Math.min(max, value));
+  const ratio = (clamped - min) / (max - min);
+  const arcAngle = 180;
+  const endAngle = ratio * arcAngle;
+
+  const r = 28;
+  const cx = 36;
+  const cy = 32;
+
+  const toXY = (deg: number) => ({
+    x: cx - r * Math.cos((deg * Math.PI) / 180),
+    y: cy - r * Math.sin((deg * Math.PI) / 180),
+  });
+
+  const bgStart = toXY(0);
+  const bgEnd = toXY(180);
+  const valEnd = toXY(endAngle);
+  const largeArc = endAngle > 90 ? 1 : 0;
+
+  const color = value < 1.4 ? "#10b981" : value < 1.6 ? "#f59e0b" : "#ef4444";
+
+  return (
+    <div className="flex justify-center mt-1 -mb-1">
+      <svg width="72" height="36" viewBox="0 0 72 36">
+        <path
+          d={`M ${bgStart.x} ${bgStart.y} A ${r} ${r} 0 1 1 ${bgEnd.x} ${bgEnd.y}`}
+          fill="none"
+          stroke="rgb(55 65 81 / 0.4)"
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
+        {endAngle > 0 && (
+          <path
+            d={`M ${bgStart.x} ${bgStart.y} A ${r} ${r} 0 ${largeArc} 1 ${valEnd.x} ${valEnd.y}`}
+            fill="none"
+            stroke={color}
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
+        )}
+        <text x={4} y={35} fontSize="7" fill="rgb(107 114 128)" textAnchor="start">1.0</text>
+        <text x={68} y={35} fontSize="7" fill="rgb(107 114 128)" textAnchor="end">2.0</text>
+      </svg>
     </div>
   );
 }
@@ -164,18 +215,26 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
   const [memSpark, setMemSpark] = useState<SparklinePoint[]>([]);
   const [netSpark, setNetSpark] = useState<SparklinePoint[]>([]);
   const [powerSpark, setPowerSpark] = useState<SparklinePoint[]>([]);
+  const [pueSpark, setPueSpark] = useState<SparklinePoint[]>([]);
+  const [pueValue, setPueValue] = useState<number | null>(null);
 
   const fetchSparklines = useCallback(async () => {
-    const [cpuRange, memRange, netRange, powerRange] = await Promise.all([
+    const [cpuRange, memRange, netRange, powerRange, pueRange] = await Promise.all([
       fetchRange(queries.fleetAvgCpu(cluster)),
       fetchRange(queries.fleetAvgMemory(cluster)),
       fetchRange(queries.fleetTotalNetworkRx(cluster)),
       fetchRange(queries.fleetTotalPower()),
+      fetchRange(queries.fleetPue(), 1440),
     ]);
     setCpuSpark(toSpark(cpuRange));
     setMemSpark(toSpark(memRange));
     setNetSpark(toSpark(netRange));
     setPowerSpark(toSpark(powerRange));
+    const puePoints = toSpark(pueRange);
+    setPueSpark(puePoints);
+    if (puePoints.length > 0) {
+      setPueValue(puePoints[puePoints.length - 1].v);
+    }
   }, [cluster]);
 
   useEffect(() => {
@@ -405,14 +464,59 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
           </Card>
         </motion.div>
 
-        {/* GPU Placeholder */}
+        {/* PUE */}
         <motion.div custom={7} variants={cardVariants} initial="hidden" animate="visible" className="flex">
-          <Card className="flex-1 border-purple-500/20 bg-gradient-to-br from-purple-600/5 via-purple-600/3 to-transparent flex flex-col justify-center items-center text-center">
-            <div className="rounded-xl bg-purple-500/10 p-2 mb-2">
-              <p className="text-[10px] text-purple-500 font-bold uppercase tracking-wider">GPU</p>
+          <Card className={cn(
+            "flex-1 border bg-gradient-to-br",
+            pueValue !== null && pueValue < 1.4
+              ? "border-emerald-500/30 from-emerald-600/10 via-emerald-600/5 to-transparent hover:border-emerald-500/50"
+              : pueValue !== null && pueValue < 1.6
+                ? "border-amber-500/30 from-amber-600/10 via-amber-600/5 to-transparent hover:border-amber-500/50"
+                : "border-red-500/30 from-red-600/10 via-red-600/5 to-transparent hover:border-red-500/50",
+          )}>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-400">{t("dashboard.pue")}</p>
+              <div className={cn(
+                "rounded-xl p-1.5",
+                pueValue !== null && pueValue < 1.4
+                  ? "bg-emerald-500/15"
+                  : pueValue !== null && pueValue < 1.6
+                    ? "bg-amber-500/15"
+                    : "bg-red-500/15",
+              )}>
+                <Gauge className={cn(
+                  "h-4 w-4",
+                  pueValue !== null && pueValue < 1.4
+                    ? "text-emerald-400"
+                    : pueValue !== null && pueValue < 1.6
+                      ? "text-amber-400"
+                      : "text-red-400",
+                )} />
+              </div>
             </div>
-            <p className="text-xs text-gray-600 font-medium">dcgm-exporter</p>
-            <p className="text-[10px] text-gray-700 mt-0.5">Install to enable</p>
+            <div className="mt-2 flex items-baseline gap-2">
+              <p className="text-2xl font-bold text-gray-100">
+                {pueValue !== null ? pueValue.toFixed(2) : "-"}
+              </p>
+              <span className={cn(
+                "text-[10px] font-medium",
+                pueValue !== null && pueValue < 1.4
+                  ? "text-emerald-400"
+                  : pueValue !== null && pueValue < 1.6
+                    ? "text-amber-400"
+                    : "text-red-400",
+              )}>
+                {pueValue !== null
+                  ? pueValue < 1.4
+                    ? t("dashboard.pue.good")
+                    : pueValue < 1.6
+                      ? t("dashboard.pue.average")
+                      : t("dashboard.pue.poor")
+                  : ""}
+              </span>
+            </div>
+            <PueGaugeArc value={pueValue} />
+            <MiniSparkline data={pueSpark} color={pueValue !== null && pueValue < 1.4 ? "#10b981" : pueValue !== null && pueValue < 1.6 ? "#f59e0b" : "#ef4444"} />
           </Card>
         </motion.div>
       </div>

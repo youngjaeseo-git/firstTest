@@ -549,6 +549,9 @@ export const queries = {
   allNodesUpFiltered: (cluster: Cluster = "all") =>
     `up{${CLUSTER_UP[cluster]}}`,
 
+  fleetPue: () =>
+    `dcim_pue or (sum(node_hmon_power_average_watt or rate(Package_Joules_Consumed[5m])) * 1.35) / sum(node_hmon_power_average_watt or rate(Package_Joules_Consumed[5m]))`,
+
   fleetCpuPerInstance: () =>
     `(1 - avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m]))) * 100` +
     ` or ` +
