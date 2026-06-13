@@ -3,9 +3,24 @@ set -e
 
 cd "$(dirname "$0")"
 
-PORT=${1:-3000}
+MODE="${1:-}"
+PORT="${2:-3000}"
+
+# dummy 모드면 포트가 첫 번째 인자일 수 있음
+if [[ "$MODE" =~ ^[0-9]+$ ]]; then
+  PORT="$MODE"
+  MODE=""
+fi
 
 export PATH=$HOME/opt/node-20/bin:$PATH
+
+if [ "$MODE" = "dummy" ] || [ "$MODE" = "demo" ]; then
+  echo "================================================"
+  echo "  DEMO MODE - 더미 데이터로 실행"
+  echo "================================================"
+  echo ""
+  export DEMO_MODE=true
+fi
 
 echo "=== 1. Docker 확인 ==="
 if ! docker info > /dev/null 2>&1; then
@@ -58,7 +73,10 @@ npx prisma generate 2>&1 | tail -1
 
 echo ""
 echo "=== 4. 개발 서버 시작 ==="
-echo "    http://$(hostname -I | awk '{print $1}'):${PORT}"
+if [ "$DEMO_MODE" = "true" ]; then
+  echo "    📌 DEMO MODE (Prometheus 없이 더미 데이터)"
+fi
+echo "    http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost'):${PORT}"
 echo "    종료: Ctrl+C"
 echo ""
 npm run dev -- -p "$PORT"

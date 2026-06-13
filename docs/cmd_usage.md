@@ -17,18 +17,20 @@
 
 수동으로 각 단계를 실행할 때만 아래 개별 명령들을 사용한다.
 
-### 사내 서버 배포 (server-start.sh)
+### 사내 서버 배포 (run.sh)
 
 ```bash
-bash server-start.sh       # Docker DB 확인 + npm run dev (port 3000)
-bash server-start.sh 8080  # 포트 지정
+bash run.sh            # Docker DB 확인 + npm run dev (port 3000)
+bash run.sh 8080       # 포트 지정
+bash run.sh dummy      # 더미 데이터 모드 (Prometheus 없이 UI 확인)
+bash run.sh dummy 8080 # 더미 + 포트 지정
 ```
 
 **코드 업데이트 후 반드시 서버 재시작 필요:**
 ```bash
 kill $(lsof -t -i:3000)        # 기존 서버 중지
 rm -rf .next                    # 빌드 캐시 삭제 (중요!)
-bash server-start.sh            # 재시작
+bash run.sh            # 재시작
 ```
 > `.next` 폴더를 삭제하지 않으면 이전 빌드 캐시가 사용되어 코드 변경이 반영되지 않을 수 있음
 

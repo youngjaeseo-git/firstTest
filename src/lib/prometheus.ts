@@ -10,6 +10,9 @@
  */
 
 import type { PrometheusQueryResult } from "@/types/metrics";
+import { demoInstantQuery, demoRangeQuery, demoFetchTargets } from "./prometheus-demo";
+
+const DEMO_MODE = process.env.DEMO_MODE === "true";
 
 const PROMETHEUS_URL =
   process.env.PROMETHEUS_URL || "http://10.100.175.248:8080";
@@ -27,6 +30,8 @@ function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Respo
 export async function instantQuery(
   query: string,
 ): Promise<PrometheusQueryResult> {
+  if (DEMO_MODE) return demoInstantQuery(query);
+
   const url = new URL("/api/v1/query", PROMETHEUS_URL);
   url.searchParams.set("query", query);
 
@@ -43,6 +48,12 @@ export async function rangeQuery(
   end: Date,
   step: string = "15s",
 ): Promise<PrometheusQueryResult> {
+  if (DEMO_MODE) {
+    const durationMin = (end.getTime() - start.getTime()) / 60000;
+    const stepSec = parseInt(step) || 30;
+    return demoRangeQuery(query, durationMin, stepSec);
+  }
+
   const url = new URL("/api/v1/query_range", PROMETHEUS_URL);
   url.searchParams.set("query", query);
   url.searchParams.set("start", (start.getTime() / 1000).toString());
@@ -88,6 +99,8 @@ export interface DiscoveredPrometheusTarget {
 }
 
 export async function fetchTargets(): Promise<DiscoveredPrometheusTarget[]> {
+  if (DEMO_MODE) return demoFetchTargets();
+
   const url = new URL("/api/v1/targets", PROMETHEUS_URL);
 
   const res = await fetchWithTimeout(url.toString(), { cache: "no-store" });
