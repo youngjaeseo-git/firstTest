@@ -1,11 +1,18 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
+import {
+  LineChart,
+  Line,
+  ResponsiveContainer,
+  YAxis,
+} from "recharts";
 import { Card } from "@/components/ui/card";
 import { Cpu, Thermometer, Clock, Wifi, WifiOff, Zap, Database, Network, MemoryStick } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/i18n-context";
+import { queries } from "@/lib/prometheus";
 import type { Cluster } from "@/lib/prometheus";
 
 interface MetricData {
@@ -21,12 +28,60 @@ interface MetricData {
   error: string | null;
 }
 
+interface SparklinePoint {
+  t: number;
+  v: number;
+}
+
 function formatBytes(bps: number): string {
   if (bps === 0) return "0 B/s";
   const k = 1024;
   const sizes = ["B/s", "KB/s", "MB/s", "GB/s"];
   const i = Math.floor(Math.log(bps) / Math.log(k));
   return `${(bps / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+}
+
+async function fetchRange(
+  query: string,
+  durationMin = 30,
+): Promise<{ metric: Record<string, string>; values?: [number, string][] }[]> {
+  try {
+    const res = await fetch(
+      `/api/metrics/range?query=${encodeURIComponent(query)}&duration=${durationMin}&step=60s`,
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json?.data?.result ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function toSpark(results: { values?: [number, string][] }[]): SparklinePoint[] {
+  const vals = results[0]?.values;
+  if (!vals) return [];
+  return vals.map(([ts, v]) => ({ t: ts, v: parseFloat(v) || 0 }));
+}
+
+function MiniSparkline({ data, color }: { data: SparklinePoint[]; color: string }) {
+  if (data.length < 2) return null;
+  return (
+    <div className="mt-2 h-[32px] -mx-1">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data}>
+          <YAxis hide domain={["dataMin", "dataMax"]} />
+          <Line
+            type="monotone"
+            dataKey="v"
+            stroke={color}
+            strokeWidth={1.5}
+            dot={false}
+            isAnimationActive={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 const cardVariants = {
@@ -105,6 +160,30 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
     return () => clearInterval(timer);
   }, []);
 
+  const [cpuSpark, setCpuSpark] = useState<SparklinePoint[]>([]);
+  const [memSpark, setMemSpark] = useState<SparklinePoint[]>([]);
+  const [netSpark, setNetSpark] = useState<SparklinePoint[]>([]);
+  const [powerSpark, setPowerSpark] = useState<SparklinePoint[]>([]);
+
+  const fetchSparklines = useCallback(async () => {
+    const [cpuRange, memRange, netRange, powerRange] = await Promise.all([
+      fetchRange(queries.fleetAvgCpu(cluster)),
+      fetchRange(queries.fleetAvgMemory(cluster)),
+      fetchRange(queries.fleetTotalNetworkRx(cluster)),
+      fetchRange(queries.fleetTotalPower()),
+    ]);
+    setCpuSpark(toSpark(cpuRange));
+    setMemSpark(toSpark(memRange));
+    setNetSpark(toSpark(netRange));
+    setPowerSpark(toSpark(powerRange));
+  }, [cluster]);
+
+  useEffect(() => {
+    fetchSparklines();
+    const timer = setInterval(fetchSparklines, 30_000);
+    return () => clearInterval(timer);
+  }, [fetchSparklines]);
+
   if (data.error && data.avgCpu === null) {
     return (
       <Card className="border-amber-500/30 bg-amber-500/5">
@@ -166,21 +245,7 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
               {data.avgCpu !== null ? `${data.avgCpu.toFixed(1)}` : "-"}
               <span className="text-lg text-gray-500">%</span>
             </p>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-800">
-              <motion.div
-                className={cn(
-                  "h-full rounded-full",
-                  (data.avgCpu || 0) > 80
-                    ? "bg-red-500"
-                    : (data.avgCpu || 0) > 60
-                      ? "bg-amber-500"
-                      : "bg-cyan-500",
-                )}
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(data.avgCpu || 0, 100)}%` }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-              />
-            </div>
+            <MiniSparkline data={cpuSpark} color="#06b6d4" />
           </Card>
         </motion.div>
 
@@ -197,21 +262,7 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
               {data.avgMemory !== null ? `${data.avgMemory.toFixed(1)}` : "-"}
               <span className="text-lg text-gray-500">%</span>
             </p>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-800">
-              <motion.div
-                className={cn(
-                  "h-full rounded-full",
-                  (data.avgMemory || 0) > 85
-                    ? "bg-red-500"
-                    : (data.avgMemory || 0) > 70
-                      ? "bg-amber-500"
-                      : "bg-green-500",
-                )}
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(data.avgMemory || 0, 100)}%` }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-              />
-            </div>
+            <MiniSparkline data={memSpark} color="#22c55e" />
           </Card>
         </motion.div>
 
@@ -271,7 +322,7 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
                 {data.totalPowerWatts !== null && data.totalPowerWatts >= 1000 ? " kW" : " W"}
               </span>
             </p>
-            <p className="mt-1 text-xs text-gray-500">{t("dashboard.totalPower.sub")}</p>
+            <MiniSparkline data={powerSpark} color="#eab308" />
           </Card>
         </motion.div>
       </div>
@@ -352,6 +403,7 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
             <p className="mt-1 text-xs text-gray-500">
               {t("dashboard.networkIn.tx")}: {data.totalNetworkTxBps !== null ? formatBytes(data.totalNetworkTxBps) : "-"}
             </p>
+            <MiniSparkline data={netSpark} color="#0ea5e9" />
           </Card>
         </motion.div>
 

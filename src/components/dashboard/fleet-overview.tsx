@@ -3,10 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
-  LineChart,
-  Line,
   ResponsiveContainer,
-  YAxis,
   PieChart,
   Pie,
   Cell,
@@ -14,12 +11,8 @@ import {
 import { Card } from "@/components/ui/card";
 import {
   Cpu,
-  Database,
-  Network,
-  Zap,
   Crown,
   Activity,
-  TrendingUp,
   HardDrive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -34,28 +27,10 @@ interface TopServer {
   percent: number;
 }
 
-interface SparklinePoint {
-  t: number;
-  v: number;
-}
-
 interface StatusCounts {
   active: number;
   maintenance: number;
   failed: number;
-}
-
-function formatBytes(bps: number): string {
-  if (bps === 0) return "0 B/s";
-  const k = 1024;
-  const sizes = ["B/s", "KB/s", "MB/s", "GB/s"];
-  const i = Math.floor(Math.log(bps) / Math.log(k));
-  return `${(bps / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
-}
-
-function formatPower(watts: number): string {
-  if (watts >= 1000) return `${(watts / 1000).toFixed(1)} kW`;
-  return `${watts.toFixed(0)} W`;
 }
 
 async function fetchInstant(
@@ -64,24 +39,6 @@ async function fetchInstant(
   try {
     const res = await fetch(
       `/api/metrics/instant?query=${encodeURIComponent(query)}`,
-    );
-    if (!res.ok) return [];
-    const json = await res.json();
-    return json?.data?.result ?? [];
-  } catch {
-    return [];
-  }
-}
-
-async function fetchRange(
-  query: string,
-  durationMin = 30,
-): Promise<
-  { metric: Record<string, string>; values?: [number, string][] }[]
-> {
-  try {
-    const res = await fetch(
-      `/api/metrics/range?query=${encodeURIComponent(query)}&duration=${durationMin}&step=60s`,
     );
     if (!res.ok) return [];
     const json = await res.json();
@@ -173,16 +130,6 @@ export function FleetOverview({
   const [topCpu, setTopCpu] = useState<TopServer[]>([]);
   const [topMem, setTopMem] = useState<TopServer[]>([]);
 
-  const [cpuSpark, setCpuSpark] = useState<SparklinePoint[]>([]);
-  const [memSpark, setMemSpark] = useState<SparklinePoint[]>([]);
-  const [netSpark, setNetSpark] = useState<SparklinePoint[]>([]);
-  const [powerSpark, setPowerSpark] = useState<SparklinePoint[]>([]);
-
-  const [latestCpu, setLatestCpu] = useState<number | null>(null);
-  const [latestMem, setLatestMem] = useState<number | null>(null);
-  const [latestNet, setLatestNet] = useState<number | null>(null);
-  const [latestPower, setLatestPower] = useState<number | null>(null);
-
   const fetchAll = useCallback(async () => {
     const [neCpu, caCpu, neMem, caMem] = await Promise.all([
       fetchInstant(queries.fleetTopCpu(cluster)),
@@ -193,36 +140,6 @@ export function FleetOverview({
 
     setTopCpu(dedupTopResults(neCpu, caCpu, hostnameIpMap));
     setTopMem(dedupTopResults(neMem, caMem, hostnameIpMap));
-
-    const [cpuRange, memRange, netRange, powerRange] = await Promise.all([
-      fetchRange(queries.fleetAvgCpu(cluster)),
-      fetchRange(queries.fleetAvgMemory(cluster)),
-      fetchRange(queries.fleetTotalNetworkRx(cluster)),
-      fetchRange(queries.fleetTotalPower()),
-    ]);
-
-    const toSpark = (
-      results: { values?: [number, string][] }[],
-    ): SparklinePoint[] => {
-      const vals = results[0]?.values;
-      if (!vals) return [];
-      return vals.map(([ts, v]) => ({ t: ts, v: parseFloat(v) || 0 }));
-    };
-
-    const cpuPoints = toSpark(cpuRange);
-    const memPoints = toSpark(memRange);
-    const netPoints = toSpark(netRange);
-    const powerPoints = toSpark(powerRange);
-
-    setCpuSpark(cpuPoints);
-    setMemSpark(memPoints);
-    setNetSpark(netPoints);
-    setPowerSpark(powerPoints);
-
-    if (cpuPoints.length > 0) setLatestCpu(cpuPoints[cpuPoints.length - 1].v);
-    if (memPoints.length > 0) setLatestMem(memPoints[memPoints.length - 1].v);
-    if (netPoints.length > 0) setLatestNet(netPoints[netPoints.length - 1].v);
-    if (powerPoints.length > 0) setLatestPower(powerPoints[powerPoints.length - 1].v);
   }, [cluster, hostnameIpMap]);
 
   useEffect(() => {
@@ -378,50 +295,6 @@ export function FleetOverview({
           <ActiveWorkloads />
         </div>
       </div>
-
-      {/* ─── Section: Fleet Sparklines ──────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SparklineCard
-          index={4}
-          icon={<Cpu className="h-4 w-4 text-cyan-400" />}
-          iconBg="bg-cyan-500/15"
-          title={t("dashboard.fleet.cpuTrend")}
-          value={latestCpu !== null ? `${latestCpu.toFixed(1)}%` : "-"}
-          data={cpuSpark}
-          color="#06b6d4"
-          gradientId="cpuGrad"
-        />
-        <SparklineCard
-          index={5}
-          icon={<Database className="h-4 w-4 text-green-400" />}
-          iconBg="bg-green-500/15"
-          title={t("dashboard.fleet.memTrend")}
-          value={latestMem !== null ? `${latestMem.toFixed(1)}%` : "-"}
-          data={memSpark}
-          color="#22c55e"
-          gradientId="memGrad"
-        />
-        <SparklineCard
-          index={6}
-          icon={<Network className="h-4 w-4 text-sky-400" />}
-          iconBg="bg-sky-500/15"
-          title={t("dashboard.fleet.netTrend")}
-          value={latestNet !== null ? formatBytes(latestNet) : "-"}
-          data={netSpark}
-          color="#0ea5e9"
-          gradientId="netGrad"
-        />
-        <SparklineCard
-          index={7}
-          icon={<Zap className="h-4 w-4 text-yellow-400" />}
-          iconBg="bg-yellow-500/15"
-          title={t("dashboard.fleet.powerTrend")}
-          value={latestPower !== null ? formatPower(latestPower) : "-"}
-          data={powerSpark}
-          color="#eab308"
-          gradientId="powerGrad"
-        />
-      </div>
     </div>
   );
 }
@@ -506,43 +379,3 @@ function StatusRow({ label, count, color, textColor }: { label: string; count: n
   );
 }
 
-function SparklineCard({
-  index, icon, iconBg, title, value, data, color, gradientId,
-}: {
-  index: number; icon: React.ReactNode; iconBg: string; title: string; value: string; data: SparklinePoint[]; color: string; gradientId: string;
-}) {
-  return (
-    <motion.div custom={index} variants={cardVariants} initial="hidden" animate="visible">
-      <Card className="relative overflow-hidden">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className={cn("rounded-lg p-1.5", iconBg)}>{icon}</div>
-            <p className="text-xs text-gray-400">{title}</p>
-          </div>
-          <TrendingUp className="h-3 w-3 text-gray-600" />
-        </div>
-        <p className="mt-2 text-xl font-bold text-gray-100">{value}</p>
-        <div className="mt-2 h-[48px]">
-          {data.length > 1 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data}>
-                <defs>
-                  <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-                    <stop offset="100%" stopColor={color} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <YAxis hide domain={["dataMin", "dataMax"]} />
-                <Line type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              <p className="text-[10px] text-gray-700">-</p>
-            </div>
-          )}
-        </div>
-      </Card>
-    </motion.div>
-  );
-}
