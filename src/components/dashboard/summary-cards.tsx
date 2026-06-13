@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { Server, Wrench, AlertTriangle, Bell, Building2 } from "lucide-react";
+import { Server, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/i18n-context";
 
@@ -25,7 +25,6 @@ interface SummaryCardsProps {
   failedList: EquipmentRef[];
   totalRacks: number;
   totalRooms: number;
-  firingAlerts: number;
 }
 
 const cardVariants = {
@@ -47,11 +46,10 @@ export function DashboardSummaryCards({
   failedList,
   totalRacks,
   totalRooms,
-  firingAlerts,
 }: SummaryCardsProps) {
   const t = useT();
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       {/* Total Equipment */}
       <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible">
         <Card className="relative overflow-visible border-blue-500/30 bg-gradient-to-br from-blue-600/10 via-blue-600/5 to-transparent hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/5">
@@ -89,94 +87,6 @@ export function DashboardSummaryCards({
             {t("nav.racks")}{" "}
             <span className="font-semibold text-purple-300">{totalRooms}</span>{" "}
             {t("dashboard.rooms")}
-          </p>
-        </Card>
-      </motion.div>
-
-      {/* Active Alerts */}
-      <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible">
-        <Card
-          className={cn(
-            "border bg-gradient-to-br",
-            firingAlerts > 0
-              ? "border-red-500/40 from-red-600/10 via-red-600/5 to-transparent hover:border-red-500/60 hover:shadow-lg hover:shadow-red-500/5"
-              : "border-green-500/30 from-green-600/10 via-green-600/5 to-transparent hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/5",
-          )}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-300">{t("dashboard.activeAlerts")}</h3>
-            <div
-              className={cn(
-                "rounded-xl p-2",
-                firingAlerts > 0 ? "bg-red-500/15" : "bg-green-500/15",
-              )}
-            >
-              <Bell
-                className={cn(
-                  "h-5 w-5",
-                  firingAlerts > 0 ? "text-red-400" : "text-green-400",
-                )}
-              />
-            </div>
-          </div>
-          <p
-            className={cn(
-              "mt-3 text-3xl font-bold",
-              firingAlerts > 0 ? "text-red-400" : "text-green-400",
-            )}
-          >
-            {firingAlerts}
-          </p>
-          <Link
-            href="/alerts"
-            className="mt-2 inline-block text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
-          >
-            {t("header.alerts.viewAll")}
-          </Link>
-        </Card>
-      </motion.div>
-
-      {/* Health Summary */}
-      <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible">
-        <Card
-          className={cn(
-            "border bg-gradient-to-br",
-            failedCount > 0
-              ? "border-red-500/30 from-red-600/10 via-red-600/5 to-transparent"
-              : maintenanceCount > 0
-                ? "border-amber-500/30 from-amber-600/10 via-amber-600/5 to-transparent"
-                : "border-green-500/30 from-green-600/10 via-green-600/5 to-transparent",
-          )}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-300">{t("dashboard.healthStatus")}</h3>
-            <div
-              className={cn(
-                "rounded-xl p-2",
-                failedCount > 0
-                  ? "bg-red-500/15"
-                  : maintenanceCount > 0
-                    ? "bg-amber-500/15"
-                    : "bg-green-500/15",
-              )}
-            >
-              {failedCount > 0 ? (
-                <AlertTriangle className="h-5 w-5 text-red-400" />
-              ) : maintenanceCount > 0 ? (
-                <Wrench className="h-5 w-5 text-amber-400" />
-              ) : (
-                <Server className="h-5 w-5 text-green-400" />
-              )}
-            </div>
-          </div>
-          <p className="mt-3 text-2xl font-bold text-gray-100">
-            {totalEquipment > 0
-              ? Math.round((activeCount / totalEquipment) * 100)
-              : 0}
-            <span className="text-lg text-gray-500">%</span>
-          </p>
-          <p className="mt-1 text-xs text-gray-500">
-            {t("common.activeRatio")} · {failedCount} {t("dashboard.fleet.failed")}, {maintenanceCount} {t("common.maint")}
           </p>
         </Card>
       </motion.div>

@@ -17,7 +17,6 @@ import {
   Building2,
   Radar,
   ShieldCheck,
-  Activity,
 } from "lucide-react";
 
 export default async function DashboardPage() {
@@ -272,10 +271,9 @@ export default async function DashboardPage() {
             failedList={failedEquipmentList}
             totalRacks={totalRacks}
             totalRooms={totalRooms}
-            firingAlerts={firingAlerts}
           />
 
-          {/* Status Breakdown + Alerts Severity (compact row) */}
+          {/* Status Breakdown + Alerts (compact row) */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>
               <SectionHeading icon={ListChecks} title="Status Breakdown" accent="cyan" className="mb-3" />
@@ -308,13 +306,18 @@ export default async function DashboardPage() {
 
             <Card>
               <SectionHeading
-                icon={Activity}
-                title="Alerts by Severity"
+                icon={Bell}
+                title="Active Alerts"
                 accent={criticalFiringNow > 0 ? "red" : totalFiringNow > 0 ? "amber" : "green"}
                 right={
-                  <Link href="/alerts/history" className="text-xs text-blue-400 hover:text-blue-300">
-                    History →
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-lg font-bold ${totalFiringNow > 0 ? "text-red-400" : "text-green-400"}`}>
+                      {totalFiringNow}
+                    </span>
+                    <Link href="/alerts" className="text-xs text-blue-400 hover:text-blue-300">
+                      View all →
+                    </Link>
+                  </div>
                 }
               />
               <div className="grid grid-cols-3 gap-3">

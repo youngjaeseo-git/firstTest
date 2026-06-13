@@ -329,10 +329,10 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {/* Nodes Up/Down */}
-        <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible">
+        <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible" className="flex">
           <Card
             className={cn(
-              "border bg-gradient-to-br",
+              "flex-1 border bg-gradient-to-br",
               data.nodesDown > 0
                 ? "border-red-500/30 from-red-600/10 via-red-600/5 to-transparent hover:border-red-500/50"
                 : "border-green-500/30 from-green-600/10 via-green-600/5 to-transparent hover:border-green-500/50",
@@ -370,8 +370,8 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
         </motion.div>
 
         {/* Average Uptime */}
-        <motion.div custom={5} variants={cardVariants} initial="hidden" animate="visible">
-          <Card className="border-indigo-500/30 bg-gradient-to-br from-indigo-600/10 via-indigo-600/5 to-transparent hover:border-indigo-500/50">
+        <motion.div custom={5} variants={cardVariants} initial="hidden" animate="visible" className="flex">
+          <Card className="flex-1 border-indigo-500/30 bg-gradient-to-br from-indigo-600/10 via-indigo-600/5 to-transparent hover:border-indigo-500/50">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-400">{t("dashboard.avgUptime")}</p>
               <div className="rounded-xl bg-indigo-500/15 p-1.5">
@@ -387,8 +387,8 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
         </motion.div>
 
         {/* Network RX */}
-        <motion.div custom={6} variants={cardVariants} initial="hidden" animate="visible">
-          <Card className="border-sky-500/30 bg-gradient-to-br from-sky-600/10 via-sky-600/5 to-transparent hover:border-sky-500/50">
+        <motion.div custom={6} variants={cardVariants} initial="hidden" animate="visible" className="flex">
+          <Card className="flex-1 border-sky-500/30 bg-gradient-to-br from-sky-600/10 via-sky-600/5 to-transparent hover:border-sky-500/50">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-400">{t("dashboard.networkIn")}</p>
               <div className="rounded-xl bg-sky-500/15 p-1.5">
@@ -408,8 +408,8 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
         </motion.div>
 
         {/* GPU Placeholder */}
-        <motion.div custom={7} variants={cardVariants} initial="hidden" animate="visible">
-          <Card className="border-purple-500/20 bg-gradient-to-br from-purple-600/5 via-purple-600/3 to-transparent flex flex-col justify-center items-center text-center">
+        <motion.div custom={7} variants={cardVariants} initial="hidden" animate="visible" className="flex">
+          <Card className="flex-1 border-purple-500/20 bg-gradient-to-br from-purple-600/5 via-purple-600/3 to-transparent flex flex-col justify-center items-center text-center">
             <div className="rounded-xl bg-purple-500/10 p-2 mb-2">
               <p className="text-[10px] text-purple-500 font-bold uppercase tracking-wider">GPU</p>
             </div>
