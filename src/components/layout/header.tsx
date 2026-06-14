@@ -8,6 +8,7 @@ import { Bell, LogOut, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CommandPalette } from "@/components/command-palette/command-palette";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { PrometheusStatus } from "@/components/layout/prometheus-status";
 import { useT } from "@/lib/i18n/i18n-context";
 
@@ -88,6 +89,7 @@ export function Header() {
       <div className="flex items-center gap-3">
         <PrometheusStatus />
         <LanguageSwitcher />
+        <ThemeToggle />
 
         {/* Separator */}
         <div className="h-6 w-px bg-gray-800" />

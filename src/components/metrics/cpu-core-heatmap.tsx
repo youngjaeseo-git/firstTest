@@ -177,7 +177,7 @@ function CoreHeatmapView({
               {isHovered && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs whitespace-nowrap z-20 shadow-lg pointer-events-none">
                   <span className="text-gray-400">Core {core.cpu}</span>
-                  <span className="ml-2 text-white font-medium">{core.usage.toFixed(1)}%</span>
+                  <span className="ml-2 text-gray-50 font-medium">{core.usage.toFixed(1)}%</span>
                 </div>
               )}
             </div>

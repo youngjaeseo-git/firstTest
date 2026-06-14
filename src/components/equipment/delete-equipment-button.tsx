@@ -66,7 +66,7 @@ export function DeleteEquipmentButton({
       <div className="w-full max-w-md rounded-xl border border-red-500/30 bg-gray-900 p-6 shadow-2xl">
         <h3 className="text-lg font-semibold text-red-400">장비 삭제 확인</h3>
         <p className="mt-2 text-sm text-gray-300">
-          <span className="font-mono font-medium text-white">{equipmentName}</span>
+          <span className="font-mono font-medium text-gray-50">{equipmentName}</span>
           을(를) 삭제하시겠습니까?
         </p>
         <p className="mt-1 text-xs text-gray-500">

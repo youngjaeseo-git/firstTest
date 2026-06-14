@@ -162,7 +162,7 @@ export default function SearchPage() {
                 className="inline-flex items-center gap-1 rounded-full bg-blue-900/30 px-2.5 py-1 text-xs text-blue-300"
               >
                 {FILTER_LABELS[key] || key}: {val}
-                <button onClick={() => removeFilter(key)} className="hover:text-white">
+                <button onClick={() => removeFilter(key)} className="hover:text-gray-50">
                   <X className="h-3 w-3" />
                 </button>
               </span>

@@ -281,7 +281,7 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
             className={cn(
               "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
               cluster === tab.key
-                ? "bg-gray-700 text-white shadow-sm"
+                ? "bg-gray-700 text-gray-50 shadow-sm"
                 : "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50",
             )}
           >

@@ -203,7 +203,7 @@ export default function BulkImportPage() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2 text-sm text-gray-400 mb-1">
-            <Link href="/infrastructure" className="hover:text-white">
+            <Link href="/infrastructure" className="hover:text-gray-50">
               Infrastructure
             </Link>
             <span>/</span>
@@ -530,7 +530,7 @@ function StepBadge({
           num
         )}
       </div>
-      <span className={active ? "text-white" : "text-gray-500"}>{label}</span>
+      <span className={active ? "text-gray-50" : "text-gray-500"}>{label}</span>
     </div>
   );
 }

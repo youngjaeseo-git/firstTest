@@ -36,6 +36,9 @@ export const translations: Record<Language, Record<string, string>> = {
     "header.alerts.none": "No active alerts",
     "header.alerts.viewAll": "View all alerts",
     "header.logout": "Logout",
+    "theme.toggle": "Toggle theme",
+    "theme.light": "Light mode",
+    "theme.dark": "Dark mode",
 
     // ── Common ──
     "common.save": "Save",
@@ -611,6 +614,9 @@ export const translations: Record<Language, Record<string, string>> = {
     "header.alerts.none": "활성 알림 없음",
     "header.alerts.viewAll": "모든 알림 보기",
     "header.logout": "로그아웃",
+    "theme.toggle": "테마 전환",
+    "theme.light": "라이트 모드",
+    "theme.dark": "다크 모드",
 
     // ── Common ──
     "common.save": "저장",

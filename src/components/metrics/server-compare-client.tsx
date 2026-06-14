@@ -141,7 +141,7 @@ export function ServerCompareClient({ servers }: { servers: ServerInfo[] }) {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 text-sm text-gray-400 mb-1">
-          <Link href="/servers" className="hover:text-white">
+          <Link href="/servers" className="hover:text-gray-50">
             {t("nav.servers")}
           </Link>
           <span>/</span>
@@ -179,7 +179,7 @@ export function ServerCompareClient({ servers }: { servers: ServerInfo[] }) {
             placeholder={t("compare.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-gray-700/60 bg-gray-800/60 pl-10 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="w-full rounded-lg border border-gray-700/60 bg-gray-800/60 pl-10 pr-3 py-2 text-sm text-gray-50 placeholder-gray-500 focus:border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           />
         </div>
 

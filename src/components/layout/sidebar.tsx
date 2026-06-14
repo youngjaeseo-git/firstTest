@@ -60,7 +60,7 @@ export function Sidebar() {
             DRAM AE
           </span>
           <div className="mt-1 flex items-baseline gap-0.5">
-            <span className="text-[17px] font-bold tracking-tight text-white">DC</span>
+            <span className="text-[17px] font-bold tracking-tight text-gray-50">DC</span>
             <span className="text-[17px] font-semibold tracking-tight text-cyan-400">Express</span>
           </div>
         </div>
@@ -80,7 +80,7 @@ export function Sidebar() {
               className={cn(
                 "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200",
                 isActive
-                  ? "font-semibold text-white"
+                  ? "font-semibold text-gray-50"
                   : "font-medium text-gray-400 hover:bg-gray-800/60 hover:text-gray-200",
               )}
             >
@@ -114,7 +114,7 @@ export function Sidebar() {
           className={cn(
             "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200",
             pathname.startsWith("/settings")
-              ? "font-semibold text-white"
+              ? "font-semibold text-gray-50"
               : "font-medium text-gray-500 hover:bg-gray-800/60 hover:text-gray-300",
           )}
         >
