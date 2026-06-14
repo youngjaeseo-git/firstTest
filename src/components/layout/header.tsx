@@ -32,7 +32,7 @@ export function Header() {
     let cancelled = false;
     async function load() {
       try {
-        const res = await fetch("/api/alerts?status=FIRING&limit=10");
+        const res = await fetch("/api/alerts?status=FIRING&limit=10&excludeSuppressed=1");
         if (!res.ok) return;
         const data = await res.json();
         if (cancelled) return;

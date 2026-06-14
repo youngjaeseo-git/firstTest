@@ -29,7 +29,10 @@ export type AuditEntityType =
   | "User"
   | "AlertRule"
   | "Alert"
-  | "RoomElement";
+  | "RoomElement"
+  | "MaintenanceWindow"
+  | "NotificationChannel"
+  | "EscalationPolicy";
 
 export interface AuditLogInput {
   userId: string;

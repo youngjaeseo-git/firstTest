@@ -380,9 +380,48 @@ model MaintenanceWindow {
   description String?
   startTime   DateTime
   endTime     DateTime
-  targetType  String   // "equipment", "rack", "room"
-  targetId    String
+  // Suppression scope:
+  //   "all"      -> suppress every alert while the window is active
+  //   "source"   -> suppress alerts whose `source` matches targetValue (hostname/IP)
+  //   "category" -> suppress alerts whose `category` matches targetValue
+  targetType  String   @default("all")
+  targetValue String?  // hostname/IP or category; null for "all"
+  enabled     Boolean  @default(true)
+  createdBy   String?
   createdAt   DateTime @default(now())
+
+  @@index([startTime, endTime])
+}
+
+// ============================================
+// Alert Notification & Escalation
+// ============================================
+
+model NotificationChannel {
+  id          String        @id @default(cuid())
+  name        String
+  type        String        // "EMAIL" | "SLACK" | "TEAMS" | "WEBHOOK"
+  target      String        // email address or webhook URL
+  minSeverity AlertSeverity @default(WARNING)
+  enabled     Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  escalations EscalationPolicy[]
+}
+
+model EscalationPolicy {
+  id           String        @id @default(cuid())
+  name         String
+  description  String?
+  severity     AlertSeverity // applies to alerts of this severity
+  afterMinutes Int           // escalate if still unacknowledged after N minutes
+  channelId    String?       // channel to notify on escalation
+  enabled      Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  channel NotificationChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
 }
 
 model AuditLog {

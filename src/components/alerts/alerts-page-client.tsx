@@ -11,7 +11,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
-import { X, Check, CheckCheck, Trash2 } from "lucide-react";
+import { X, Check, CheckCheck, Trash2, BellOff } from "lucide-react";
+import Link from "next/link";
 import { useT } from "@/lib/i18n/i18n-context";
 import { useToast } from "@/components/ui/toast";
 
@@ -30,6 +31,7 @@ interface AlertRow {
   details: string | null;
   source: string | null;
   firedAt: string;
+  suppressed?: boolean;
   acknowledgement?: AckInfo[];
 }
 
@@ -37,9 +39,10 @@ interface AlertsPageClientProps {
   alerts: AlertRow[];
   canAcknowledge?: boolean;
   isAdmin?: boolean;
+  maintenanceActive?: boolean;
 }
 
-export function AlertsPageClient({ alerts, canAcknowledge = false, isAdmin = false }: AlertsPageClientProps) {
+export function AlertsPageClient({ alerts, canAcknowledge = false, isAdmin = false, maintenanceActive = false }: AlertsPageClientProps) {
   const t = useT();
   const router = useRouter();
   const { toast } = useToast();
@@ -166,8 +169,31 @@ export function AlertsPageClient({ alerts, canAcknowledge = false, isAdmin = fal
     setStatusFilter((prev) => (prev === status ? null : status));
   }
 
+  const suppressedCount = alerts.filter((a) => a.suppressed).length;
+
   return (
     <div className="space-y-6">
+      {maintenanceActive && (
+        <div className="flex items-center gap-3 rounded-lg border border-purple-500/30 bg-purple-500/5 px-4 py-3">
+          <BellOff className="h-4 w-4 flex-shrink-0 text-purple-400" />
+          <p className="text-sm text-purple-200">
+            {t("alerts.maintenanceActive")}
+            {suppressedCount > 0 && (
+              <span className="text-purple-300/80">
+                {" "}
+                · {suppressedCount} {t("alerts.muted")}
+              </span>
+            )}
+          </p>
+          <Link
+            href="/alerts/settings"
+            className="ml-auto text-xs font-medium text-purple-300 hover:text-purple-200"
+          >
+            {t("alerts.manageWindows")} →
+          </Link>
+        </div>
+      )}
+
       {/* Summary - clickable */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card
@@ -341,6 +367,12 @@ export function AlertsPageClient({ alerts, canAcknowledge = false, isAdmin = fal
                         >
                           {alert.status}
                         </Badge>
+                        {alert.suppressed && (
+                          <Badge variant="maintenance">
+                            <BellOff className="mr-1 h-3 w-3" />
+                            {t("alerts.muted")}
+                          </Badge>
+                        )}
                         {canAcknowledge && alert.status !== "RESOLVED" && (
                           <div className="flex gap-1">
                             {alert.status === "FIRING" && (
