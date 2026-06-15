@@ -1,22 +1,26 @@
 #!/bin/bash
-# Lab-3 node-exporter 스크래핑 최종 확인 (38.100에서 실행) - 읽기전용
+# Lab-3 config 재로드 + 확인 (38.100에서 실행)
 
 PROM="http://10.100.175.248:8080"
+POD=$(kubectl get pods -n monitoring -l app=prometheus-server -o jsonpath='{.items[0].metadata.name}')
 
-echo "=== Lab-3 node-exporter 수집 현황 ==="
+echo "=== 1. SIGHUP으로 config 재로드 (안전: 오류시 기존 유지) ==="
+kubectl exec "$POD" -n monitoring -- kill -HUP 1
+echo "OK. 10초 대기..."
+sleep 10
 
 echo ""
-echo "-- Lab-3 타겟 수 (up 쿼리) --"
+echo "=== 2. 재로드 후 로그 (에러 확인) ==="
+kubectl logs "$POD" -n monitoring --tail=5
+
+echo ""
+echo "=== 3. Lab-3 타겟 수 ==="
 RESULT=$(curl -s "$PROM/api/v1/query?query=up%7Bjob%3D%22node-exporter%22%2Cinstance%3D~%2210.144.131.*%22%7D" 2>/dev/null)
 TOTAL=$(echo "$RESULT" | grep -c '"instance"')
 UP=$(echo "$RESULT" | grep -c '"1"')
-echo "Lab-3 node-exporter: UP=$UP / TOTAL=$TOTAL"
+echo "Lab-3: UP=$UP / TOTAL=$TOTAL"
 
 echo ""
-echo "-- Lab-3 타겟 상세 (IP + 상태) --"
-echo "$RESULT" | grep -o '"instance":"[^"]*"[^}]*"value":\[[^]]*\]' | sed 's/.*"instance":"\([^"]*\)".*\[\([^,]*\),"\([^"]*\)"\].*/\1 → up=\3/' | head -20
-
-echo ""
-echo "-- Lab-1 기존 타겟 수 (비교용) --"
+echo "=== 4. Lab-1 기존 타겟 (정상 확인) ==="
 LAB1=$(curl -s "$PROM/api/v1/query?query=up%7Bjob%3D%22node-exporter%22%2Cinstance%3D~%2210.144.38.*%22%7D" 2>/dev/null | grep -c '"instance"')
-echo "Lab-1 node-exporter: $LAB1 개"
+echo "Lab-1: $LAB1 개"
