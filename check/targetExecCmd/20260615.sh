@@ -1,18 +1,10 @@
 #!/bin/bash
-# Lab-3 node-exporter 진단 (131.100에서 실행)
+# Lab-3 node-exporter 네임스페이스 재확인 (131.100에서 실행)
 
-echo "=== 1. Pod 상태 (131.103) ==="
-kubectl get pods -n monitoring -l app=node-exporter -o wide | grep 131.103
-
-echo ""
-echo "=== 2. listen-address 설정 ==="
-kubectl get ds node-exporter -n monitoring -o jsonpath='{.spec.template.spec.containers[0].args}' && echo ""
+echo "=== 1. node-exporter DaemonSet (전체 네임스페이스) ==="
+kubectl get ds --all-namespaces 2>&1 | head -1
+kubectl get ds --all-namespaces 2>&1 | grep -i node
 
 echo ""
-echo "=== 3. Pod 로그 (131.103 노드, 최근 5줄) ==="
-POD=$(kubectl get pods -n monitoring -l app=node-exporter -o wide | grep 131.103 | awk '{print $1}')
-if [ -n "$POD" ]; then
-  kubectl logs "$POD" -n monitoring --tail=5
-else
-  echo "131.103 노드에 Pod 없음"
-fi
+echo "=== 2. node-exporter Pod (전체 네임스페이스) ==="
+kubectl get pods --all-namespaces -o wide 2>&1 | grep -i node-exporter | head -3
