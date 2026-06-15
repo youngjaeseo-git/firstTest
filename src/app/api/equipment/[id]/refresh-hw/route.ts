@@ -53,7 +53,7 @@ export async function POST(
 
   const equipment = await prisma.equipment.findUnique({
     where: { id },
-    include: { cpus: true },
+    include: { cpus: true, rack: { include: { room: { select: { bmcProxyUrl: true } } } } },
   });
   if (!equipment) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -87,6 +87,7 @@ export async function POST(
       username: creds.username,
       password: creds.password,
       timeoutMs: 15_000,
+      proxyUrl: equipment.rack?.room?.bmcProxyUrl ?? undefined,
     });
 
     const updateData: Record<string, unknown> = {};

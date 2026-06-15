@@ -8,6 +8,7 @@ export const CreateRoomSchema = z.object({
   layoutY: z.number().int().min(0).max(9999).nullable().optional(),
   layoutW: z.number().int().min(1).max(9999).nullable().optional(),
   layoutH: z.number().int().min(1).max(9999).nullable().optional(),
+  bmcProxyUrl: z.string().url().max(200).nullable().optional(),
 });
 
 export const UpdateRoomSchema = z.object({
@@ -18,4 +19,5 @@ export const UpdateRoomSchema = z.object({
   layoutY: z.number().int().min(0).max(9999).nullable().optional(),
   layoutW: z.number().int().min(1).max(9999).nullable().optional(),
   layoutH: z.number().int().min(1).max(9999).nullable().optional(),
+  bmcProxyUrl: z.string().url().max(200).nullable().optional(),
 });

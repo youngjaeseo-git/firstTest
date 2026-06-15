@@ -52,6 +52,7 @@ export async function GET(
 
   const equipment = await prisma.equipment.findUnique({
     where: { id },
+    include: { rack: { include: { room: { select: { bmcProxyUrl: true } } } } },
   });
   if (!equipment) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -75,6 +76,7 @@ export async function GET(
       host: equipment.bmcIpAddress,
       username: creds.username,
       password: creds.password,
+      proxyUrl: equipment.rack?.room?.bmcProxyUrl ?? undefined,
     });
     return NextResponse.json({ state });
   } catch (err) {
@@ -113,6 +115,7 @@ export async function POST(
 
   const equipment = await prisma.equipment.findUnique({
     where: { id },
+    include: { rack: { include: { room: { select: { bmcProxyUrl: true } } } } },
   });
   if (!equipment) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -143,6 +146,7 @@ export async function POST(
         host: equipment.bmcIpAddress,
         username: creds.username,
         password: creds.password,
+        proxyUrl: equipment.rack?.room?.bmcProxyUrl ?? undefined,
       },
       payload.action,
     );

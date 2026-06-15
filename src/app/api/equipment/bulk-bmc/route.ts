@@ -175,7 +175,12 @@ export async function POST(req: NextRequest) {
 
   const equipmentList = await prisma.equipment.findMany({
     where: { id: { in: payload.equipmentIds } },
-    select: { id: true, hostname: true, bmcIpAddress: true },
+    select: {
+      id: true,
+      hostname: true,
+      bmcIpAddress: true,
+      rack: { select: { room: { select: { bmcProxyUrl: true } } } },
+    },
   });
 
   const equipmentMap = new Map(equipmentList.map((e) => [e.id, e]));
@@ -194,7 +199,7 @@ export async function POST(req: NextRequest) {
 
     let creds;
     try {
-      creds = getBmcCredentials(eq as Parameters<typeof getBmcCredentials>[0]);
+      creds = getBmcCredentials(eq as unknown as Parameters<typeof getBmcCredentials>[0]);
     } catch (err) {
       results.push({
         equipmentId: eqId,
@@ -211,6 +216,7 @@ export async function POST(req: NextRequest) {
       username: creds.username,
       password: creds.password,
       timeoutMs: 15_000,
+      proxyUrl: eq.rack?.room?.bmcProxyUrl ?? undefined,
     };
 
     if (payload.action === "refresh-hw") {

@@ -146,6 +146,7 @@
 | 사용자 관리 | ✅ 완료 | RBAC (Admin/Operator/Viewer) |
 | BMC IP 매핑 | ✅ 완료 | 장비별 BMC IP 인라인 편집 + 자동 유도 |
 | BMC 자격증명 관리 | ✅ 완료 | 장비별 BMC 계정 오버라이드 |
+| BMC 프록시 (멀티사이트) | ✅ 완료 | Room별 bmcProxyUrl 설정 → 원격 BMC 접근 (Lab-3 등) |
 | Prometheus 진단 | ✅ 완료 | IP-only/중복/orphan 진단 페이지 |
 | 만료 추적 | ✅ 완료 | 인증서/라이선스/보증 만료일 관리 |
 | 감사 로그 조회 (/history) | ✅ 완료 | 액션/엔티티/사용자/날짜 필터 + 필드 diff 표시 |

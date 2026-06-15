@@ -11,6 +11,7 @@
  */
 
 import * as https from "node:https";
+import * as http from "node:http";
 
 export type ResetType =
   | "On"
@@ -32,6 +33,8 @@ export interface RedfishOptions {
   strictTls?: boolean;
   /** Per-request timeout. Default 5000ms. */
   timeoutMs?: number;
+  /** HTTP proxy URL for BMC access (e.g. http://10.144.131.100:8443). */
+  proxyUrl?: string;
 }
 
 export class RedfishError extends Error {
@@ -61,21 +64,48 @@ function bmcRequest<T = unknown>(
       "Basic " +
       Buffer.from(`${opts.username}:${opts.password}`).toString("base64");
 
-    const requestOptions: https.RequestOptions = {
-      host: opts.host,
-      path,
-      method,
-      headers: {
-        Authorization: auth,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "OData-Version": "4.0",
-      },
-      rejectUnauthorized: opts.strictTls === true,
-      timeout: opts.timeoutMs ?? DEFAULT_TIMEOUT,
-    };
+    const timeout = opts.timeoutMs ?? DEFAULT_TIMEOUT;
+    const useProxy = Boolean(opts.proxyUrl);
 
-    const req = https.request(requestOptions, (res) => {
+    let requestOptions: https.RequestOptions | http.RequestOptions;
+    let transport: typeof https | typeof http;
+
+    if (useProxy) {
+      const proxy = new URL(opts.proxyUrl!);
+      requestOptions = {
+        hostname: proxy.hostname,
+        port: parseInt(proxy.port) || 8443,
+        path: `/bmc-proxy/${opts.host}${path}`,
+        method,
+        headers: {
+          Authorization: auth,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "OData-Version": "4.0",
+        },
+        timeout: timeout > DEFAULT_TIMEOUT ? timeout : 10_000,
+      };
+      transport = http;
+    } else {
+      requestOptions = {
+        host: opts.host,
+        path,
+        method,
+        headers: {
+          Authorization: auth,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "OData-Version": "4.0",
+        },
+        rejectUnauthorized: opts.strictTls === true,
+        timeout,
+      };
+      transport = https;
+    }
+
+    const label = useProxy ? `BMC ${opts.host} (via proxy)` : `BMC ${opts.host}`;
+
+    const req = transport.request(requestOptions, (res) => {
       let chunks = "";
       res.setEncoding("utf8");
       res.on("data", (c) => (chunks += c));
@@ -90,7 +120,7 @@ function bmcRequest<T = unknown>(
         } catch {
           reject(
             new RedfishError(
-              `Invalid JSON from BMC ${opts.host}: ${chunks.slice(0, 80)}`,
+              `Invalid JSON from ${label}: ${chunks.slice(0, 80)}`,
               status,
             ),
           );
@@ -99,13 +129,13 @@ function bmcRequest<T = unknown>(
     });
 
     req.on("error", (err) =>
-      reject(new RedfishError(`BMC ${opts.host}: ${err.message}`)),
+      reject(new RedfishError(`${label}: ${err.message}`)),
     );
     req.on("timeout", () => {
       req.destroy();
       reject(
         new RedfishError(
-          `BMC ${opts.host}: request timed out after ${opts.timeoutMs ?? DEFAULT_TIMEOUT}ms`,
+          `${label}: request timed out after ${timeout}ms`,
         ),
       );
     });
