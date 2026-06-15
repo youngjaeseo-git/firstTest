@@ -63,6 +63,13 @@ if [ -z "$REAL_PORT" ]; then
   REAL_PORT="${DB_PORT:-5432}"
 fi
 export DATABASE_URL="postgresql://dcim:${REAL_PASSWORD}@localhost:${REAL_PORT}/dcim?schema=public"
+
+# NextAuth: 고정 시크릿 (미설정 시 매 재시작마다 JWT 무효화 → 로그인 후 빈 화면)
+export NEXTAUTH_SECRET="${NEXTAUTH_SECRET:-dcim-nextauth-secret-$(hostname)}"
+# NextAuth: 서버 IP 기반 URL (쿠키 도메인 정합성)
+SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+export NEXTAUTH_URL="${NEXTAUTH_URL:-http://${SERVER_IP:-localhost}:${PORT}}"
+
 npx prisma migrate deploy 2>&1
 if [ $? -eq 0 ]; then
   echo "✅ 마이그레이션 완료"
