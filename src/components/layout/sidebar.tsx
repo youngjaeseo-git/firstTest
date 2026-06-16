@@ -108,7 +108,8 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-gray-800/80 p-3">
+      <div className="h-[3px] w-full bg-gradient-to-r from-[#FF8200] via-[#EA002C] to-[#B5008E]" />
+      <div className="p-3">
         <Link
           href="/settings"
           className={cn(
