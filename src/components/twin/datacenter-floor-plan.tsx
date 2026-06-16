@@ -146,12 +146,13 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
   const [isEditMode, setIsEditMode] = useState(false);
   const [posOverrides, setPosOverrides] = useState<Record<string, { x: number; y: number }>>({});
   const [sizeOverrides, setSizeOverrides] = useState<Record<string, { w: number; h: number }>>({});
-  const [dragState, setDragState] = useState<{ id: string; kind: "rack" | "element"; x: number; y: number } | null>(null);
+  const [dragState, setDragState] = useState<{ id: string; kind: "rack" | "element" | "room"; x: number; y: number } | null>(null);
   const [resizeState, setResizeState] = useState<{ id: string; w: number; h: number } | null>(null);
+  const [roomRectOverrides, setRoomRectOverrides] = useState<Record<string, Rect>>({});
   const rightDragged = useRef(false);
   const dragRef = useRef<{
     id: string;
-    kind: "rack" | "element";
+    kind: "rack" | "element" | "room";
     roomRect: Rect;
     w: number;
     h: number;
@@ -218,26 +219,42 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
   const lab3 = findRoom("lab3") || findRoom("3");
 
   /* ─── Room rects: DB-driven if available, hardcoded fallback ─── */
-  const lab3Rect = useMemo(() => {
+  const lab3RectBase = useMemo(() => {
     if (lab3?.layoutX != null && lab3?.layoutY != null && lab3?.layoutW != null && lab3?.layoutH != null) {
       return { x: lab3.layoutX, y: lab3.layoutY, w: lab3.layoutW, h: lab3.layoutH };
     }
     return { x: P, y: P, w: W - P * 2, h: MID_Y - P - GAP / 2 };
   }, [lab3]);
 
-  const lab2Rect = useMemo(() => {
+  const lab2RectBase = useMemo(() => {
     if (lab2?.layoutX != null && lab2?.layoutY != null && lab2?.layoutW != null && lab2?.layoutH != null) {
       return { x: lab2.layoutX, y: lab2.layoutY, w: lab2.layoutW, h: lab2.layoutH };
     }
     return { x: P, y: MID_Y + GAP / 2, w: SPLIT_X - P - GAP / 2, h: H - MID_Y - P - GAP / 2 };
   }, [lab2]);
 
-  const lab1Rect = useMemo(() => {
+  const lab1RectBase = useMemo(() => {
     if (lab1?.layoutX != null && lab1?.layoutY != null && lab1?.layoutW != null && lab1?.layoutH != null) {
       return { x: lab1.layoutX, y: lab1.layoutY, w: lab1.layoutW, h: lab1.layoutH };
     }
     return { x: SPLIT_X + GAP / 2, y: MID_Y + GAP / 2, w: W - SPLIT_X - P - GAP / 2, h: H - MID_Y - P - GAP / 2 };
   }, [lab1]);
+
+  const applyRoomDragState = useCallback((roomId: string | undefined, base: Rect): Rect => {
+    if (!roomId) return base;
+    const ov = roomRectOverrides[roomId] || base;
+    if (dragState?.kind === "room" && dragState.id === roomId) {
+      return { x: dragState.x, y: dragState.y, w: ov.w, h: ov.h };
+    }
+    if (resizeState?.id === roomId) {
+      return { x: ov.x, y: ov.y, w: resizeState.w, h: resizeState.h };
+    }
+    return ov;
+  }, [roomRectOverrides, dragState, resizeState]);
+
+  const lab3Rect = applyRoomDragState(lab3?.id, lab3RectBase);
+  const lab2Rect = applyRoomDragState(lab2?.id, lab2RectBase);
+  const lab1Rect = applyRoomDragState(lab1?.id, lab1RectBase);
 
   const clientToSVG = useCallback((clientX: number, clientY: number) => {
     const svg = svgRef.current;
@@ -271,6 +288,39 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     if (ov) return { x: roomRect.x + ov.x, y: roomRect.y + ov.y };
     return { x: roomRect.x + elem.positionX, y: roomRect.y + elem.positionY };
   }, [dragState, posOverrides]);
+
+  const handleRoomDragStart = useCallback((
+    roomId: string, rect: Rect, e: React.MouseEvent,
+    mode: "move" | "resize",
+  ) => {
+    if (!isEditMode) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const svgPt = clientToSVG(e.clientX, e.clientY);
+    const bldgRect: Rect = { x: 2, y: 2, w: W - 4, h: H - 4 };
+    if (mode === "resize") {
+      dragRef.current = {
+        id: roomId, kind: "room", roomRect: bldgRect,
+        w: rect.w, h: rect.h,
+        offsetX: 0, offsetY: 0,
+        mode: "resize", origW: rect.w, origH: rect.h,
+        startSvgX: svgPt.x, startSvgY: svgPt.y,
+      };
+      isMouseDown.current = true;
+      setResizeState({ id: roomId, w: rect.w, h: rect.h });
+    } else {
+      dragRef.current = {
+        id: roomId, kind: "room", roomRect: bldgRect,
+        w: rect.w, h: rect.h,
+        offsetX: svgPt.x - rect.x, offsetY: svgPt.y - rect.y,
+        mode: "move", origW: rect.w, origH: rect.h,
+        startSvgX: svgPt.x, startSvgY: svgPt.y,
+      };
+      isMouseDown.current = true;
+      rightDragged.current = false;
+      setDragState({ id: roomId, kind: "room", x: rect.x, y: rect.y });
+    }
+  }, [isEditMode, clientToSVG]);
 
   const handleItemDragStart = useCallback((
     kind: "rack" | "element",
@@ -441,16 +491,28 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
       if (dr.mode === "resize") {
         const deltaX = svgPt.x - dr.startSvgX;
         const deltaY = svgPt.y - dr.startSvgY;
-        const newW = Math.max(10, Math.round(dr.origW + deltaX));
-        const newH = Math.max(4, Math.round(dr.origH + deltaY));
-        setResizeState({ id: dr.id, w: newW, h: newH });
+        if (dr.kind === "room") {
+          const newW = Math.max(100, Math.round(dr.origW + deltaX));
+          const newH = Math.max(80, Math.round(dr.origH + deltaY));
+          setResizeState({ id: dr.id, w: newW, h: newH });
+        } else {
+          const newW = Math.max(10, Math.round(dr.origW + deltaX));
+          const newH = Math.max(4, Math.round(dr.origH + deltaY));
+          setResizeState({ id: dr.id, w: newW, h: newH });
+        }
         return;
       }
 
       rightDragged.current = true;
-      const nx = Math.max(dr.roomRect.x + 4, Math.min(dr.roomRect.x + dr.roomRect.w - dr.w - 4, svgPt.x - dr.offsetX));
-      const ny = Math.max(dr.roomRect.y + 4, Math.min(dr.roomRect.y + dr.roomRect.h - dr.h - 4, svgPt.y - dr.offsetY));
-      setDragState({ id: dr.id, kind: dr.kind, x: nx, y: ny });
+      if (dr.kind === "room") {
+        const nx = Math.max(2, Math.min(W - dr.w - 2, svgPt.x - dr.offsetX));
+        const ny = Math.max(2, Math.min(H - dr.h - 2, svgPt.y - dr.offsetY));
+        setDragState({ id: dr.id, kind: "room", x: nx, y: ny });
+      } else {
+        const nx = Math.max(dr.roomRect.x + 4, Math.min(dr.roomRect.x + dr.roomRect.w - dr.w - 4, svgPt.x - dr.offsetX));
+        const ny = Math.max(dr.roomRect.y + 4, Math.min(dr.roomRect.y + dr.roomRect.h - dr.h - 4, svgPt.y - dr.offsetY));
+        setDragState({ id: dr.id, kind: dr.kind, x: nx, y: ny });
+      }
       return;
     }
     if (!isMouseDown.current) return;
@@ -466,17 +528,41 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     if (dragRef.current) {
       const dr = dragRef.current;
       if (dr.mode === "resize" && resizeState) {
-        setSizeOverrides((prev) => ({ ...prev, [dr.id]: { w: resizeState.w, h: resizeState.h } }));
-        const url = dr.kind === "rack" ? `/api/racks/${dr.id}` : `/api/room-elements/${dr.id}`;
-        fetch(url, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ width: resizeState.w, height: resizeState.h }),
-        }).catch(() => {});
+        if (dr.kind === "room") {
+          const prev = roomRectOverrides[dr.id] || (() => {
+            const r = [lab3, lab2, lab1].find(rm => rm?.id === dr.id);
+            if (!r) return { x: 0, y: 0, w: resizeState.w, h: resizeState.h };
+            const base = r === lab3 ? lab3RectBase : r === lab2 ? lab2RectBase : lab1RectBase;
+            return base;
+          })();
+          const newRect = { x: prev.x, y: prev.y, w: resizeState.w, h: resizeState.h };
+          setRoomRectOverrides((p) => ({ ...p, [dr.id]: newRect }));
+          fetch(`/api/rooms/${dr.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ layoutX: Math.round(newRect.x), layoutY: Math.round(newRect.y), layoutW: Math.round(newRect.w), layoutH: Math.round(newRect.h) }),
+          }).catch(() => {});
+        } else {
+          setSizeOverrides((prev) => ({ ...prev, [dr.id]: { w: resizeState.w, h: resizeState.h } }));
+          const url = dr.kind === "rack" ? `/api/racks/${dr.id}` : `/api/room-elements/${dr.id}`;
+          fetch(url, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ width: resizeState.w, height: resizeState.h }),
+          }).catch(() => {});
+        }
         setResizeState(null);
         dragRef.current = null;
       } else if (dr.mode === "move" && dragState) {
-        if (rightDragged.current) {
+        if (dr.kind === "room" && rightDragged.current) {
+          const newRect = { x: dragState.x, y: dragState.y, w: dr.w, h: dr.h };
+          setRoomRectOverrides((p) => ({ ...p, [dr.id]: newRect }));
+          fetch(`/api/rooms/${dr.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ layoutX: Math.round(newRect.x), layoutY: Math.round(newRect.y), layoutW: Math.round(newRect.w), layoutH: Math.round(newRect.h) }),
+          }).catch(() => {});
+        } else if (rightDragged.current) {
           const rx = dragState.x - dr.roomRect.x;
           const ry = dragState.y - dr.roomRect.y;
           setPosOverrides((prev) => ({ ...prev, [dr.id]: { x: rx, y: ry } }));
@@ -491,7 +577,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     }
     isMouseDown.current = false;
     setIsPanning(false);
-  }, [dragState, resizeState, savePosition]);
+  }, [dragState, resizeState, savePosition, roomRectOverrides, lab1, lab2, lab3, lab1RectBase, lab2RectBase, lab3RectBase]);
 
   const handleClickCapture = useCallback((e: React.MouseEvent) => {
     if (hasDragged.current) {
@@ -699,6 +785,8 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               hasServers
               onClick={() => !isEditMode && lab3 && onSelectRoom(lab3.id)}
               t={t}
+              isEditMode={isEditMode}
+              onRoomDragStart={handleRoomDragStart}
             />
             <Lab3Interior rect={lab3Rect} room={lab3} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} elemMetaOverrides={elemMetaOverrides} onDeleteElement={handleDeleteElement} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={handleElementContextMenu} addedElems={lab3 ? addedElems.filter(e => e.type !== "DOOR" && e.roomId === lab3.id) : []} removedIds={removedIds} />
 
@@ -712,6 +800,8 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               hasServers={false}
               onClick={() => !isEditMode && lab2 && onSelectRoom(lab2.id)}
               t={t}
+              isEditMode={isEditMode}
+              onRoomDragStart={handleRoomDragStart}
             />
             <Lab2Interior rect={lab2Rect} />
 
@@ -726,6 +816,8 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               hasServers
               onClick={() => !isEditMode && lab1 && onSelectRoom(lab1.id)}
               t={t}
+              isEditMode={isEditMode}
+              onRoomDragStart={handleRoomDragStart}
             />
             <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} elemMetaOverrides={elemMetaOverrides} onDeleteElement={handleDeleteElement} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={handleElementContextMenu} addedElems={lab1 ? addedElems.filter(e => e.type !== "DOOR" && e.roomId === lab1.id) : []} removedIds={removedIds} />
 
@@ -1275,6 +1367,7 @@ function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
 /* ─── Room block ─── */
 function RoomBlock({
   rect, room, label, accent, gradient, glowFilter, hasServers, onClick, t,
+  isEditMode, onRoomDragStart,
 }: {
   rect: { x: number; y: number; w: number; h: number };
   room: RoomData | undefined;
@@ -1285,9 +1378,12 @@ function RoomBlock({
   hasServers: boolean;
   onClick: () => void;
   t: (key: string) => string;
+  isEditMode?: boolean;
+  onRoomDragStart?: (roomId: string, rect: Rect, e: React.MouseEvent, mode: "move" | "resize") => void;
 }) {
   const stats = room ? computeStats(room) : null;
-  const isClickable = !!room;
+  const isClickable = !!room && !isEditMode;
+  const HANDLE = 10;
 
   return (
     <g
@@ -1297,11 +1393,36 @@ function RoomBlock({
       tabIndex={isClickable ? 0 : undefined}
     >
       {/* Room background */}
-      <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={6} fill={gradient} stroke={accent} strokeOpacity={hasServers ? 0.4 : 0.15} strokeWidth={hasServers ? 1.5 : 1} />
+      <rect
+        x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={6}
+        fill={gradient} stroke={accent}
+        strokeOpacity={hasServers ? 0.4 : 0.15}
+        strokeWidth={isEditMode ? 2 : hasServers ? 1.5 : 1}
+        strokeDasharray={isEditMode ? "6 3" : undefined}
+        onMouseDown={isEditMode && room ? (e) => {
+          if (e.button === 2) onRoomDragStart?.(room.id, rect, e, "move");
+        } : undefined}
+        onContextMenu={isEditMode ? (e) => e.preventDefault() : undefined}
+      />
 
       {/* Hover overlay */}
       {isClickable && (
         <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={6} fill={accent} fillOpacity={0} className="transition-all duration-200 hover:fill-opacity-[0.06]" />
+      )}
+
+      {/* Resize handle (bottom-right corner) — edit mode only */}
+      {isEditMode && room && (
+        <g>
+          <rect
+            x={rect.x + rect.w - HANDLE} y={rect.y + rect.h - HANDLE}
+            width={HANDLE} height={HANDLE}
+            fill={accent} fillOpacity={0.6} rx={2}
+            className="cursor-nwse-resize"
+            onMouseDown={(e) => { if (e.button === 0) onRoomDragStart?.(room.id, rect, e, "resize"); }}
+          />
+          <line x1={rect.x + rect.w - 7} y1={rect.y + rect.h - 2} x2={rect.x + rect.w - 2} y2={rect.y + rect.h - 7} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+          <line x1={rect.x + rect.w - 4} y1={rect.y + rect.h - 2} x2={rect.x + rect.w - 2} y2={rect.y + rect.h - 4} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+        </g>
       )}
 
       {/* Room label with accent bar */}
