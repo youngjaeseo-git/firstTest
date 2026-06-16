@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Minus, Plus, Maximize2, Pencil, Check, Thermometer, BarChart3 } from "lucide-react";
+import { Minus, Plus, Maximize2, Pencil, Check, Thermometer, BarChart3, Wind } from "lucide-react";
 
 /* ─── Types ─── */
 
@@ -50,7 +50,7 @@ interface RoomElementData {
   metadata?: Record<string, unknown> | null;
 }
 
-type OverlayMode = "none" | "temp" | "util";
+type OverlayMode = "none" | "temp" | "util" | "airflow";
 
 interface DataCenterFloorPlanProps {
   rooms: RoomData[];
@@ -710,6 +710,19 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             <BarChart3 className="h-3.5 w-3.5" />
             {t("twin.overlay.util")}
           </button>
+          <button
+            onClick={() => toggleOverlay("airflow")}
+            className={cn(
+              "mr-1 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5",
+              overlay === "airflow"
+                ? "border-cyan-500/50 bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30"
+                : "border-gray-700 bg-gray-800/80 text-gray-400 hover:bg-gray-700 hover:text-gray-200",
+            )}
+            title="Airflow"
+          >
+            <Wind className="h-3.5 w-3.5" />
+            Airflow
+          </button>
 
           <div className="mx-1 h-5 w-px bg-gray-700" />
 
@@ -815,6 +828,10 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
                 <stop offset="0%" stopColor="#6b7280" stopOpacity="0.06" />
                 <stop offset="100%" stopColor="#374151" stopOpacity="0.02" />
               </linearGradient>
+              <linearGradient id="grad-emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#10b981" stopOpacity="0.12" />
+                <stop offset="100%" stopColor="#059669" stopOpacity="0.04" />
+              </linearGradient>
               <linearGradient id="grad-rack-purple" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="#312e81" stopOpacity="0.9" />
                 <stop offset="100%" stopColor="#1e1b4b" stopOpacity="0.7" />
@@ -859,8 +876,8 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               rect={lab2Rect}
               room={lab2}
               label="Lab-2"
-              accent="#6b7280"
-              gradient="url(#grad-gray)"
+              accent="#10b981"
+              gradient="url(#grad-emerald)"
               hasServers={false}
               onClick={() => !isEditMode && lab2 && onSelectRoom(lab2.id)}
               t={t}
@@ -975,6 +992,49 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               );
             })()}
 
+            {/* Airflow overlay: room-level flow arrows */}
+            {overlay === "airflow" && (
+              <g>
+                {[
+                  { rect: lab3Rect, accent: "#8b5cf6" },
+                  { rect: lab1Rect, accent: "#3b82f6" },
+                  { rect: lab2Rect, accent: "#10b981" },
+                ].map(({ rect: rr, accent }, ri) => {
+                  const cols = Math.floor(rr.w / 80);
+                  const rows = Math.floor(rr.h / 60);
+                  return (
+                    <g key={ri}>
+                      {Array.from({ length: cols }).map((_, ci) => {
+                        const cx = rr.x + 40 + ci * (rr.w / cols);
+                        return Array.from({ length: rows }).map((_, rowi) => {
+                          const cy = rr.y + 30 + rowi * (rr.h / rows);
+                          return (
+                            <g key={`${ci}-${rowi}`}>
+                              <line
+                                x1={cx} y1={cy + 8} x2={cx} y2={cy - 12}
+                                stroke={accent} strokeOpacity={0.25} strokeWidth={1.5}
+                              />
+                              <polygon
+                                points={`${cx},${cy - 16} ${cx - 4},${cy - 10} ${cx + 4},${cy - 10}`}
+                                fill={accent} fillOpacity={0.3}
+                              />
+                            </g>
+                          );
+                        });
+                      })}
+                      <text
+                        x={rr.x + rr.w / 2} y={rr.y + rr.h - 8}
+                        fill={accent} fillOpacity={0.5} fontSize="9" textAnchor="middle"
+                        fontFamily="system-ui, sans-serif" fontWeight="600"
+                      >
+                        COLD → HOT ↑
+                      </text>
+                    </g>
+                  );
+                })}
+              </g>
+            )}
+
             {/* Overlay legend */}
             {overlay !== "none" && <OverlayLegend mode={overlay} />}
           </svg>
@@ -997,6 +1057,17 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
 function OverlayLegend({ mode }: { mode: OverlayMode }) {
   const lx = W - 200;
   const ly = H - 40;
+  if (mode === "airflow") {
+    return (
+      <g>
+        <rect x={lx + 40} y={ly - 6} width={148} height={28} rx={4} fill="#0a0a0a" fillOpacity={0.85} stroke="#374151" strokeWidth={0.5} />
+        <text x={lx + 48} y={ly + 12} fill="#9ca3af" fontSize="8" fontFamily="system-ui, sans-serif">AIRFLOW</text>
+        <polygon points={`${lx + 100},${ly + 12} ${lx + 96},${ly + 6} ${lx + 104},${ly + 6}`} fill="#22d3ee" fillOpacity={0.7} />
+        <line x1={lx + 100} y1={ly + 14} x2={lx + 100} y2={ly + 6} stroke="#22d3ee" strokeOpacity={0.5} strokeWidth={1.5} />
+        <text x={lx + 114} y={ly + 12} fill="#67e8f9" fontSize="8" fontFamily="system-ui, sans-serif">Cold→Hot</text>
+      </g>
+    );
+  }
   if (mode === "temp") {
     const stops = [
       { c: "#22c55e", label: "≤30°C" },
@@ -1361,7 +1432,7 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
 function Lab2Interior({ rect }: { rect: { x: number; y: number; w: number; h: number } }) {
   return (
     <g>
-      <FloorTiles x={rect.x} y={rect.y} w={rect.w} h={rect.h} accent="#6b7280" />
+      <FloorTiles x={rect.x} y={rect.y} w={rect.w} h={rect.h} accent="#10b981" />
       <text x={rect.x + rect.w / 2} y={rect.y + rect.h / 2 - 6} fill="#374151" fontSize="13" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">
         AVAILABLE SPACE
       </text>
@@ -1492,8 +1563,8 @@ function RoomBlock({
       <rect
         x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={6}
         fill={gradient} stroke={accent}
-        strokeOpacity={hasServers ? 0.4 : 0.15}
-        strokeWidth={isEditMode ? 2 : hasServers ? 1.5 : 1}
+        strokeOpacity={hasServers ? 0.4 : 0.3}
+        strokeWidth={isEditMode ? 2 : 1.5}
         strokeDasharray={isEditMode ? "6 3" : undefined}
         onMouseDown={isEditMode && room ? (e) => {
           if (e.button === 2) onRoomDragStart?.(room.id, rect, e, "move");
