@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Minus, Plus, Maximize2, Pencil, Check, Thermometer, BarChart3, Wind } from "lucide-react";
+import { Minus, Plus, Maximize2, Pencil, Check, Thermometer, BarChart3, Wind, AlignHorizontalJustifyCenter, AlignVerticalJustifyCenter } from "lucide-react";
 
 /* ─── Types ─── */
 
@@ -157,6 +157,8 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     meta?: Record<string, unknown>;
   } | null>(null);
   const rightDragged = useRef(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const leftClickId = useRef<string | null>(null);
   const dragRef = useRef<{
     id: string;
     kind: "rack" | "element" | "room";
@@ -347,6 +349,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
         startSvgX: svgPt.x, startSvgY: svgPt.y,
       };
       isMouseDown.current = true;
+      leftClickId.current = id;
       setResizeState({ id, w, h });
     } else {
       dragRef.current = {
@@ -370,6 +373,44 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
       });
     } catch { /* optimistic update stays */ }
   }, []);
+
+  /* ─── Align selected items ─── */
+  const handleAlign = useCallback(async (axis: "x" | "y") => {
+    if (selectedIds.size < 2) return;
+    const positions: { id: string; kind: "rack" | "element"; absX: number; absY: number; roomX: number; roomY: number }[] = [];
+    const roomRects: Record<string, Rect> = {};
+    const allRooms = [lab1, lab2, lab3].filter(Boolean) as RoomData[];
+    const allRects = [lab1Rect, lab2Rect, lab3Rect];
+    for (let ri = 0; ri < allRooms.length; ri++) {
+      const room = allRooms[ri];
+      const rect = allRects[ri];
+      roomRects[room.id] = rect;
+      for (const rack of room.racks) {
+        if (!selectedIds.has(rack.id)) continue;
+        const pos = getRackPos(rack.id, 0, 0, rack, rect);
+        positions.push({ id: rack.id, kind: "rack", absX: pos.x, absY: pos.y, roomX: rect.x, roomY: rect.y });
+      }
+      for (const elem of room.elements || []) {
+        if (!selectedIds.has(elem.id)) continue;
+        const pos = getElemPos(elem, rect);
+        positions.push({ id: elem.id, kind: "element", absX: pos.x, absY: pos.y, roomX: rect.x, roomY: rect.y });
+      }
+    }
+    if (positions.length < 2) return;
+    const avg = axis === "y"
+      ? Math.round(positions.reduce((s, p) => s + p.absY, 0) / positions.length)
+      : Math.round(positions.reduce((s, p) => s + p.absX, 0) / positions.length);
+    for (const p of positions) {
+      const newAbsX = axis === "x" ? avg : p.absX;
+      const newAbsY = axis === "y" ? avg : p.absY;
+      const relX = newAbsX - p.roomX;
+      const relY = newAbsY - p.roomY;
+      setPosOverrides((prev) => ({ ...prev, [p.id]: { x: relX, y: relY } }));
+      const url = p.kind === "rack" ? `/api/racks/${p.id}` : `/api/room-elements/${p.id}`;
+      savePosition(url, relX, relY);
+    }
+    setSelectedIds(new Set());
+  }, [selectedIds, rooms, lab1, lab2, lab3, lab1Rect, lab2Rect, lab3Rect, getRackPos, getElemPos, savePosition]);
 
   /* ─── Right-click tap toggle for elements (fires after mouseup) ─── */
   const pendingToggle = useRef<string | null>(null);
@@ -553,6 +594,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
       const dr = dragRef.current;
 
       if (dr.mode === "resize") {
+        leftClickId.current = null;
         const deltaX = svgPt.x - dr.startSvgX;
         const deltaY = svgPt.y - dr.startSvgY;
         if (dr.kind === "room") {
@@ -591,6 +633,21 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
   const handleMouseUp = useCallback(() => {
     if (dragRef.current) {
       const dr = dragRef.current;
+      if (leftClickId.current && dr.mode === "resize") {
+        const clickedId = leftClickId.current;
+        leftClickId.current = null;
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          if (next.has(clickedId)) next.delete(clickedId);
+          else next.add(clickedId);
+          return next;
+        });
+        setResizeState(null);
+        dragRef.current = null;
+        isMouseDown.current = false;
+        return;
+      }
+      leftClickId.current = null;
       if (dr.mode === "resize" && resizeState) {
         if (dr.kind === "room") {
           const prev = roomRectOverrides[dr.id] || (() => {
@@ -728,7 +785,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
 
           {/* Edit mode */}
           <button
-            onClick={() => { setIsEditMode((p) => !p); dragRef.current = null; setDragState(null); }}
+            onClick={() => { setIsEditMode((p) => !p); dragRef.current = null; setDragState(null); setSelectedIds(new Set()); }}
             className={cn(
               "mr-2 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5",
               isEditMode
@@ -739,6 +796,27 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             {isEditMode ? <Check className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
             {isEditMode ? t("twin.editModeDone") : t("twin.editMode")}
           </button>
+          {isEditMode && selectedIds.size >= 2 && (
+            <>
+              <button
+                onClick={() => handleAlign("y")}
+                className="mr-1 rounded-md border border-blue-500/50 bg-blue-500/20 px-2 py-1.5 text-xs font-medium text-blue-300 hover:bg-blue-500/30 transition-colors flex items-center gap-1.5"
+                title="가로 정렬 (Y좌표 통일)"
+              >
+                <AlignHorizontalJustifyCenter className="h-3.5 w-3.5" />
+                가로 정렬
+              </button>
+              <button
+                onClick={() => handleAlign("x")}
+                className="mr-2 rounded-md border border-blue-500/50 bg-blue-500/20 px-2 py-1.5 text-xs font-medium text-blue-300 hover:bg-blue-500/30 transition-colors flex items-center gap-1.5"
+                title="세로 정렬 (X좌표 통일)"
+              >
+                <AlignVerticalJustifyCenter className="h-3.5 w-3.5" />
+                세로 정렬
+              </button>
+              <span className="mr-2 text-xs text-blue-400">{selectedIds.size}개 선택</span>
+            </>
+          )}
           <span className="mr-2 text-xs text-gray-600 tabular-nums">{Math.round(scale * 100)}%</span>
           <button
             onClick={() => setScale((s) => Math.max(0.5, s / 1.2))}
@@ -843,7 +921,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             </defs>
 
             {/* Background */}
-            <rect width={W} height={H} fill="#060a14" rx="10" onClick={() => { if (addMenuRoom) setAddMenuRoom(null); if (contextMenu) setContextMenu(null); }} />
+            <rect width={W} height={H} fill="#060a14" rx="10" onClick={() => { if (addMenuRoom) setAddMenuRoom(null); if (contextMenu) setContextMenu(null); if (selectedIds.size > 0) setSelectedIds(new Set()); }} />
             <rect width={W} height={H} fill="url(#fp-grid-fine)" rx="10" />
             <rect width={W} height={H} fill="url(#fp-grid)" rx="10" />
 
@@ -869,7 +947,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               isEditMode={isEditMode}
               onRoomDragStart={handleRoomDragStart}
             />
-            <Lab3Interior rect={lab3Rect} room={lab3} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} elemMetaOverrides={elemMetaOverrides} onDeleteElement={handleDeleteElement} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={handleElementContextMenu} onRackContextMenu={handleRackContextMenu} addedElems={lab3 ? addedElems.filter(e => e.type !== "DOOR" && e.roomId === lab3.id) : []} removedIds={removedIds} />
+            <Lab3Interior rect={lab3Rect} room={lab3} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} elemMetaOverrides={elemMetaOverrides} onDeleteElement={handleDeleteElement} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={handleElementContextMenu} onRackContextMenu={handleRackContextMenu} addedElems={lab3 ? addedElems.filter(e => e.type !== "DOOR" && e.roomId === lab3.id) : []} removedIds={removedIds} selectedIds={selectedIds} />
 
             {/* === Lab-2: bottom-left === */}
             <RoomBlock
@@ -900,7 +978,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               isEditMode={isEditMode}
               onRoomDragStart={handleRoomDragStart}
             />
-            <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} elemMetaOverrides={elemMetaOverrides} onDeleteElement={handleDeleteElement} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={handleElementContextMenu} onRackContextMenu={handleRackContextMenu} addedElems={lab1 ? addedElems.filter(e => e.type !== "DOOR" && e.roomId === lab1.id) : []} removedIds={removedIds} />
+            <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} elemMetaOverrides={elemMetaOverrides} onDeleteElement={handleDeleteElement} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={handleElementContextMenu} onRackContextMenu={handleRackContextMenu} addedElems={lab1 ? addedElems.filter(e => e.type !== "DOOR" && e.roomId === lab1.id) : []} removedIds={removedIds} selectedIds={selectedIds} />
 
             {/* Walls — horizontal only (top/bottom separator) */}
             <line x1={P} y1={MID_Y} x2={W - P} y2={MID_Y} stroke="#374151" strokeWidth="3" />
@@ -914,7 +992,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               if (allDoors.length > 0) {
                 return allDoors.map((elem) => {
                   const pos = getElemPos(elem, buildingRect);
-                  return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={buildingRect} isEditMode={isEditMode} onDragStart={handleItemDragStart} onDelete={isEditMode ? handleDeleteElement : undefined} elemMetaOverrides={elemMetaOverrides} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={handleElementContextMenu} />;
+                  return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={buildingRect} isEditMode={isEditMode} onDragStart={handleItemDragStart} onDelete={isEditMode ? handleDeleteElement : undefined} elemMetaOverrides={elemMetaOverrides} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={handleElementContextMenu} selected={selectedIds.has(elem.id)} />;
                 });
               }
               return (
@@ -1040,7 +1118,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
 
         {/* Pan hint */}
         <div className="absolute bottom-2 left-3 text-[10px] pointer-events-none select-none" style={{ color: isEditMode ? "#22d3ee" : "#374151" }}>
-          {isEditMode ? "L-drag: Resize · R-drag: Move · R-tap: Menu · +: Add · ×: Delete" : "Drag: Pan · Zoom: +/- buttons"}
+          {isEditMode ? "L-click: Select · L-drag: Resize · R-drag: Move · R-tap: Menu · +: Add · ×: Delete" : "Drag: Pan · Zoom: +/- buttons"}
         </div>
       </div>
 
@@ -1176,7 +1254,7 @@ function RackIcon({
   isEditMode, onLeftDrag, onRightDrag,
   overlayColor, overlayOpacity,
   onMouseEnter, onMouseLeave,
-  resizing, onContextMenuTap,
+  resizing, onContextMenuTap, selected,
 }: {
   x: number; y: number; w: number; h: number;
   label: string; accent: string; gradId: string;
@@ -1190,6 +1268,7 @@ function RackIcon({
   onMouseLeave?: () => void;
   resizing?: boolean;
   onContextMenuTap?: (e: React.MouseEvent) => void;
+  selected?: boolean;
 }) {
   const barH = Math.max(0, (h - 20) * Math.min((utilPct || 0) / 100, 1));
   const handleMouseDown = isEditMode ? (e: React.MouseEvent) => {
@@ -1205,7 +1284,8 @@ function RackIcon({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      <rect x={x} y={y} width={w} height={h} rx={3} fill={`url(#${gradId})`} stroke={accent} strokeOpacity={0.5} strokeWidth={1.2} />
+      <rect x={x} y={y} width={w} height={h} rx={3} fill={`url(#${gradId})`} stroke={selected ? "#3b82f6" : accent} strokeOpacity={selected ? 0.9 : 0.5} strokeWidth={selected ? 2.5 : 1.2} />
+      {selected && <rect x={x - 2} y={y - 2} width={w + 4} height={h + 4} rx={5} fill="none" stroke="#3b82f6" strokeOpacity={0.4} strokeWidth={1} strokeDasharray="4 2" />}
       {overlayColor && (
         <rect x={x} y={y} width={w} height={h} rx={3} fill={overlayColor} fillOpacity={overlayOpacity ?? 0.3} />
       )}
@@ -1296,6 +1376,7 @@ interface InteriorProps {
   removedIds?: Set<string>;
   onElementContextMenu?: (e: React.MouseEvent, elemId: string, elemType: string, meta: Record<string, unknown>, w: number, h: number) => void;
   onRackContextMenu?: (e: React.MouseEvent, rackId: string, w: number, h: number) => void;
+  selectedIds?: Set<string>;
 }
 
 /* ─── Compute overlay props for a rack ─── */
@@ -1312,7 +1393,7 @@ function overlayProps(rack: RackData, overlay?: OverlayMode, nodeTemps?: Record<
 }
 
 /* ─── Lab-3 interior ─── */
-function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, elemMetaOverrides, onDeleteElement, addedElems, removedIds, sizeOverrides, resizeState, onElementContextMenu, onRackContextMenu }: InteriorProps) {
+function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, elemMetaOverrides, onDeleteElement, addedElems, removedIds, sizeOverrides, resizeState, onElementContextMenu, onRackContextMenu, selectedIds }: InteriorProps) {
   const defaultRw = 54;
   const gap = 8;
   const oy = rect.y + 80;
@@ -1364,6 +1445,7 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
             onMouseLeave={onRackLeave}
             resizing={!!rs}
             onContextMenuTap={isEditMode ? (e) => onRackContextMenu?.(e, rack.id, rw, rh) : undefined}
+            selected={selectedIds?.has(rack.id)}
           />
         );
       })}
@@ -1402,7 +1484,7 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
         if (allElems.length > 0 || (room?.elements && room.elements.length > 0)) {
           return allElems.map((elem) => {
             const pos = getElemPos?.(elem, rect) ?? { x: rect.x + elem.positionX, y: rect.y + elem.positionY };
-            return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rect} isEditMode={isEditMode} onDragStart={onDragStart} onDelete={isEditMode ? onDeleteElement : undefined} elemMetaOverrides={elemMetaOverrides} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={onElementContextMenu} />;
+            return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rect} isEditMode={isEditMode} onDragStart={onDragStart} onDelete={isEditMode ? onDeleteElement : undefined} elemMetaOverrides={elemMetaOverrides} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={onElementContextMenu} selected={selectedIds?.has(elem.id)} />;
           });
         }
         return null;
@@ -1444,7 +1526,7 @@ function Lab2Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
 }
 
 /* ─── Lab-1 interior ─── */
-function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, elemMetaOverrides, onDeleteElement, addedElems, removedIds, sizeOverrides, resizeState, onElementContextMenu, onRackContextMenu }: InteriorProps) {
+function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, elemMetaOverrides, onDeleteElement, addedElems, removedIds, sizeOverrides, resizeState, onElementContextMenu, onRackContextMenu, selectedIds }: InteriorProps) {
   const defaultRw = 52;
   const defaultRh = 46;
   const gap = 6;
@@ -1501,6 +1583,7 @@ function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
             onMouseLeave={onRackLeave}
             resizing={!!rs}
             onContextMenuTap={isEditMode ? (e) => onRackContextMenu?.(e, rack.id, rw, rh) : undefined}
+            selected={selectedIds?.has(rack.id)}
           />
         );
       })}
@@ -1513,7 +1596,7 @@ function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
         if (allElems.length > 0 || (room?.elements && room.elements.length > 0)) {
           return allElems.map((elem) => {
             const pos = getElemPos?.(elem, rect) ?? { x: rect.x + elem.positionX, y: rect.y + elem.positionY };
-            return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rect} isEditMode={isEditMode} onDragStart={onDragStart} onDelete={isEditMode ? onDeleteElement : undefined} elemMetaOverrides={elemMetaOverrides} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={onElementContextMenu} />;
+            return <ElementIcon key={elem.id} elem={elem} pos={pos} rect={rect} isEditMode={isEditMode} onDragStart={onDragStart} onDelete={isEditMode ? onDeleteElement : undefined} elemMetaOverrides={elemMetaOverrides} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={onElementContextMenu} selected={selectedIds?.has(elem.id)} />;
           });
         }
         return null;
@@ -1642,7 +1725,7 @@ function RoomBlock({
 }
 
 /* ─── Element icon (DB-driven infrastructure elements) ─── */
-function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onDelete, elemMetaOverrides, sizeOverrides, resizeState, onElementContextMenu }: {
+function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onDelete, elemMetaOverrides, sizeOverrides, resizeState, onElementContextMenu, selected }: {
   elem: RoomElementData;
   pos: { x: number; y: number };
   rect: Rect;
@@ -1653,6 +1736,7 @@ function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onDelete, elemM
   sizeOverrides?: Record<string, { w: number; h: number }>;
   resizeState?: { id: string; w: number; h: number } | null;
   onElementContextMenu?: (e: React.MouseEvent, elemId: string, elemType: string, meta: Record<string, unknown>, w: number, h: number) => void;
+  selected?: boolean;
 }) {
   const rs = resizeState?.id === elem.id ? resizeState : null;
   const so = sizeOverrides?.[elem.id];
@@ -1679,7 +1763,8 @@ function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onDelete, elemM
 
   const editOverlay = isEditMode && (
     <>
-      <rect x={pos.x} y={pos.y} width={w} height={h} rx={3} fill="transparent" stroke="#22d3ee" strokeOpacity={0.6} strokeWidth={1.5} strokeDasharray="4 2" />
+      <rect x={pos.x} y={pos.y} width={w} height={h} rx={3} fill="transparent" stroke={selected ? "#3b82f6" : "#22d3ee"} strokeOpacity={selected ? 0.9 : 0.6} strokeWidth={selected ? 2.5 : 1.5} strokeDasharray={selected ? undefined : "4 2"} />
+      {selected && <rect x={pos.x - 3} y={pos.y - 3} width={w + 6} height={h + 6} rx={5} fill="none" stroke="#3b82f6" strokeOpacity={0.3} strokeWidth={1} strokeDasharray="4 2" />}
       {/* Resize handle (bottom-right corner) */}
       <rect x={pos.x + w - 6} y={pos.y + h - 6} width={8} height={8} rx={1} fill="#22d3ee" fillOpacity={0.4} stroke="#22d3ee" strokeOpacity={0.7} strokeWidth={0.8} style={{ cursor: "nwse-resize" }} />
       {onDelete && (
