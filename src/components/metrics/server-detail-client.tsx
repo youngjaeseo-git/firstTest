@@ -129,7 +129,7 @@ export function ServerDetailClient({ instance, hostIp }: Props) {
           title={t("server.cfsThrottled")}
           unit="sec/s"
           series={[
-            { label: "Throttled", query: queries.cpuModeIowait(instance, hostIp), color: "#f59e0b" },
+            { label: "Throttled", query: queries.cfsThrottled(instance), color: "#f59e0b" },
           ]}
           durationMin={duration.value}
           step={duration.step}
@@ -419,46 +419,35 @@ export function ServerDetailClient({ instance, hostIp }: Props) {
 
       {/* ── Section 5: Hardware / Thermal ── */}
       <SectionHeader title={t("server.hardware")} />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <MetricChart
-          title={t("server.temperature")}
-          unit="°C"
-          series={[
-            {
-              label: "Temp",
-              query: queries.temperature(instance, hostIp),
-              color: "#ef4444",
-            },
-          ]}
-          durationMin={duration.value}
-          step={duration.step}
-          formatValue={formatCelsius}
-        />
-        <MetricChart
-          title={t("server.ipmiTemperature")}
-          unit="°C"
-          series={[
-            {
-              label: "Inlet",
-              query: queries.inletTemp(instance),
-              color: "#06b6d4",
-            },
-            {
-              label: "Exhaust",
-              query: queries.exhaustTemp(instance),
-              color: "#f97316",
-            },
-            {
-              label: "CPU Socket",
-              query: queries.cpuSocketTemp(instance),
-              color: "#ef4444",
-            },
-          ]}
-          durationMin={duration.value}
-          step={duration.step}
-          formatValue={formatCelsius}
-        />
-      </div>
+      <MetricChart
+        title={t("server.temperature")}
+        unit="°C"
+        series={[
+          {
+            label: "Temp",
+            query: queries.temperature(instance, hostIp),
+            color: "#ef4444",
+          },
+          {
+            label: "Inlet",
+            query: queries.inletTemp(instance),
+            color: "#06b6d4",
+          },
+          {
+            label: "Exhaust",
+            query: queries.exhaustTemp(instance),
+            color: "#f97316",
+          },
+          {
+            label: "CPU Socket",
+            query: queries.cpuSocketTemp(instance),
+            color: "#8b5cf6",
+          },
+        ]}
+        durationMin={duration.value}
+        step={duration.step}
+        formatValue={formatCelsius}
+      />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <MetricChart
           title={t("server.powerConsumption")}

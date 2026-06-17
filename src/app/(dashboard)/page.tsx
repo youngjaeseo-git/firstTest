@@ -18,6 +18,7 @@ import {
   Radar,
   ShieldCheck,
 } from "lucide-react";
+import { buildHostnameIpMapFromData } from "@/lib/hostname-resolver";
 
 export default async function DashboardPage() {
   const lab1Where = { ipAddress: { startsWith: "10.144.38." } };
@@ -219,23 +220,7 @@ export default async function DashboardPage() {
   const criticalFiringNow =
     alertSeverityStats.find((a) => a.severity === "CRITICAL")?.firingNow ?? 0;
 
-  const hostnameIpMap = (() => {
-    const map: Record<string, string> = {};
-    for (const e of equipmentMapping) {
-      if (e.hostname && e.ipAddress) {
-        map[e.hostname] = e.ipAddress;
-        map[e.ipAddress] = e.hostname;
-      }
-    }
-    for (const pt of promTargets) {
-      const ip = pt.instance.replace(/:\d+$/, "");
-      if (pt.hostname && !map[ip]) {
-        map[ip] = pt.hostname;
-        map[pt.hostname] = ip;
-      }
-    }
-    return map;
-  })();
+  const hostnameIpMap = buildHostnameIpMapFromData(equipmentMapping, promTargets);
 
   return (
     <PageTransition>

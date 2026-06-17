@@ -21,7 +21,7 @@ export default async function ServerComparePage() {
     instance:
       s.prometheusTarget?.instance ||
       s.prometheusInstance ||
-      (s.ipAddress ? `${s.ipAddress}:9100` : null),
+      (s.ipAddress ? `${s.ipAddress}:10250` : null),
     room: s.rack?.room?.name || null,
     rack: s.rack?.name || null,
     status: s.status,

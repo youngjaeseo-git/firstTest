@@ -261,6 +261,9 @@ export const queries = {
   cpuModeSteal: (instance: string, hostIp?: string) =>
     `avg(rate(node_cpu_seconds_total{mode="steal",${ne(instance, hostIp)}}[5m])) * 100`,
 
+  cfsThrottled: (instance: string) =>
+    `sum(rate(container_cpu_cfs_throttled_seconds_total{${cm(instance)}}[5m]))`,
+
   // ── Memory ──
   memoryUsage: (instance: string, hostIp?: string) =>
     `(1 - node_memory_MemAvailable_bytes{${ne(instance, hostIp)}} / node_memory_MemTotal_bytes{${ne(instance, hostIp)}}) * 100` +

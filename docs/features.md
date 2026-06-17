@@ -47,6 +47,8 @@
 | BMC 센서 모니터링 | ✅ 완료 | Redfish 온도/팬/전력 센서 카드 |
 | 서버 비교 뷰 | ✅ 완료 | 2대 이상 서버 메트릭 병렬 시계열 오버레이 (최대 4대) |
 | 메트릭 없는 서버 안내 | ✅ 완료 | Prometheus 시계열이 전혀 없으면 빈 차트 대신 안내 배너 표시 |
+| Hostname↔IP 통합 resolver | ✅ 완료 | 3곳에 분산된 hostname↔IP 매핑을 `hostname-resolver.ts` 단일 모듈로 통합. DB + Prometheus node_uname_info 폴백 지원 |
+| 메트릭 중복 제거 | ✅ 완료 | Temperature+IPMI Temperature 2개 차트를 1개로 병합, CFS Throttled 쿼리 버그 수정 (cpuModeIowait→cfsThrottled), 서버비교 포트 불일치 수정 |
 
 ---
 
