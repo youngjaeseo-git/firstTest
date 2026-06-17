@@ -183,12 +183,20 @@ export function ActiveWorkloads({
 
     const podResults: { metric: Record<string, string>; value?: [number, string] }[] =
       podsRaw?.data?.result ?? [];
-    const [createdResults, phaseResults, waitingResults, nodeTempData] = await Promise.all([
+    const [createdResults, phaseResults, waitingResults, nodeTempData, nodeInfoResults] = await Promise.all([
       fetchInstant(queries.workloadPodCreated()),
       fetchInstant(queries.workloadPodPhase()),
       fetchInstant(queries.workloadPodWaitingReason()),
       fetch("/api/metrics/node-temps").then((r) => r.ok ? r.json() : {}).catch(() => ({})) as Promise<Record<string, number>>,
+      fetchInstant(queries.kubeNodeInfo()),
     ]);
+
+    const nodeIpMap: Record<string, string> = {};
+    for (const r of nodeInfoResults) {
+      const nodeName = r.metric.node || "";
+      const ip = r.metric.internal_ip || "";
+      if (nodeName && ip) nodeIpMap[nodeName] = ip;
+    }
 
     const createdMap: Record<string, number> = {};
     for (const r of createdResults) {
@@ -253,7 +261,7 @@ export function ActiveWorkloads({
           .map((g) => {
             const filteredPods = g.pods.filter((p) => {
               if (!p.node) return false;
-              const ip = hostnameIpMap[p.node] || "";
+              const ip = nodeIpMap[p.node] || hostnameIpMap[p.node] || "";
               if (cluster === "lab1") return ip.startsWith("10.144.38.");
               if (cluster === "lab3") return ip.startsWith("10.144.131.");
               return true;

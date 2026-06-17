@@ -565,4 +565,6 @@ export const queries = {
     `kube_pod_status_phase{namespace!~"kube-system|monitoring|calico-system|calico-apiserver|tigera-operator"}==1`,
   workloadPodWaitingReason: () =>
     `kube_pod_container_status_waiting_reason{namespace!~"kube-system|monitoring|calico-system|calico-apiserver|tigera-operator"}==1`,
+  kubeNodeInfo: () =>
+    `kube_node_info`,
 };
