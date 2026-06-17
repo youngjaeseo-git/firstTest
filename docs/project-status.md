@@ -66,7 +66,7 @@
 
 | 항목 | 질문 | 배경 |
 |------|------|------|
-| Evaluations/Workloads 메뉴 | 실제로 사용하는가? 사이드바에서 숨길까? | 5,130줄 분량. 핵심 DCIM과 동떨어진 특수 용도 (TODO-cleanup.md 참조) |
+| Evaluations/Workloads 메뉴 | 실제로 사용하는가? 사이드바에서 숨길까? | 5,130줄 분량. 핵심 DCIM과 동떨어진 특수 용도 (TODO-cleanup.md 참조). **team-a/team-b 분석 완료**: Evaluations는 이미 사이드바에서 빠져있음. Workloads는 sidebar.tsx 1줄 삭제로 숨김 가능하나, **Dashboard의 ActiveWorkloads 위젯이 /workloads 링크를 계속 렌더링** → 사이드바만 숨기면 반쪽짜리. 이 위젯이 실제로 유용한지 회사에서 확인 필요 |
 | 장비 상세 페이지 중복 | /servers/[id]와 /infrastructure/[id] 중 어느 쪽을 메인으로? | 둘 다 단일 장비 상세를 보여줌. 데이터 겹침 |
 | Firmware 단독 메뉴 | 별도 메뉴 유지? 장비 상세에 통합? | 사용 빈도 낮을 가능성 |
 | Multi-Prometheus 방향 | Lab-3 인프라 복구가 먼저인가, 코드 준비가 먼저인가? | 현재 Lab-3 Prometheus에 node-exporter 없고 타겟 대부분 down |
