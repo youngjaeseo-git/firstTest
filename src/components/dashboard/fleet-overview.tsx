@@ -292,7 +292,7 @@ export function FleetOverview({
       {/* ─── Section: Active Workloads ─────────────────────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <ActiveWorkloads />
+          <ActiveWorkloads cluster={cluster} hostnameIpMap={hostnameIpMap} />
         </div>
       </div>
     </div>

@@ -902,11 +902,9 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             />
             <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} elemMetaOverrides={elemMetaOverrides} onDeleteElement={handleDeleteElement} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={handleElementContextMenu} onRackContextMenu={handleRackContextMenu} addedElems={lab1 ? addedElems.filter(e => e.type !== "DOOR" && e.roomId === lab1.id) : []} removedIds={removedIds} />
 
-            {/* Walls */}
+            {/* Walls — horizontal only (top/bottom separator) */}
             <line x1={P} y1={MID_Y} x2={W - P} y2={MID_Y} stroke="#374151" strokeWidth="3" />
             <line x1={P} y1={MID_Y} x2={W - P} y2={MID_Y} stroke="#6b7280" strokeWidth="1" strokeDasharray="6 3" />
-            <line x1={SPLIT_X} y1={MID_Y} x2={SPLIT_X} y2={H - P} stroke="#374151" strokeWidth="3" />
-            <line x1={SPLIT_X} y1={MID_Y} x2={SPLIT_X} y2={H - P} stroke="#6b7280" strokeWidth="1" strokeDasharray="6 3" />
 
             {/* Door markers — DB elements (building-wide drag), hardcoded fallback */}
             {(() => {
@@ -1316,13 +1314,15 @@ function overlayProps(rack: RackData, overlay?: OverlayMode, nodeTemps?: Record<
 /* ─── Lab-3 interior ─── */
 function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, elemMetaOverrides, onDeleteElement, addedElems, removedIds, sizeOverrides, resizeState, onElementContextMenu, onRackContextMenu }: InteriorProps) {
   const defaultRw = 54;
-  const defaultRh = 50;
   const gap = 8;
   const oy = rect.y + 80;
 
   const stats = room ? computeStats(room) : null;
 
-  const displayOrder = [3, 2, 1, 0];
+  const rackCount = room?.racks.length ?? 0;
+  const displayOrder = Array.from({ length: rackCount }, (_, i) => rackCount - 1 - i);
+  const availH = rect.h - 100;
+  const defaultRh = rackCount > 4 ? Math.floor((availH - (rackCount - 1) * gap) / Math.max(rackCount, 1)) : 50;
 
   const ox1 = rect.x + 30;
 

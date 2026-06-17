@@ -10,6 +10,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { FlaskConical, Clock, Server, Calendar, Thermometer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { queries } from "@/lib/prometheus";
+import type { Cluster } from "@/lib/prometheus";
 
 type PodHealth = "running" | "pending" | "warning" | "error" | "succeeded";
 
@@ -145,7 +146,13 @@ const cardVariants = {
   },
 };
 
-export function ActiveWorkloads() {
+export function ActiveWorkloads({
+  cluster = "all",
+  hostnameIpMap = {},
+}: {
+  cluster?: Cluster;
+  hostnameIpMap?: Record<string, string>;
+}) {
   const [groups, setGroups] = useState<WorkloadGroup[]>([]);
   const [totalPods, setTotalPods] = useState(0);
   const [totalNodes, setTotalNodes] = useState(0);
@@ -240,16 +247,44 @@ export function ActiveWorkloads() {
         .filter((nt) => nt.temp >= 0);
     });
 
-    const sorted = groupList.sort(
+    const filtered = cluster === "all"
+      ? groupList
+      : groupList
+          .map((g) => {
+            const filteredPods = g.pods.filter((p) => {
+              if (!p.node) return false;
+              const ip = hostnameIpMap[p.node] || "";
+              if (cluster === "lab1") return ip.startsWith("10.144.38.");
+              if (cluster === "lab3") return ip.startsWith("10.144.131.");
+              return true;
+            });
+            if (filteredPods.length === 0) return null;
+            const uniqueNodes = Array.from(new Set(filteredPods.map((p) => p.node).filter(Boolean)));
+            return {
+              ...g,
+              pods: filteredPods,
+              nodes: uniqueNodes,
+              worstHealth: worstHealth(filteredPods),
+              nodeTemps: uniqueNodes
+                .map((n) => ({ node: n, temp: nodeTempData[n] ?? -1 }))
+                .filter((nt) => nt.temp >= 0),
+            };
+          })
+          .filter((g): g is WorkloadGroup => g !== null);
+
+    const sorted = filtered.sort(
       (a, b) => HEALTH_PRIORITY[b.worstHealth] - HEALTH_PRIORITY[a.worstHealth] || b.pods.length - a.pods.length,
     );
 
+    const filteredPodCount = sorted.reduce((s, g) => s + g.pods.length, 0);
+    const filteredNodeSet = new Set(sorted.flatMap((g) => g.nodes));
+
     setGroups(sorted);
-    setTotalPods(podResults.length);
-    setTotalNodes(allNodes.size);
+    setTotalPods(filteredPodCount);
+    setTotalNodes(filteredNodeSet.size);
     setError(false);
     setLoading(false);
-  }, []);
+  }, [cluster, hostnameIpMap]);
 
   useEffect(() => {
     fetchWorkloads();
