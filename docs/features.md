@@ -201,7 +201,7 @@
 | Multi-Prometheus | 📋 예정 | Lab-3 Prometheus(10.144.131.190:30003) 연동. 현재 47타겟 중 3개만 up, node-exporter 없음 → 타겟 복구 필요 |
 | 온도 외부 DB 연동 | 📋 보류 | Grafana에 ddr4_temp CSV + 다수 PostgreSQL 존재. 구체적 요건 미확인 |
 | DB 컨테이너 이름 변경 | 📋 예정 | docker-compose DB 서비스명 firsttest-db-1 → dcim-db 등으로 변경 |
-| systemd 서비스 등록 | 📋 예정 | 프로덕션 전환 시 자동 시작 |
+| systemd 서비스 등록 | ✅ 완료 | `scripts/setup-service.sh --install`로 서비스 등록. dev/prod 모드 전환, 부팅 시 자동 시작, `systemctl restart dcim`으로 코드 반영 |
 | 프로덕션 빌드 | 📋 예정 | npm run build + start 전환 |
 | DRAM 인증 테스트 관리 | 📋 예정 | 파트넘 기반 테스트 계획/추적 |
 | 워크로드 스텝 정보 | 📋 예정 | YAML 파싱 기반 실행 단계 표시 |
