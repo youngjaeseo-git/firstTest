@@ -215,6 +215,8 @@
 | 조직별 접근 제어 | 📋 예정 | 조직(팀) 단위로 장비 가시성·조작 권한 분리. 자기 조직 장비만 보이고 조작 가능, 타 조직 장비는 비노출. 조직별 보기/조작 권한을 별도 설정 |
 | 프로젝트 회고 준비 | ✅ 완료 | 바이브 코딩 경험 공유를 위한 회고 준비 자료 (docs/retrospective-prep.md). 4주간 읽어볼 파일 목록, 타임라인, 교훈 정리 |
 | 기술 데이터 흐름 문서 | ✅ 완료 | 전체 화면별 데이터 소스 매핑 문서 (docs/technical-data-flow.md) + 인터랙티브 다이어그램 (docs/data-flow-diagram.html). Prometheus/PostgreSQL/BMC/K8s 연동 상세 |
+| 결과보고서 | 📝 기획 완료 | 프로젝트 마무리 보고서 기획안 (docs/final-report-plan.md). 8개 섹션, A4 7-8페이지 분량. 본문 작성 대기 |
+| 프로젝트 진행 현황 | ✅ 완료 | 전체 진행 현황 + 미완료 + 결정 필요 사항 정리 (docs/project-status.md) |
 
 ---
 
