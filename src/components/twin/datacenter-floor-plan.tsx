@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Minus, Plus, Maximize2, Pencil, Check, Thermometer, BarChart3, Wind, AlignHorizontalJustifyCenter, AlignVerticalJustifyCenter } from "lucide-react";
+import { Minus, Plus, Maximize2, Pencil, Check, Thermometer, BarChart3, Wind, AlignHorizontalJustifyCenter, AlignVerticalJustifyCenter, Server, Cpu, ThermometerSun, HardDrive, ExternalLink } from "lucide-react";
 
 /* ─── Types ─── */
 
@@ -135,6 +136,7 @@ const MID_Y = 340;
 const SPLIT_X = 680;
 
 export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorPlanProps) {
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
@@ -717,14 +719,21 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
   const handleRackHover = useCallback((e: React.MouseEvent, rack: RackData) => {
     if (isEditMode) return;
     if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
-    const svgPt = clientToSVG(e.clientX, e.clientY);
+    const rect = containerRef.current?.getBoundingClientRect();
+    const x = e.clientX - (rect?.left ?? 0);
+    const y = e.clientY - (rect?.top ?? 0);
     const avgTemp = rackAvgTemp(rack, nodeTemps);
-    setTooltip({ x: svgPt.x, y: svgPt.y, rack, avgTemp });
-  }, [isEditMode, clientToSVG, nodeTemps]);
+    setTooltip({ x, y, rack, avgTemp });
+  }, [isEditMode, nodeTemps]);
 
   const handleRackLeave = useCallback(() => {
     tooltipTimeout.current = setTimeout(() => setTooltip(null), 100);
   }, []);
+
+  const handleRackClick = useCallback((rackId: string) => {
+    if (isEditMode || hasDragged.current) return;
+    router.push(`/racks?highlight=${rackId}`);
+  }, [isEditMode, router]);
 
   const toggleOverlay = useCallback((mode: OverlayMode) => {
     setOverlay((prev) => prev === mode ? "none" : mode);
@@ -947,7 +956,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               isEditMode={isEditMode}
               onRoomDragStart={handleRoomDragStart}
             />
-            <Lab3Interior rect={lab3Rect} room={lab3} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} elemMetaOverrides={elemMetaOverrides} onDeleteElement={handleDeleteElement} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={handleElementContextMenu} onRackContextMenu={handleRackContextMenu} addedElems={lab3 ? addedElems.filter(e => e.type !== "DOOR" && e.roomId === lab3.id) : []} removedIds={removedIds} selectedIds={selectedIds} />
+            <Lab3Interior rect={lab3Rect} room={lab3} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} elemMetaOverrides={elemMetaOverrides} onDeleteElement={handleDeleteElement} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={handleElementContextMenu} onRackContextMenu={handleRackContextMenu} addedElems={lab3 ? addedElems.filter(e => e.type !== "DOOR" && e.roomId === lab3.id) : []} removedIds={removedIds} selectedIds={selectedIds} onRackClick={handleRackClick} />
 
             {/* === Lab-2: bottom-left === */}
             <RoomBlock
@@ -978,7 +987,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               isEditMode={isEditMode}
               onRoomDragStart={handleRoomDragStart}
             />
-            <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} elemMetaOverrides={elemMetaOverrides} onDeleteElement={handleDeleteElement} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={handleElementContextMenu} onRackContextMenu={handleRackContextMenu} addedElems={lab1 ? addedElems.filter(e => e.type !== "DOOR" && e.roomId === lab1.id) : []} removedIds={removedIds} selectedIds={selectedIds} />
+            <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} elemMetaOverrides={elemMetaOverrides} onDeleteElement={handleDeleteElement} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={handleElementContextMenu} onRackContextMenu={handleRackContextMenu} addedElems={lab1 ? addedElems.filter(e => e.type !== "DOOR" && e.roomId === lab1.id) : []} removedIds={removedIds} selectedIds={selectedIds} onRackClick={handleRackClick} />
 
             {/* Walls — horizontal only (top/bottom separator) */}
             <line x1={P} y1={MID_Y} x2={W - P} y2={MID_Y} stroke="#374151" strokeWidth="3" />
@@ -1037,8 +1046,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               </g>
             ))}
 
-            {/* Tooltip */}
-            {tooltip && <RackTooltip x={tooltip.x} y={tooltip.y} rack={tooltip.rack} avgTemp={tooltip.avgTemp} />}
+            {/* Tooltip rendered as HTML overlay below */}
 
             {/* Context menu (edit mode right-click) */}
             {contextMenu && isEditMode && (() => {
@@ -1116,9 +1124,76 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
           </svg>
         </div>
 
+        {/* Rack hover tooltip (HTML overlay) */}
+        {tooltip && (() => {
+          const rack = tooltip.rack;
+          const pct = rackUtilPct(rack);
+          const usedU = rack.equipment.reduce((u, e) => u + (e.rackHeight || 1), 0);
+          const activeCount = rack.equipment.filter((e) => e.status === "ACTIVE").length;
+          const failedCount = rack.equipment.filter((e) => e.status === "FAILED" || e.status === "REPAIR").length;
+          const totalEq = rack.equipment.length;
+          const avgTemp = tooltip.avgTemp;
+          const tw = 220;
+          const th = 170;
+          const left = Math.min(tooltip.x + 16, (containerRef.current?.clientWidth ?? 800) - tw - 8);
+          const top = Math.max(8, tooltip.y - th - 8);
+          return (
+            <div
+              className="absolute z-50 pointer-events-none"
+              style={{ left, top, width: tw }}
+            >
+              <div className="rounded-lg border border-gray-700/80 bg-gray-900/95 p-3 shadow-xl backdrop-blur-sm">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-bold text-gray-100">{rack.name || "Rack"}</span>
+                  <span className="flex items-center gap-1 rounded bg-gray-800 px-1.5 py-0.5 text-[10px] text-gray-400">
+                    <ExternalLink className="h-2.5 w-2.5" />
+                    클릭하여 이동
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <Server className="h-3 w-3 text-blue-400 shrink-0" />
+                    <span className="text-gray-400">서버</span>
+                    <span className="ml-auto font-medium text-gray-200">{activeCount}<span className="text-gray-500">/{totalEq}</span></span>
+                    {failedCount > 0 && <span className="rounded bg-red-500/20 px-1 text-[10px] font-medium text-red-400">{failedCount} 장애</span>}
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <HardDrive className="h-3 w-3 text-purple-400 shrink-0" />
+                    <span className="text-gray-400">U 사용률</span>
+                    <span className="ml-auto font-medium" style={{ color: utilColor(pct) }}>{pct}%</span>
+                    <span className="text-[10px] text-gray-500">{usedU}/{rack.totalUnits}U</span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-800">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: utilColor(pct) }} />
+                  </div>
+                  {avgTemp !== null && (
+                    <div className="flex items-center gap-2 text-[11px]">
+                      <ThermometerSun className="h-3 w-3 text-orange-400 shrink-0" />
+                      <span className="text-gray-400">평균 온도</span>
+                      <span className="ml-auto font-medium" style={{ color: tempColor(avgTemp) }}>{avgTemp}°C</span>
+                    </div>
+                  )}
+                  {totalEq > 0 && (
+                    <div className="mt-1.5 border-t border-gray-800 pt-1.5">
+                      <div className="flex flex-wrap gap-1">
+                        {rack.equipment.slice(0, 6).map((eq, i) => (
+                          <span key={i} className={cn("rounded px-1 py-0.5 text-[9px] font-mono", eq.status === "ACTIVE" ? "bg-emerald-500/15 text-emerald-400" : eq.status === "FAILED" ? "bg-red-500/15 text-red-400" : "bg-gray-700/50 text-gray-500")}>
+                            {eq.hostname || eq.ipAddress || `srv-${i + 1}`}
+                          </span>
+                        ))}
+                        {totalEq > 6 && <span className="rounded bg-gray-800 px-1 py-0.5 text-[9px] text-gray-500">+{totalEq - 6}</span>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Pan hint */}
         <div className="absolute bottom-2 left-3 text-[10px] pointer-events-none select-none" style={{ color: isEditMode ? "#22d3ee" : "#374151" }}>
-          {isEditMode ? "L-click: Select · L-drag: Resize · R-drag: Move · R-tap: Menu · +: Add · ×: Delete" : "Drag: Pan · Zoom: +/- buttons"}
+          {isEditMode ? "L-click: Select · L-drag: Resize · R-drag: Move · R-tap: Menu · +: Add · ×: Delete" : "Drag: Pan · Zoom: +/- buttons · Click Rack: 랙 상세"}
         </div>
       </div>
 
@@ -1184,41 +1259,7 @@ function OverlayLegend({ mode }: { mode: OverlayMode }) {
   );
 }
 
-/* ─── Rack hover tooltip ─── */
-function RackTooltip({ x, y, rack, avgTemp }: {
-  x: number; y: number; rack: RackData; avgTemp: number | null;
-}) {
-  const pct = rackUtilPct(rack);
-  const tw = 140;
-  const th = avgTemp !== null ? 68 : 54;
-  const tx = Math.min(x + 12, W - tw - 8);
-  const ty = Math.max(8, y - th - 8);
-  const activeCount = rack.equipment.filter((e) => e.status === "ACTIVE").length;
-  const totalEq = rack.equipment.length;
-
-  return (
-    <g>
-      <rect x={tx} y={ty} width={tw} height={th} rx={5} fill="#111827" fillOpacity={0.95} stroke="#374151" strokeWidth={1} />
-      <text x={tx + 8} y={ty + 14} fill="#e5e7eb" fontSize="10" fontWeight="700" fontFamily="system-ui, sans-serif">
-        {rack.name || "Rack"}
-      </text>
-      <text x={tx + 8} y={ty + 28} fill="#9ca3af" fontSize="9" fontFamily="system-ui, sans-serif">
-        Servers: {activeCount}/{totalEq}
-      </text>
-      <text x={tx + 8} y={ty + 42} fontSize="9" fontFamily="system-ui, sans-serif">
-        <tspan fill="#9ca3af">U: </tspan>
-        <tspan fill={utilColor(pct)} fontWeight="600">{pct}%</tspan>
-        <tspan fill="#6b7280"> ({rack.equipment.reduce((u, e) => u + (e.rackHeight || 1), 0)}/{rack.totalUnits}U)</tspan>
-      </text>
-      {avgTemp !== null && (
-        <text x={tx + 8} y={ty + 56} fontSize="9" fontFamily="system-ui, sans-serif">
-          <tspan fill="#9ca3af">Temp: </tspan>
-          <tspan fill={tempColor(avgTemp)} fontWeight="600">{avgTemp}°C</tspan>
-        </text>
-      )}
-    </g>
-  );
-}
+/* (Rack tooltip is now rendered as HTML overlay in the main component) */
 
 /* ─── Door markers ─── */
 function DoorMarker({ x, y, horizontal, top }: { x: number; y: number; horizontal?: boolean; top?: boolean }) {
@@ -1254,7 +1295,7 @@ function RackIcon({
   isEditMode, onLeftDrag, onRightDrag,
   overlayColor, overlayOpacity,
   onMouseEnter, onMouseLeave,
-  resizing, onContextMenuTap, selected,
+  resizing, onContextMenuTap, selected, onClick,
 }: {
   x: number; y: number; w: number; h: number;
   label: string; accent: string; gradId: string;
@@ -1269,6 +1310,7 @@ function RackIcon({
   resizing?: boolean;
   onContextMenuTap?: (e: React.MouseEvent) => void;
   selected?: boolean;
+  onClick?: () => void;
 }) {
   const barH = Math.max(0, (h - 20) * Math.min((utilPct || 0) / 100, 1));
   const handleMouseDown = isEditMode ? (e: React.MouseEvent) => {
@@ -1283,6 +1325,7 @@ function RackIcon({
       onContextMenu={handleContextMenu}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      onClick={!isEditMode ? onClick : undefined}
     >
       <rect x={x} y={y} width={w} height={h} rx={3} fill={`url(#${gradId})`} stroke={selected ? "#3b82f6" : accent} strokeOpacity={selected ? 0.9 : 0.5} strokeWidth={selected ? 2.5 : 1.2} />
       {selected && <rect x={x - 2} y={y - 2} width={w + 4} height={h + 4} rx={5} fill="none" stroke="#3b82f6" strokeOpacity={0.4} strokeWidth={1} strokeDasharray="4 2" />}
@@ -1377,6 +1420,7 @@ interface InteriorProps {
   onElementContextMenu?: (e: React.MouseEvent, elemId: string, elemType: string, meta: Record<string, unknown>, w: number, h: number) => void;
   onRackContextMenu?: (e: React.MouseEvent, rackId: string, w: number, h: number) => void;
   selectedIds?: Set<string>;
+  onRackClick?: (rackId: string) => void;
 }
 
 /* ─── Compute overlay props for a rack ─── */
@@ -1393,7 +1437,7 @@ function overlayProps(rack: RackData, overlay?: OverlayMode, nodeTemps?: Record<
 }
 
 /* ─── Lab-3 interior ─── */
-function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, elemMetaOverrides, onDeleteElement, addedElems, removedIds, sizeOverrides, resizeState, onElementContextMenu, onRackContextMenu, selectedIds }: InteriorProps) {
+function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, elemMetaOverrides, onDeleteElement, addedElems, removedIds, sizeOverrides, resizeState, onElementContextMenu, onRackContextMenu, selectedIds, onRackClick }: InteriorProps) {
   const defaultRw = 54;
   const gap = 8;
   const oy = rect.y + 80;
@@ -1446,6 +1490,7 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
             resizing={!!rs}
             onContextMenuTap={isEditMode ? (e) => onRackContextMenu?.(e, rack.id, rw, rh) : undefined}
             selected={selectedIds?.has(rack.id)}
+            onClick={onRackClick ? () => onRackClick(rack.id) : undefined}
           />
         );
       })}
@@ -1526,7 +1571,7 @@ function Lab2Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
 }
 
 /* ─── Lab-1 interior ─── */
-function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, elemMetaOverrides, onDeleteElement, addedElems, removedIds, sizeOverrides, resizeState, onElementContextMenu, onRackContextMenu, selectedIds }: InteriorProps) {
+function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragStart, overlay, nodeTemps, onRackHover, onRackLeave, elemMetaOverrides, onDeleteElement, addedElems, removedIds, sizeOverrides, resizeState, onElementContextMenu, onRackContextMenu, selectedIds, onRackClick }: InteriorProps) {
   const defaultRw = 52;
   const defaultRh = 46;
   const gap = 6;
@@ -1584,6 +1629,7 @@ function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
             resizing={!!rs}
             onContextMenuTap={isEditMode ? (e) => onRackContextMenu?.(e, rack.id, rw, rh) : undefined}
             selected={selectedIds?.has(rack.id)}
+            onClick={onRackClick ? () => onRackClick(rack.id) : undefined}
           />
         );
       })}

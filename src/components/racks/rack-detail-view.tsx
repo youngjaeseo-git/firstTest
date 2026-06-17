@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -735,8 +735,17 @@ export function RacksPageClient({
 }: RacksClientProps) {
   const t = useT();
   const router = useRouter();
-  const [expandedRack, setExpandedRack] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get("highlight");
+  const [expandedRack, setExpandedRack] = useState<string | null>(highlightId);
   const [heatmap, setHeatmap] = useState(false);
+  const highlightRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (highlightId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightId]);
   const [temps, setTemps] = useState<Record<string, number>>({});
   const [loadingTemps, setLoadingTemps] = useState(false);
 
@@ -883,12 +892,14 @@ export function RacksPageClient({
                 const isExpanded = expandedRack === rack.id;
 
                 return (
-                  <div key={rack.id}>
+                  <div key={rack.id} ref={rack.id === highlightId ? highlightRef : undefined}>
                     <Card
                       className={cn(
                         "transition-colors",
                         isExpanded
                           ? "border-blue-600 bg-blue-600/5"
+                          : rack.id === highlightId
+                          ? "border-blue-500/50 bg-blue-500/5 ring-1 ring-blue-500/30"
                           : "hover:border-gray-600",
                       )}
                     >
