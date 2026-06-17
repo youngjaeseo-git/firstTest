@@ -490,18 +490,19 @@ export function ServerPageClient({ rooms, servers, initialView = "list" }: Serve
                 totalUnits > 0
                   ? Math.round((usedUnits / totalUnits) * 100)
                   : 0;
-              const colors = [
-                "from-blue-600/20 via-blue-600/5 to-transparent border-blue-500/40",
-                "from-gray-600/10 via-gray-600/5 to-transparent border-gray-600/30",
-                "from-purple-600/20 via-purple-600/5 to-transparent border-purple-500/40",
+              const colorMap: Record<string, { gradient: string; icon: string }> = {
+                "1": { gradient: "from-blue-600/20 via-blue-600/5 to-transparent border-blue-500/40", icon: "bg-blue-500/20 text-blue-300" },
+                "2": { gradient: "from-emerald-600/20 via-emerald-600/5 to-transparent border-emerald-500/40", icon: "bg-emerald-500/20 text-emerald-300" },
+                "3": { gradient: "from-purple-600/20 via-purple-600/5 to-transparent border-purple-500/40", icon: "bg-purple-500/20 text-purple-300" },
+              };
+              const fallbackColors = [
+                { gradient: "from-cyan-600/20 via-cyan-600/5 to-transparent border-cyan-500/40", icon: "bg-cyan-500/20 text-cyan-300" },
+                { gradient: "from-amber-600/20 via-amber-600/5 to-transparent border-amber-500/40", icon: "bg-amber-500/20 text-amber-300" },
               ];
-              const iconColors = [
-                "bg-blue-500/20 text-blue-300",
-                "bg-gray-600/20 text-gray-400",
-                "bg-purple-500/20 text-purple-300",
-              ];
-              const gradient = colors[idx % colors.length];
-              const iconColor = iconColors[idx % iconColors.length];
+              const nameKey = room.name.replace(/\D/g, "") || "";
+              const matched = colorMap[nameKey] || fallbackColors[idx % fallbackColors.length];
+              const gradient = matched.gradient;
+              const iconColor = matched.icon;
               return (
                 <button
                   key={room.id}
