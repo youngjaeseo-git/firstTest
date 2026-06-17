@@ -237,7 +237,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     if (lab2?.layoutX != null && lab2?.layoutY != null && lab2?.layoutW != null && lab2?.layoutH != null) {
       return { x: lab2.layoutX, y: lab2.layoutY, w: lab2.layoutW, h: lab2.layoutH };
     }
-    return { x: P, y: MID_Y + GAP / 2, w: SPLIT_X - P - GAP / 2, h: H - MID_Y - P - GAP / 2 };
+    return { x: P, y: MID_Y + GAP / 2, w: Math.round((SPLIT_X - P - GAP / 2) * 1.3), h: H - MID_Y - P - GAP / 2 };
   }, [lab2]);
 
   const lab1RectBase = useMemo(() => {
