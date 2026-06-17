@@ -8,19 +8,22 @@ from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
 import os
 
-# === Color Palette ===
-DARK_BG = RGBColor(0x1A, 0x1A, 0x2E)       # 진한 남색 배경
-ACCENT_BLUE = RGBColor(0x00, 0x96, 0xD6)    # 메인 파란색
-ACCENT_CYAN = RGBColor(0x00, 0xD4, 0xAA)    # 포인트 시안
-ACCENT_PURPLE = RGBColor(0x7C, 0x3A, 0xED)  # 보라색
-ACCENT_ORANGE = RGBColor(0xF5, 0x9E, 0x0B)  # 주황색
-ACCENT_RED = RGBColor(0xEF, 0x44, 0x44)     # 빨간색
-ACCENT_GREEN = RGBColor(0x22, 0xC5, 0x5E)   # 초록색
+# === Color Palette (Light Theme) ===
+SLIDE_BG = RGBColor(0xFF, 0xFF, 0xFF)       # 흰색 배경
+ACCENT_BLUE = RGBColor(0x00, 0x70, 0xC0)    # 메인 파란색 (진하게)
+ACCENT_CYAN = RGBColor(0x00, 0xA5, 0x85)    # 포인트 시안 (진하게)
+ACCENT_PURPLE = RGBColor(0x6C, 0x2E, 0xD6)  # 보라색
+ACCENT_ORANGE = RGBColor(0xE0, 0x8A, 0x00)  # 주황색 (진하게)
+ACCENT_RED = RGBColor(0xDC, 0x2E, 0x2E)     # 빨간색
+ACCENT_GREEN = RGBColor(0x16, 0xA3, 0x4A)   # 초록색
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
-LIGHT_GRAY = RGBColor(0xE5, 0xE7, 0xEB)
-MID_GRAY = RGBColor(0x94, 0xA3, 0xB8)
-DARK_GRAY = RGBColor(0x33, 0x33, 0x55)
-CARD_BG = RGBColor(0x24, 0x24, 0x3E)
+TEXT_PRIMARY = RGBColor(0x1F, 0x1F, 0x1F)   # 본문 텍스트 (거의 검정)
+TEXT_SECONDARY = RGBColor(0x5A, 0x5A, 0x6E) # 보조 텍스트 (짙은 회색)
+TEXT_MUTED = RGBColor(0x8C, 0x8C, 0x9A)     # 서브불릿 (중간 회색)
+LIGHT_GRAY = RGBColor(0xE5, 0xE7, 0xEB)     # 경계선
+CARD_BG = RGBColor(0xF8, 0xF9, 0xFB)        # 카드 배경 (아주 연한 회색)
+CARD_BORDER = RGBColor(0xE0, 0xE0, 0xE8)    # 카드 테두리
+SECTION_BG_TINT = RGBColor(0xF0, 0xF4, 0xF8) # 섹션 슬라이드 배경
 SECTION_COLORS = [
     ACCENT_BLUE,    # 1. Dashboard
     ACCENT_CYAN,    # 2. Server Monitoring
@@ -33,7 +36,7 @@ SECTION_COLORS = [
     ACCENT_RED,     # 9. Alerts
     RGBColor(0x8B, 0x5C, 0xF6),  # 10. Settings
     RGBColor(0x14, 0xB8, 0xA6),  # 11. Capacity/Reports
-    MID_GRAY,       # 12. Others
+    RGBColor(0x6B, 0x72, 0x80),  # 12. Others
 ]
 
 current_section_idx = 0
@@ -45,7 +48,7 @@ SLIDE_W = Inches(13.333)
 SLIDE_H = Inches(7.5)
 
 
-def set_slide_bg(slide, color=DARK_BG):
+def set_slide_bg(slide, color=SLIDE_BG):
     bg = slide.background
     fill = bg.fill
     fill.solid()
@@ -77,7 +80,7 @@ def add_accent_bar(slide, left, top, width, height, color=ACCENT_BLUE):
     return bar
 
 
-def add_text_box(slide, left, top, width, height, text, font_size=14, color=WHITE,
+def add_text_box(slide, left, top, width, height, text, font_size=14, color=TEXT_PRIMARY,
                  bold=False, alignment=PP_ALIGN.LEFT, font_name="맑은 고딕"):
     txBox = slide.shapes.add_textbox(left, top, width, height)
     tf = txBox.text_frame
@@ -92,7 +95,7 @@ def add_text_box(slide, left, top, width, height, text, font_size=14, color=WHIT
     return txBox
 
 
-def add_bullet_text(slide, left, top, width, height, bullets, font_size=14, color=WHITE,
+def add_bullet_text(slide, left, top, width, height, bullets, font_size=14, color=TEXT_PRIMARY,
                     spacing=Pt(6), font_name="맑은 고딕", line_spacing=1.3):
     txBox = slide.shapes.add_textbox(left, top, width, height)
     tf = txBox.text_frame
@@ -111,7 +114,7 @@ def add_bullet_text(slide, left, top, width, height, bullets, font_size=14, colo
             p.text = text
             p.level = 1
             p.font.size = Pt(font_size - 1)
-            p.font.color.rgb = MID_GRAY
+            p.font.color.rgb = TEXT_MUTED
             p.space_before = Pt(2)
             p.space_after = Pt(2)
             p.font.name = font_name
@@ -142,14 +145,14 @@ def make_cover_slide():
     add_text_box(slide, Inches(1.5), Inches(1.8), Inches(10), Inches(1),
                  "DC Express", font_size=52, color=ACCENT_BLUE, bold=True)
     add_text_box(slide, Inches(1.5), Inches(2.8), Inches(10), Inches(0.8),
-                 "Data Center Infrastructure Management System", font_size=24, color=LIGHT_GRAY)
+                 "Data Center Infrastructure Management System", font_size=24, color=TEXT_SECONDARY)
 
     add_accent_bar(slide, Inches(1.5), Inches(3.8), Inches(3), Inches(0.04), ACCENT_CYAN)
 
     add_text_box(slide, Inches(1.5), Inches(4.2), Inches(10), Inches(0.6),
-                 "사용자 매뉴얼", font_size=28, color=WHITE, bold=True)
+                 "사용자 매뉴얼", font_size=28, color=TEXT_PRIMARY, bold=True)
     add_text_box(slide, Inches(1.5), Inches(5.0), Inches(10), Inches(0.5),
-                 "전체 기능 안내서  |  2026년 6월", font_size=16, color=MID_GRAY)
+                 "전체 기능 안내서  |  2026년 6월", font_size=16, color=TEXT_SECONDARY)
 
     # bottom bar
     add_accent_bar(slide, Inches(0), Inches(7.38), SLIDE_W, Inches(0.06), ACCENT_BLUE)
@@ -162,7 +165,7 @@ def make_toc_slide(sections):
 
     add_accent_bar(slide, Inches(0), Inches(0), Inches(0.08), SLIDE_H, ACCENT_BLUE)
     add_text_box(slide, Inches(0.6), Inches(0.4), Inches(12), Inches(0.7),
-                 "목차 (Table of Contents)", font_size=30, color=WHITE, bold=True)
+                 "목차 (Table of Contents)", font_size=30, color=TEXT_PRIMARY, bold=True)
     add_accent_bar(slide, Inches(0.6), Inches(1.15), Inches(2.5), Inches(0.04), ACCENT_CYAN)
 
     col1 = sections[:6]
@@ -173,7 +176,7 @@ def make_toc_slide(sections):
         color = SECTION_COLORS[i] if i < len(SECTION_COLORS) else ACCENT_BLUE
         add_accent_bar(slide, Inches(0.6), Inches(y), Inches(0.06), Inches(0.5), color)
         add_text_box(slide, Inches(0.9), Inches(y), Inches(5.5), Inches(0.35),
-                     sec, font_size=16, color=WHITE)
+                     sec, font_size=16, color=TEXT_PRIMARY)
 
     for i, sec in enumerate(col2):
         y = 1.6 + i * 0.8
@@ -181,7 +184,7 @@ def make_toc_slide(sections):
         color = SECTION_COLORS[idx] if idx < len(SECTION_COLORS) else ACCENT_BLUE
         add_accent_bar(slide, Inches(7.0), Inches(y), Inches(0.06), Inches(0.5), color)
         add_text_box(slide, Inches(7.3), Inches(y), Inches(5.5), Inches(0.35),
-                     sec, font_size=16, color=WHITE)
+                     sec, font_size=16, color=TEXT_PRIMARY)
 
 
 def make_section_slide(title, subtitle="", section_idx=0):
@@ -217,11 +220,11 @@ def make_section_slide(title, subtitle="", section_idx=0):
     # title text
     clean_title = title.split(".", 1)[-1].strip() if "." in title else title
     add_text_box(slide, Inches(3.2), Inches(2.0), Inches(9), Inches(1.0),
-                 clean_title, font_size=40, color=WHITE, bold=True)
+                 clean_title, font_size=40, color=TEXT_PRIMARY, bold=True)
 
     if subtitle:
         add_text_box(slide, Inches(3.2), Inches(3.2), Inches(9), Inches(0.6),
-                     subtitle, font_size=18, color=MID_GRAY)
+                     subtitle, font_size=18, color=TEXT_SECONDARY)
 
     add_accent_bar(slide, Inches(3.2), Inches(4.0), Inches(4), Inches(0.04), color)
 
@@ -240,12 +243,12 @@ def make_content_slide(title, bullets, note=""):
 
     # title
     add_text_box(slide, Inches(0.6), Inches(0.3), Inches(12), Inches(0.7),
-                 title, font_size=26, color=WHITE, bold=True)
+                 title, font_size=26, color=TEXT_PRIMARY, bold=True)
     add_accent_bar(slide, Inches(0.6), Inches(1.0), Inches(2), Inches(0.035), color)
 
     # content area with card background
     card = add_shape(slide, Inches(0.5), Inches(1.3), Inches(12.3), Inches(5.7),
-                     fill_color=CARD_BG, border_color=DARK_GRAY, border_width=Pt(1))
+                     fill_color=CARD_BG, border_color=CARD_BORDER, border_width=Pt(1))
 
     add_bullet_text(slide, Inches(0.9), Inches(1.5), Inches(11.5), Inches(5.3),
                     bullets, font_size=16, line_spacing=1.4)
@@ -253,7 +256,7 @@ def make_content_slide(title, bullets, note=""):
     # page indicator
     slide_num = len(prs.slides)
     add_text_box(slide, Inches(12), Inches(7.1), Inches(1), Inches(0.3),
-                 str(slide_num), font_size=10, color=MID_GRAY, alignment=PP_ALIGN.RIGHT)
+                 str(slide_num), font_size=10, color=TEXT_MUTED, alignment=PP_ALIGN.RIGHT)
 
     if note:
         notes_slide = slide.notes_slide
@@ -269,12 +272,12 @@ def make_two_col_slide(title, left_title, left_bullets, right_title, right_bulle
     add_accent_bar(slide, Inches(0), Inches(0), SLIDE_W, Inches(0.05), color)
 
     add_text_box(slide, Inches(0.6), Inches(0.3), Inches(12), Inches(0.7),
-                 title, font_size=26, color=WHITE, bold=True)
+                 title, font_size=26, color=TEXT_PRIMARY, bold=True)
     add_accent_bar(slide, Inches(0.6), Inches(1.0), Inches(2), Inches(0.035), color)
 
     # left card
     add_shape(slide, Inches(0.5), Inches(1.3), Inches(5.9), Inches(5.7),
-              fill_color=CARD_BG, border_color=DARK_GRAY, border_width=Pt(1))
+              fill_color=CARD_BG, border_color=CARD_BORDER, border_width=Pt(1))
     if left_title:
         add_text_box(slide, Inches(0.8), Inches(1.4), Inches(5.3), Inches(0.5),
                      left_title, font_size=16, color=color, bold=True)
@@ -286,7 +289,7 @@ def make_two_col_slide(title, left_title, left_bullets, right_title, right_bulle
 
     # right card
     add_shape(slide, Inches(6.9), Inches(1.3), Inches(5.9), Inches(5.7),
-              fill_color=CARD_BG, border_color=DARK_GRAY, border_width=Pt(1))
+              fill_color=CARD_BG, border_color=CARD_BORDER, border_width=Pt(1))
     if right_title:
         add_text_box(slide, Inches(7.2), Inches(1.4), Inches(5.3), Inches(0.5),
                      right_title, font_size=16, color=color, bold=True)
@@ -298,7 +301,7 @@ def make_two_col_slide(title, left_title, left_bullets, right_title, right_bulle
 
     slide_num = len(prs.slides)
     add_text_box(slide, Inches(12), Inches(7.1), Inches(1), Inches(0.3),
-                 str(slide_num), font_size=10, color=MID_GRAY, alignment=PP_ALIGN.RIGHT)
+                 str(slide_num), font_size=10, color=TEXT_MUTED, alignment=PP_ALIGN.RIGHT)
 
     if note:
         notes_slide = slide.notes_slide
@@ -315,12 +318,12 @@ def make_ending_slide():
     add_text_box(slide, Inches(1.5), Inches(2.2), Inches(10), Inches(1),
                  "Thank You", font_size=48, color=ACCENT_BLUE, bold=True)
     add_text_box(slide, Inches(1.5), Inches(3.4), Inches(10), Inches(0.6),
-                 "DC Express — Data Center Infrastructure Management", font_size=20, color=MID_GRAY)
+                 "DC Express — Data Center Infrastructure Management", font_size=20, color=TEXT_MUTED)
 
     add_accent_bar(slide, Inches(1.5), Inches(4.3), Inches(3), Inches(0.04), ACCENT_CYAN)
 
     add_text_box(slide, Inches(1.5), Inches(4.8), Inches(10), Inches(0.5),
-                 "문의사항이 있으시면 언제든지 연락 주세요.", font_size=16, color=LIGHT_GRAY)
+                 "문의사항이 있으시면 언제든지 연락 주세요.", font_size=16, color=TEXT_SECONDARY)
 
     add_accent_bar(slide, Inches(0), Inches(7.38), SLIDE_W, Inches(0.06), ACCENT_BLUE)
     add_accent_bar(slide, Inches(0), Inches(7.44), SLIDE_W, Inches(0.06), ACCENT_CYAN)
