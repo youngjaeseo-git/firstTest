@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Zap } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -59,8 +59,8 @@ export default function SignupPage() {
       <div className="rounded-xl border border-gray-800 bg-gray-900 p-8 shadow-2xl">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <div className="relative mx-auto mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#FF8200] via-[#EA002C] to-[#B5008E] text-lg font-bold text-white shadow-lg shadow-[#EA002C]/25">
-            DC
+          <div className="relative mx-auto mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#FF8200] via-[#EA002C] to-[#B5008E] shadow-lg shadow-[#EA002C]/25">
+            <Zap className="h-6 w-6 text-white drop-shadow-sm" fill="white" aria-hidden="true" />
             <span className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-white/20" />
           </div>
           <h1 className="text-2xl font-bold text-gray-100">회원가입</h1>

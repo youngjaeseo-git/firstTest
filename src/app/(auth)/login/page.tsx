@@ -65,7 +65,7 @@ function LoginForm() {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-            className="h-8 w-8 rounded-full border-2 border-blue-500/30 border-t-blue-400"
+            className="h-8 w-8 rounded-full border-2 border-[#EA002C]/30 border-t-[#EA002C]"
           />
         </motion.div>
       ) : (
@@ -80,14 +80,11 @@ function LoginForm() {
         {/* Logo */}
         <div className="mb-8 text-center">
           <div className="relative mx-auto mb-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#FF8200] via-[#EA002C] to-[#B5008E] shadow-xl shadow-[#EA002C]/25">
-            <Zap className="h-7 w-7 text-white drop-shadow-sm" fill="white" />
+            <Zap className="h-7 w-7 text-white drop-shadow-sm" fill="white" aria-hidden="true" />
             <span className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/20" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-100">
-            DC{" "}
-            <span className="bg-gradient-to-r from-[#FF8200] via-[#EA002C] to-[#B5008E] bg-clip-text text-transparent">
-              Express
-            </span>
+            DC <span className="text-[#EA002C]">Express</span>
           </h1>
           <p className="mt-1.5 text-sm text-gray-500">
             Data Center Infrastructure Management
