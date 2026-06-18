@@ -5,7 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, CheckCircle2, Zap } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -79,10 +79,16 @@ function LoginForm() {
       >
         {/* Logo */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 text-lg font-bold shadow-xl shadow-blue-600/20">
-            DC
+          <div className="relative mx-auto mb-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#FF8200] via-[#EA002C] to-[#B5008E] shadow-xl shadow-[#EA002C]/25">
+            <Zap className="h-7 w-7 text-white drop-shadow-sm" fill="white" />
+            <span className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/20" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-100">DCIM Manager</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-100">
+            DC{" "}
+            <span className="bg-gradient-to-r from-[#FF8200] via-[#EA002C] to-[#B5008E] bg-clip-text text-transparent">
+              Express
+            </span>
+          </h1>
           <p className="mt-1.5 text-sm text-gray-500">
             Data Center Infrastructure Management
           </p>

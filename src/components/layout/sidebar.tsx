@@ -52,8 +52,9 @@ export function Sidebar() {
         href="/"
         className="group flex h-16 items-center gap-3 border-b border-gray-800/80 px-5 transition-colors hover:bg-gray-800/50"
       >
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-600/25 transition-transform duration-200 group-hover:scale-105">
-          <Zap className="h-5 w-5 text-white" fill="white" />
+        <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#FF8200] via-[#EA002C] to-[#B5008E] shadow-lg shadow-[#EA002C]/30 transition-transform duration-200 group-hover:scale-105">
+          <Zap className="relative h-5 w-5 text-white drop-shadow-sm" fill="white" />
+          <span className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-white/20" />
         </div>
         <div className="flex flex-col leading-none">
           <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">
@@ -61,7 +62,9 @@ export function Sidebar() {
           </span>
           <div className="mt-1 flex items-baseline gap-0.5">
             <span className="text-[17px] font-bold tracking-tight text-gray-50">DC</span>
-            <span className="text-[17px] font-semibold tracking-tight text-cyan-400">Express</span>
+            <span className="bg-gradient-to-r from-[#FF8200] via-[#EA002C] to-[#B5008E] bg-clip-text text-[17px] font-bold tracking-tight text-transparent">
+              Express
+            </span>
           </div>
         </div>
       </Link>

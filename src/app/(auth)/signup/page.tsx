@@ -59,12 +59,13 @@ export default function SignupPage() {
       <div className="rounded-xl border border-gray-800 bg-gray-900 p-8 shadow-2xl">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold">
+          <div className="relative mx-auto mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#FF8200] via-[#EA002C] to-[#B5008E] text-lg font-bold text-white shadow-lg shadow-[#EA002C]/25">
             DC
+            <span className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-white/20" />
           </div>
           <h1 className="text-2xl font-bold text-gray-100">회원가입</h1>
           <p className="mt-1 text-sm text-gray-400">
-            DCIM Manager 계정 생성
+            DC Express 계정 생성
           </p>
         </div>
 
