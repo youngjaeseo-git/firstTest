@@ -34,6 +34,7 @@
 | 워크로드 스텝 정보 | 📋 미착수 | YAML 파싱 기반 실행 단계 표시 | 낮음 |
 | 온도 외부 DB 연동 | 📋 보류 | Grafana의 ddr4_temp CSV + PostgreSQL. 요건 미확인 | 보류 |
 | 알림 규칙 평가 엔진 | 📋 미착수 | 규칙은 DB에 저장되지만, Prometheus에 주기적 평가하는 cron/loop 없음. 현재 만료 추적만 자동 알림 생성 | 중간 |
+| 파일시스템 표시 누락 서버 | 📋 확인 대기 | 일부 서버에서 파일시스템(디스크 마운트) 현황이 안 보임. 원인: `FilesystemBreakdown`이 node-exporter 전용 쿼리만 쓰고 cAdvisor 폴백 없음. **확인 스크립트**: `check/targetExecCmd/20260622.sh` (사무실에서 실행 → 어떤 서버에 filesystem 메트릭 없는지 확인 후 코드 수정) | 중간 |
 
 ## 미완료 — 운영/인프라
 
