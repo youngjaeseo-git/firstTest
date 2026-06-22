@@ -79,11 +79,27 @@ fi
 npx prisma generate 2>&1 | tail -1
 
 echo ""
-echo "=== 4. 개발 서버 시작 ==="
+echo "=== 4. 서버 시작 ==="
 if [ "$DEMO_MODE" = "true" ]; then
   echo "    📌 DEMO MODE (Prometheus 없이 더미 데이터)"
 fi
 echo "    http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost'):${PORT}"
 echo "    종료: Ctrl+C"
 echo ""
-npm run dev -- -p "$PORT"
+
+if [ "$MODE" = "prod" ]; then
+  echo "    🚀 프로덕션 모드"
+  if [ ! -d ".next" ] || [ "$(find src -newer .next/BUILD_ID -type f 2>/dev/null | head -1)" ]; then
+    echo "    빌드 실행 중... (최초 또는 코드 변경 시)"
+    npm run build
+    echo "    ✅ 빌드 완료"
+  else
+    echo "    ✅ 빌드 캐시 사용 (변경 없음)"
+  fi
+  echo ""
+  exec npm run start -- -p "$PORT"
+else
+  echo "    🔧 개발 모드 (hot-reload 활성)"
+  echo ""
+  exec npm run dev -- -p "$PORT"
+fi

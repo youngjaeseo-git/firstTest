@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Minus, Plus, Maximize2, Pencil, Check, Thermometer, BarChart3, Wind, AlignHorizontalJustifyCenter, AlignVerticalJustifyCenter, Server, Cpu, ThermometerSun, HardDrive, ExternalLink } from "lucide-react";
 
+const g = (n: number) => `rgb(var(--gray-${n}))`;
+
 /* ─── Types ─── */
 
 interface Rect {
@@ -856,8 +858,8 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
         className={cn(
           "relative overflow-hidden rounded-xl shadow-2xl shadow-black/40 select-none",
           isEditMode
-            ? "border-2 border-dashed border-cyan-500/40 bg-[#060a14]"
-            : "border border-gray-600/40 bg-[#060a14]",
+            ? "border-2 border-dashed border-cyan-500/40 bg-gray-950"
+            : "border border-gray-600/40 bg-gray-950",
           isPanning ? "cursor-grabbing" : isEditMode ? "cursor-default" : "cursor-grab",
         )}
         onMouseDown={handleMouseDown}
@@ -880,10 +882,10 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
           >
             <defs>
               <pattern id="fp-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-                <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#111827" strokeWidth="0.5" />
+                <path d="M 24 0 L 0 0 0 24" fill="none" stroke={g(900)} strokeWidth="0.5" />
               </pattern>
               <pattern id="fp-grid-fine" width="6" height="6" patternUnits="userSpaceOnUse">
-                <path d="M 6 0 L 0 0 0 6" fill="none" stroke="#0d1117" strokeWidth="0.3" />
+                <path d="M 6 0 L 0 0 0 6" fill="none" stroke={g(950)} strokeWidth="0.3" />
               </pattern>
               <filter id="glow-purple" x="-30%" y="-30%" width="160%" height="160%">
                 <feGaussianBlur stdDeviation="6" result="blur" />
@@ -912,8 +914,8 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
                 <stop offset="100%" stopColor="#1d4ed8" stopOpacity="0.04" />
               </linearGradient>
               <linearGradient id="grad-gray" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#6b7280" stopOpacity="0.06" />
-                <stop offset="100%" stopColor="#374151" stopOpacity="0.02" />
+                <stop offset="0%" stopColor={g(500)} stopOpacity="0.06" />
+                <stop offset="100%" stopColor={g(700)} stopOpacity="0.02" />
               </linearGradient>
               <linearGradient id="grad-emerald" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#10b981" stopOpacity="0.12" />
@@ -930,15 +932,15 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             </defs>
 
             {/* Background */}
-            <rect width={W} height={H} fill="#060a14" rx="10" onClick={() => { if (addMenuRoom) setAddMenuRoom(null); if (contextMenu) setContextMenu(null); if (selectedIds.size > 0) setSelectedIds(new Set()); }} />
+            <rect width={W} height={H} fill={g(950)} rx="10" onClick={() => { if (addMenuRoom) setAddMenuRoom(null); if (contextMenu) setContextMenu(null); if (selectedIds.size > 0) setSelectedIds(new Set()); }} />
             <rect width={W} height={H} fill="url(#fp-grid-fine)" rx="10" />
             <rect width={W} height={H} fill="url(#fp-grid)" rx="10" />
 
             {/* Building outline */}
-            <rect x={2} y={2} width={W - 4} height={H - 4} rx="10" fill="none" stroke="#1f2937" strokeWidth="2" />
+            <rect x={2} y={2} width={W - 4} height={H - 4} rx="10" fill="none" stroke={g(800)} strokeWidth="2" />
 
             {/* DC label */}
-            <text x={W / 2} y={H - 4} fill="#1f2937" fontSize="11" textAnchor="middle" fontFamily="system-ui, sans-serif" letterSpacing="4">
+            <text x={W / 2} y={H - 4} fill={g(800)} fontSize="11" textAnchor="middle" fontFamily="system-ui, sans-serif" letterSpacing="4">
               DATA CENTER — BUILDING A
             </text>
 
@@ -990,8 +992,8 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             <Lab1Interior rect={lab1Rect} room={lab1} isEditMode={isEditMode} getRackPos={getRackPos} getElemPos={getElemPos} onDragStart={handleItemDragStart} overlay={overlay} nodeTemps={nodeTemps} onRackHover={handleRackHover} onRackLeave={handleRackLeave} elemMetaOverrides={elemMetaOverrides} onDeleteElement={handleDeleteElement} sizeOverrides={sizeOverrides} resizeState={resizeState} onElementContextMenu={handleElementContextMenu} onRackContextMenu={handleRackContextMenu} addedElems={lab1 ? addedElems.filter(e => e.type !== "DOOR" && e.roomId === lab1.id) : []} removedIds={removedIds} selectedIds={selectedIds} onRackClick={handleRackClick} />
 
             {/* Walls — horizontal only (top/bottom separator) */}
-            <line x1={P} y1={MID_Y} x2={W - P} y2={MID_Y} stroke="#374151" strokeWidth="3" />
-            <line x1={P} y1={MID_Y} x2={W - P} y2={MID_Y} stroke="#6b7280" strokeWidth="1" strokeDasharray="6 3" />
+            <line x1={P} y1={MID_Y} x2={W - P} y2={MID_Y} stroke={g(700)} strokeWidth="3" />
+            <line x1={P} y1={MID_Y} x2={W - P} y2={MID_Y} stroke={g(500)} strokeWidth="1" strokeDasharray="6 3" />
 
             {/* Door markers — DB elements (building-wide drag), hardcoded fallback */}
             {(() => {
@@ -1021,7 +1023,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             ].map(({ room: r, rect: rr }) => r && (
               <g key={`add-${r.id}`}>
                 <g style={{ cursor: "pointer" }} onClick={() => setAddMenuRoom(addMenuRoom === r.id ? null : r.id)}>
-                  <circle cx={rr.x + rr.w - 24} cy={rr.y + 24} r={12} fill="#062c3a" stroke="#22d3ee" strokeOpacity={0.6} strokeWidth={1.2} />
+                  <circle cx={rr.x + rr.w - 24} cy={rr.y + 24} r={12} fill={g(900)} stroke="#22d3ee" strokeOpacity={0.6} strokeWidth={1.2} />
                   <text x={rr.x + rr.w - 24} y={rr.y + 29} fill="#22d3ee" fontSize="16" fontWeight="700" textAnchor="middle" fontFamily="system-ui, sans-serif">+</text>
                 </g>
                 {addMenuRoom === r.id && (() => {
@@ -1030,12 +1032,12 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
                   const my = rr.y + 42;
                   return (
                     <g>
-                      <rect x={mx - 6} y={my - 6} width={132} height={types.length * 24 + 12} rx={6} fill="#111827" fillOpacity={0.97} stroke="#374151" strokeWidth={1} />
-                      <text x={mx + 4} y={my + 10} fill="#6b7280" fontSize="8" fontWeight="600" fontFamily="system-ui, sans-serif">ADD ELEMENT</text>
+                      <rect x={mx - 6} y={my - 6} width={132} height={types.length * 24 + 12} rx={6} fill={g(900)} fillOpacity={0.97} stroke={g(700)} strokeWidth={1} />
+                      <text x={mx + 4} y={my + 10} fill={g(500)} fontSize="8" fontWeight="600" fontFamily="system-ui, sans-serif">ADD ELEMENT</text>
                       {types.map((type, i) => (
                         <g key={type} style={{ cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); handleAddElement(r.id, type); }}>
                           <rect x={mx} y={my + 16 + i * 24} width={120} height={20} rx={3} fill="transparent" className="hover:fill-[#1f2937]" />
-                          <text x={mx + 8} y={my + 16 + i * 24 + 14} fill="#d1d5db" fontSize="10" fontFamily="system-ui, sans-serif">
+                          <text x={mx + 8} y={my + 16 + i * 24 + 14} fill={g(300)} fontSize="10" fontFamily="system-ui, sans-serif">
                             {type === "MASTER_SERVER" ? "MASTER SERVER" : type}
                           </text>
                         </g>
@@ -1057,17 +1059,17 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
               const typeLabel = contextMenu.kind === "rack" ? "랙" : contextMenu.elemType;
               return (
                 <g>
-                  <rect x={mx - 4} y={my - 4} width={156} height={menuH} rx={6} fill="#111827" fillOpacity={0.97} stroke="#374151" strokeWidth={1} />
+                  <rect x={mx - 4} y={my - 4} width={156} height={menuH} rx={6} fill={g(900)} fillOpacity={0.97} stroke={g(700)} strokeWidth={1} />
                   <g style={{ cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); handleApplySizeToAll(); }}>
                     <rect x={mx} y={my} width={148} height={22} rx={3} fill="transparent" className="hover:fill-[#1f2937]" />
-                    <text x={mx + 8} y={my + 15} fill="#d1d5db" fontSize="10" fontFamily="system-ui, sans-serif">
+                    <text x={mx + 8} y={my + 15} fill={g(300)} fontSize="10" fontFamily="system-ui, sans-serif">
                       이 크기로 통일 ({typeLabel})
                     </text>
                   </g>
                   {canToggle && (
                     <g style={{ cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); handleContextMenuToggle(); }}>
                       <rect x={mx} y={my + 24} width={148} height={22} rx={3} fill="transparent" className="hover:fill-[#1f2937]" />
-                      <text x={mx + 8} y={my + 39} fill="#d1d5db" fontSize="10" fontFamily="system-ui, sans-serif">
+                      <text x={mx + 8} y={my + 39} fill={g(300)} fontSize="10" fontFamily="system-ui, sans-serif">
                         방향 전환
                       </text>
                     </g>
@@ -1192,7 +1194,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
         })()}
 
         {/* Pan hint */}
-        <div className="absolute bottom-2 left-3 text-[10px] pointer-events-none select-none" style={{ color: isEditMode ? "#22d3ee" : "#374151" }}>
+        <div className="absolute bottom-2 left-3 text-[10px] pointer-events-none select-none" style={{ color: isEditMode ? "#22d3ee" : "rgb(var(--gray-700))" }}>
           {isEditMode ? "L-click: Select · L-drag: Resize · R-drag: Move · R-tap: Menu · +: Add · ×: Delete" : "Drag: Pan · Zoom: +/- buttons · Click Rack: 랙 상세"}
         </div>
       </div>
@@ -1211,8 +1213,8 @@ function OverlayLegend({ mode }: { mode: OverlayMode }) {
   if (mode === "airflow") {
     return (
       <g>
-        <rect x={lx + 40} y={ly - 6} width={148} height={28} rx={4} fill="#0a0a0a" fillOpacity={0.85} stroke="#374151" strokeWidth={0.5} />
-        <text x={lx + 48} y={ly + 12} fill="#9ca3af" fontSize="8" fontFamily="system-ui, sans-serif">AIRFLOW</text>
+        <rect x={lx + 40} y={ly - 6} width={148} height={28} rx={4} fill={g(950)} fillOpacity={0.85} stroke={g(700)} strokeWidth={0.5} />
+        <text x={lx + 48} y={ly + 12} fill={g(400)} fontSize="8" fontFamily="system-ui, sans-serif">AIRFLOW</text>
         <polygon points={`${lx + 100},${ly + 12} ${lx + 96},${ly + 6} ${lx + 104},${ly + 6}`} fill="#22d3ee" fillOpacity={0.7} />
         <line x1={lx + 100} y1={ly + 14} x2={lx + 100} y2={ly + 6} stroke="#22d3ee" strokeOpacity={0.5} strokeWidth={1.5} />
         <text x={lx + 114} y={ly + 12} fill="#67e8f9" fontSize="8" fontFamily="system-ui, sans-serif">Cold→Hot</text>
@@ -1229,12 +1231,12 @@ function OverlayLegend({ mode }: { mode: OverlayMode }) {
     ];
     return (
       <g>
-        <rect x={lx - 8} y={ly - 6} width={196} height={28} rx={4} fill="#0a0a0a" fillOpacity={0.85} stroke="#374151" strokeWidth={0.5} />
-        <text x={lx} y={ly + 12} fill="#9ca3af" fontSize="8" fontFamily="system-ui, sans-serif">TEMP</text>
+        <rect x={lx - 8} y={ly - 6} width={196} height={28} rx={4} fill={g(950)} fillOpacity={0.85} stroke={g(700)} strokeWidth={0.5} />
+        <text x={lx} y={ly + 12} fill={g(400)} fontSize="8" fontFamily="system-ui, sans-serif">TEMP</text>
         {stops.map((s, i) => (
           <g key={i}>
             <rect x={lx + 34 + i * 32} y={ly} width={26} height={8} rx={2} fill={s.c} fillOpacity={0.7} />
-            <text x={lx + 34 + i * 32 + 13} y={ly + 18} fill="#6b7280" fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">{s.label}</text>
+            <text x={lx + 34 + i * 32 + 13} y={ly + 18} fill={g(500)} fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">{s.label}</text>
           </g>
         ))}
       </g>
@@ -1247,12 +1249,12 @@ function OverlayLegend({ mode }: { mode: OverlayMode }) {
   ];
   return (
     <g>
-      <rect x={lx + 40} y={ly - 6} width={148} height={28} rx={4} fill="#0a0a0a" fillOpacity={0.85} stroke="#374151" strokeWidth={0.5} />
-      <text x={lx + 48} y={ly + 12} fill="#9ca3af" fontSize="8" fontFamily="system-ui, sans-serif">UTIL</text>
+      <rect x={lx + 40} y={ly - 6} width={148} height={28} rx={4} fill={g(950)} fillOpacity={0.85} stroke={g(700)} strokeWidth={0.5} />
+      <text x={lx + 48} y={ly + 12} fill={g(400)} fontSize="8" fontFamily="system-ui, sans-serif">UTIL</text>
       {stops.map((s, i) => (
         <g key={i}>
           <rect x={lx + 76 + i * 36} y={ly} width={30} height={8} rx={2} fill={s.c} fillOpacity={0.7} />
-          <text x={lx + 76 + i * 36 + 15} y={ly + 18} fill="#6b7280" fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">{s.label}</text>
+          <text x={lx + 76 + i * 36 + 15} y={ly + 18} fill={g(500)} fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">{s.label}</text>
         </g>
       ))}
     </g>
@@ -1339,7 +1341,7 @@ function RackIcon({
         {label}
       </text>
       {servers !== undefined && servers > 0 && (
-        <text x={x + w / 2} y={y + h - 6} fill="#9ca3af" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">
+        <text x={x + w / 2} y={y + h - 6} fill={g(400)} fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">
           {servers}srv
         </text>
       )}
@@ -1368,7 +1370,7 @@ function CoolingUnit({ x, y, w, h }: { x: number; y: number; w?: number; h?: num
   const ch = h || 32;
   return (
     <g filter="url(#glow-cyan)">
-      <rect x={x} y={y} width={cw} height={ch} rx={5} fill="#062c3a" stroke="#22d3ee" strokeOpacity={0.5} strokeWidth={1} />
+      <rect x={x} y={y} width={cw} height={ch} rx={5} fill={g(900)} stroke="#22d3ee" strokeOpacity={0.5} strokeWidth={1} />
       <text x={x + cw / 2} y={y + ch / 2 + 1} fill="#67e8f9" fontSize="10" fontWeight="700" textAnchor="middle" dominantBaseline="middle" fontFamily="system-ui, sans-serif">
         AC
       </text>
@@ -1538,13 +1540,13 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
         <>
           {(() => { const ox4 = rect.x + rect.w * 0.50; return (
             <>
-              <g><rect x={ox4 + 140} y={oy} width={90} height={40} rx={4} fill="#1a1a2e" stroke="#6366f1" strokeOpacity={0.3} strokeWidth={1} /><text x={ox4 + 185} y={oy + 16} fill="#818cf8" fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">NET SWITCH</text><text x={ox4 + 185} y={oy + 30} fill="#4f46e5" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">ToR / Spine</text></g>
-              <g><rect x={ox4 + 140} y={oy + 52} width={100} height={36} rx={4} fill="#0a1628" stroke="#22c55e" strokeOpacity={0.4} strokeWidth={1} /><circle cx={ox4 + 154} cy={oy + 70} r={4} fill="#22c55e" fillOpacity={0.6} /><text x={ox4 + 166} y={oy + 66} fill="#4ade80" fontSize="9" fontWeight="600" fontFamily="system-ui, sans-serif">K8s Master</text><text x={ox4 + 166} y={oy + 78} fill="#166534" fontSize="7" fontFamily="system-ui, sans-serif">master-lab3</text></g>
+              <g><rect x={ox4 + 140} y={oy} width={90} height={40} rx={4} fill={g(900)} stroke="#6366f1" strokeOpacity={0.3} strokeWidth={1} /><text x={ox4 + 185} y={oy + 16} fill="#818cf8" fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">NET SWITCH</text><text x={ox4 + 185} y={oy + 30} fill="#4f46e5" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">ToR / Spine</text></g>
+              <g><rect x={ox4 + 140} y={oy + 52} width={100} height={36} rx={4} fill={g(900)} stroke="#22c55e" strokeOpacity={0.4} strokeWidth={1} /><circle cx={ox4 + 154} cy={oy + 70} r={4} fill="#22c55e" fillOpacity={0.6} /><text x={ox4 + 166} y={oy + 66} fill="#4ade80" fontSize="9" fontWeight="600" fontFamily="system-ui, sans-serif">K8s Master</text><text x={ox4 + 166} y={oy + 78} fill="#166534" fontSize="7" fontFamily="system-ui, sans-serif">master-lab3</text></g>
               <CoolingUnit x={rect.x + rect.w * 0.55} y={rect.y + rect.h - 52} />
               <CoolingUnit x={rect.x + rect.w * 0.55 + 90} y={rect.y + rect.h - 52} />
               <CoolingUnit x={rect.x + rect.w * 0.55 + 180} y={rect.y + rect.h - 52} />
               {[0, 1, 2].map((i) => { const cx = rect.x + rect.w * 0.55 + 36 + i * 90; const top = rect.y + rect.h - 54; return (<g key={`af-${i}`}><AirflowStream cx={cx - 14} startY={top} direction="up" /><AirflowStream cx={cx} startY={top} direction="up" /><AirflowStream cx={cx + 14} startY={top} direction="up" /></g>); })}
-              <rect x={rect.x + rect.w - 60} y={rect.y + rect.h - 52} width={44} height={34} rx={3} fill="#1a0a0a" stroke="#f59e0b" strokeOpacity={0.3} strokeWidth={0.8} />
+              <rect x={rect.x + rect.w - 60} y={rect.y + rect.h - 52} width={44} height={34} rx={3} fill={g(950)} stroke="#f59e0b" strokeOpacity={0.3} strokeWidth={0.8} />
               <text x={rect.x + rect.w - 38} y={rect.y + rect.h - 37} fill="#f59e0b" fillOpacity={0.6} fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">PDU</text>
               <text x={rect.x + rect.w - 38} y={rect.y + rect.h - 25} fill="#92400e" fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">3-Phase</text>
             </>
@@ -1560,10 +1562,10 @@ function Lab2Interior({ rect }: { rect: { x: number; y: number; w: number; h: nu
   return (
     <g>
       <FloorTiles x={rect.x} y={rect.y} w={rect.w} h={rect.h} accent="#10b981" />
-      <text x={rect.x + rect.w / 2} y={rect.y + rect.h / 2 - 6} fill="#374151" fontSize="13" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">
+      <text x={rect.x + rect.w / 2} y={rect.y + rect.h / 2 - 6} fill={g(700)} fontSize="13" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">
         AVAILABLE SPACE
       </text>
-      <text x={rect.x + rect.w / 2} y={rect.y + rect.h / 2 + 12} fill="#1f2937" fontSize="10" textAnchor="middle" fontFamily="system-ui, sans-serif">
+      <text x={rect.x + rect.w / 2} y={rect.y + rect.h / 2 + 12} fill={g(800)} fontSize="10" textAnchor="middle" fontFamily="system-ui, sans-serif">
         Future Expansion
       </text>
     </g>
@@ -1649,11 +1651,11 @@ function Lab1Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
       })()}
       {!(room?.elements && room.elements.length > 0) && (
         <>
-          <g><rect x={rect.x + 30} y={oy} width={90} height={40} rx={4} fill="#0c1929" stroke="#3b82f6" strokeOpacity={0.3} strokeWidth={1} /><text x={rect.x + 75} y={oy + 16} fill="#60a5fa" fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">NET SWITCH</text><text x={rect.x + 75} y={oy + 30} fill="#1d4ed8" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">ToR / Spine</text></g>
-          <rect x={rect.x + 30} y={oy + 60} width={44} height={34} rx={3} fill="#1a0a0a" stroke="#f59e0b" strokeOpacity={0.3} strokeWidth={0.8} />
+          <g><rect x={rect.x + 30} y={oy} width={90} height={40} rx={4} fill={g(900)} stroke="#3b82f6" strokeOpacity={0.3} strokeWidth={1} /><text x={rect.x + 75} y={oy + 16} fill="#60a5fa" fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">NET SWITCH</text><text x={rect.x + 75} y={oy + 30} fill="#1d4ed8" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">ToR / Spine</text></g>
+          <rect x={rect.x + 30} y={oy + 60} width={44} height={34} rx={3} fill={g(950)} stroke="#f59e0b" strokeOpacity={0.3} strokeWidth={0.8} />
           <text x={rect.x + 52} y={oy + 75} fill="#f59e0b" fillOpacity={0.6} fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">PDU</text>
           <text x={rect.x + 52} y={oy + 87} fill="#92400e" fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">3-Phase</text>
-          <g><rect x={rect.x + 30} y={oy + 120} width={100} height={36} rx={4} fill="#0a1628" stroke="#22c55e" strokeOpacity={0.4} strokeWidth={1} /><circle cx={rect.x + 44} cy={oy + 138} r={4} fill="#22c55e" fillOpacity={0.6} /><text x={rect.x + 56} y={oy + 134} fill="#4ade80" fontSize="9" fontWeight="600" fontFamily="system-ui, sans-serif">K8s Master</text><text x={rect.x + 56} y={oy + 146} fill="#166534" fontSize="7" fontFamily="system-ui, sans-serif">k8-master (DCIM)</text></g>
+          <g><rect x={rect.x + 30} y={oy + 120} width={100} height={36} rx={4} fill={g(900)} stroke="#22c55e" strokeOpacity={0.4} strokeWidth={1} /><circle cx={rect.x + 44} cy={oy + 138} r={4} fill="#22c55e" fillOpacity={0.6} /><text x={rect.x + 56} y={oy + 134} fill="#4ade80" fontSize="9" fontWeight="600" fontFamily="system-ui, sans-serif">K8s Master</text><text x={rect.x + 56} y={oy + 146} fill="#166534" fontSize="7" fontFamily="system-ui, sans-serif">k8-master (DCIM)</text></g>
         </>
       )}
     </g>
@@ -1743,26 +1745,26 @@ function RoomBlock({
         <>
           <text x={rect.x + 24} y={rect.y + 52} fontSize="11" fontFamily="system-ui, sans-serif">
             <tspan fill={accent} fontWeight="700">{stats.rackCount}</tspan>
-            <tspan fill="#4b5563"> Racks  </tspan>
-            <tspan fill="#374151">·</tspan>
-            <tspan fill="#4b5563">  </tspan>
+            <tspan fill={g(600)}> Racks  </tspan>
+            <tspan fill={g(700)}>·</tspan>
+            <tspan fill={g(600)}>  </tspan>
             <tspan fill={accent} fontWeight="700">{stats.equipmentCount}</tspan>
-            <tspan fill="#4b5563"> Servers  </tspan>
-            <tspan fill="#374151">·</tspan>
-            <tspan fill="#4b5563">  </tspan>
+            <tspan fill={g(600)}> Servers  </tspan>
+            <tspan fill={g(700)}>·</tspan>
+            <tspan fill={g(600)}>  </tspan>
             <tspan fill="#22c55e" fontWeight="700">{stats.activeCount}</tspan>
-            <tspan fill="#4b5563"> Active</tspan>
+            <tspan fill={g(600)}> Active</tspan>
           </text>
           <g transform={`translate(${rect.x + 24}, ${rect.y + 60})`}>
-            <rect x={0} y={0} width={180} height={4} rx={2} fill="#1f2937" />
+            <rect x={0} y={0} width={180} height={4} rx={2} fill={g(800)} />
             <rect x={0} y={0} width={180 * Math.min(stats.utilPct / 100, 1)} height={4} rx={2} fill={utilColor(stats.utilPct)} />
-            <text x={188} y={5} fill="#4b5563" fontSize="9" fontFamily="system-ui, sans-serif">
+            <text x={188} y={5} fill={g(600)} fontSize="9" fontFamily="system-ui, sans-serif">
               {stats.utilPct}% ({stats.usedU}/{stats.totalU}U)
             </text>
           </g>
         </>
       ) : (
-        <text x={rect.x + 24} y={rect.y + 56} fill="#4b5563" fontSize="12" fontFamily="system-ui, sans-serif">
+        <text x={rect.x + 24} y={rect.y + 56} fill={g(600)} fontSize="12" fontFamily="system-ui, sans-serif">
           {room ? t("twin.floorPlan.noManagedServers") : t("twin.floorPlan.noData")}
         </text>
       )}
@@ -1864,7 +1866,7 @@ function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onDelete, elemM
   if (elem.type === "SWITCH") {
     return (
       <g style={{ cursor: isEditMode ? "nwse-resize" : undefined }} onMouseDown={handleMouseDown} onContextMenu={elemContextMenu}>
-        <rect x={pos.x} y={pos.y} width={w} height={h} rx={4} fill="#1a1a2e" stroke="#6366f1" strokeOpacity={0.3} strokeWidth={1} />
+        <rect x={pos.x} y={pos.y} width={w} height={h} rx={4} fill={g(900)} stroke="#6366f1" strokeOpacity={0.3} strokeWidth={1} />
         <text x={pos.x + w / 2} y={pos.y + 16} fill="#818cf8" fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">{elem.name || "NET SWITCH"}</text>
         {meta.subLabel && <text x={pos.x + w / 2} y={pos.y + 30} fill="#4f46e5" fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">{String(meta.subLabel)}</text>}
         {editOverlay}
@@ -1875,7 +1877,7 @@ function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onDelete, elemM
   if (elem.type === "PDU") {
     return (
       <g style={{ cursor: isEditMode ? "nwse-resize" : undefined }} onMouseDown={handleMouseDown} onContextMenu={elemContextMenu}>
-        <rect x={pos.x} y={pos.y} width={w} height={h} rx={3} fill="#1a0a0a" stroke="#f59e0b" strokeOpacity={0.3} strokeWidth={0.8} />
+        <rect x={pos.x} y={pos.y} width={w} height={h} rx={3} fill={g(950)} stroke="#f59e0b" strokeOpacity={0.3} strokeWidth={0.8} />
         <text x={pos.x + w / 2} y={pos.y + h * 0.42} fill="#f59e0b" fillOpacity={0.6} fontSize="9" fontWeight="600" textAnchor="middle" fontFamily="system-ui, sans-serif">{elem.name || "PDU"}</text>
         {meta.subLabel && <text x={pos.x + w / 2} y={pos.y + h * 0.78} fill="#92400e" fontSize="7" textAnchor="middle" fontFamily="system-ui, sans-serif">{String(meta.subLabel)}</text>}
         {editOverlay}
@@ -1886,7 +1888,7 @@ function ElementIcon({ elem, pos, rect, isEditMode, onDragStart, onDelete, elemM
   if (elem.type === "MASTER_SERVER") {
     return (
       <g style={{ cursor: isEditMode ? "nwse-resize" : undefined }} onMouseDown={handleMouseDown} onContextMenu={elemContextMenu}>
-        <rect x={pos.x} y={pos.y} width={w} height={h} rx={4} fill="#0a1628" stroke="#22c55e" strokeOpacity={0.4} strokeWidth={1} />
+        <rect x={pos.x} y={pos.y} width={w} height={h} rx={4} fill={g(900)} stroke="#22c55e" strokeOpacity={0.4} strokeWidth={1} />
         <circle cx={pos.x + 14} cy={pos.y + h / 2} r={4} fill="#22c55e" fillOpacity={0.6} />
         <text x={pos.x + 26} y={pos.y + h * 0.42} fill="#4ade80" fontSize="9" fontWeight="600" fontFamily="system-ui, sans-serif">K8s Master</text>
         {meta.hostname && (
