@@ -14,6 +14,8 @@ import {
   Crown,
   Activity,
   HardDrive,
+  Building2,
+  DoorOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/i18n-context";
@@ -119,11 +121,15 @@ export function FleetOverview({
   cluster = "all",
   hostnameIpMap = {},
   platformStats = [],
+  totalRacks = 0,
+  totalRooms = 0,
 }: {
   statusCounts: StatusCounts;
   cluster?: Cluster;
   hostnameIpMap?: Record<string, string>;
   platformStats?: PlatformStat[];
+  totalRacks?: number;
+  totalRooms?: number;
 }) {
   const t = useT();
 
@@ -183,7 +189,7 @@ export function FleetOverview({
 
       {/* ─── Section: Server Status (All + Platform) ───────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Overall Status Donut */}
+        {/* Infrastructure Summary (Server Status + Rack/Room) */}
         <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible">
           <Card className="flex flex-col h-full">
             <div className="mb-4 flex items-center gap-2">
@@ -191,7 +197,7 @@ export function FleetOverview({
                 <Activity className="h-4 w-4 text-green-400" />
               </div>
               <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-                {t("dashboard.fleet.serverStatus")}
+                {t("dashboard.fleet.infraSummary") || "인프라 요약"}
               </h3>
             </div>
             {total === 0 ? (
@@ -199,37 +205,55 @@ export function FleetOverview({
                 <p className="text-sm text-gray-600">{t("common.noData")}</p>
               </div>
             ) : (
-              <div className="flex flex-1 items-center gap-4">
-                <div className="relative h-[130px] w-[130px] flex-shrink-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={donutData}
-                        dataKey="value"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={38}
-                        outerRadius={58}
-                        paddingAngle={2}
-                        strokeWidth={0}
-                      >
-                        {donutData.map((entry) => (
-                          <Cell key={entry.name} fill={entry.color} opacity={0.85} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <span className="text-xl font-bold text-gray-100">{total}</span>
-                      <p className="text-[10px] text-gray-500">{t("common.total")}</p>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="relative h-[110px] w-[110px] flex-shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={donutData}
+                          dataKey="value"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={34}
+                          outerRadius={50}
+                          paddingAngle={2}
+                          strokeWidth={0}
+                        >
+                          {donutData.map((entry) => (
+                            <Cell key={entry.name} fill={entry.color} opacity={0.85} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <span className="text-lg font-bold text-gray-100">{total}</span>
+                        <p className="text-[9px] text-gray-500">{t("common.total")}</p>
+                      </div>
                     </div>
                   </div>
+                  <div className="space-y-1.5">
+                    <StatusRow label={t("dashboard.fleet.active")} count={statusCounts.active} color="bg-green-500" textColor="text-green-400" />
+                    <StatusRow label={t("dashboard.fleet.maintenance")} count={statusCounts.maintenance} color="bg-amber-500" textColor="text-amber-400" />
+                    <StatusRow label={t("dashboard.fleet.failed")} count={statusCounts.failed} color="bg-red-500" textColor="text-red-400" />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <StatusRow label={t("dashboard.fleet.active")} count={statusCounts.active} color="bg-green-500" textColor="text-green-400" />
-                  <StatusRow label={t("dashboard.fleet.maintenance")} count={statusCounts.maintenance} color="bg-amber-500" textColor="text-amber-400" />
-                  <StatusRow label={t("dashboard.fleet.failed")} count={statusCounts.failed} color="bg-red-500" textColor="text-red-400" />
+                <div className="border-t border-gray-800 pt-3 grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 rounded-lg bg-gray-800/30 px-3 py-2">
+                    <DoorOpen className="h-4 w-4 text-purple-400" />
+                    <div>
+                      <p className="text-lg font-bold text-gray-100">{totalRooms}</p>
+                      <p className="text-[10px] text-gray-500">Rooms</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-lg bg-gray-800/30 px-3 py-2">
+                    <Building2 className="h-4 w-4 text-blue-400" />
+                    <div>
+                      <p className="text-lg font-bold text-gray-100">{totalRacks}</p>
+                      <p className="text-[10px] text-gray-500">Racks</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -290,11 +314,7 @@ export function FleetOverview({
       </div>
 
       {/* ─── Section: Active Workloads ─────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <ActiveWorkloads cluster={cluster} hostnameIpMap={hostnameIpMap} />
-        </div>
-      </div>
+      <ActiveWorkloads cluster={cluster} hostnameIpMap={hostnameIpMap} />
     </div>
   );
 }

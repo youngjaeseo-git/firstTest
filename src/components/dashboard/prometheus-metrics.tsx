@@ -9,7 +9,7 @@ import {
   YAxis,
 } from "recharts";
 import { Card } from "@/components/ui/card";
-import { Cpu, Thermometer, Clock, Wifi, WifiOff, Zap, Database, Network, MemoryStick, Gauge } from "lucide-react";
+import { Cpu, Thermometer, Clock, Wifi, WifiOff, Zap, Database, Network, MemoryStick, Gauge, Wind } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/i18n-context";
 import { queries } from "@/lib/prometheus";
@@ -147,6 +147,7 @@ const cardVariants = {
 export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Cluster; onClusterChange: (c: Cluster) => void }) {
   const t = useT();
   const [memTemp, setMemTemp] = useState<{ avgMemTemp: number | null; serverCount: number }>({ avgMemTemp: null, serverCount: 0 });
+  const [inletTemp, setInletTemp] = useState<{ avgInletTemp: number | null; serverCount: number }>({ avgInletTemp: null, serverCount: 0 });
   const sourceRef = useRef<EventSource | null>(null);
   const [data, setData] = useState<MetricData>({
     avgCpu: null,
@@ -208,6 +209,17 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
         .catch(() => {});
     fetchMemTemp();
     const timer = setInterval(fetchMemTemp, 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const fetchInletTemp = () =>
+      fetch("/api/metrics/inlet-temp")
+        .then((r) => r.json())
+        .then((j) => setInletTemp({ avgInletTemp: j.avgInletTemp ?? null, serverCount: j.serverCount ?? 0 }))
+        .catch(() => {});
+    fetchInletTemp();
+    const timer = setInterval(fetchInletTemp, 60_000);
     return () => clearInterval(timer);
   }, []);
 
@@ -334,11 +346,11 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
                 <Thermometer className="h-4 w-4 text-orange-400" />
               </div>
             </div>
-            <div className="mt-2 flex items-baseline gap-3">
+            <div className="mt-2 flex items-baseline gap-2">
               <div>
-                <p className="text-2xl font-bold text-gray-100">
+                <p className="text-xl font-bold text-gray-100">
                   {data.avgTemp !== null ? `${data.avgTemp.toFixed(1)}` : "-"}
-                  <span className="text-lg text-gray-500">°C</span>
+                  <span className="text-sm text-gray-500">°C</span>
                 </p>
                 <p className="text-[10px] text-gray-500 flex items-center gap-1">
                   <Cpu className="h-3 w-3" />
@@ -347,13 +359,24 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
               </div>
               <div className="h-8 w-px bg-gray-700" />
               <div>
-                <p className="text-2xl font-bold text-gray-100">
+                <p className="text-xl font-bold text-gray-100">
                   {memTemp.avgMemTemp !== null ? `${memTemp.avgMemTemp.toFixed(1)}` : "-"}
-                  <span className="text-lg text-gray-500">°C</span>
+                  <span className="text-sm text-gray-500">°C</span>
                 </p>
                 <p className="text-[10px] text-gray-500 flex items-center gap-1">
                   <MemoryStick className="h-3 w-3" />
                   DIMM
+                </p>
+              </div>
+              <div className="h-8 w-px bg-gray-700" />
+              <div>
+                <p className="text-xl font-bold text-gray-100">
+                  {inletTemp.avgInletTemp !== null ? `${inletTemp.avgInletTemp.toFixed(1)}` : "-"}
+                  <span className="text-sm text-gray-500">°C</span>
+                </p>
+                <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                  <Wind className="h-3 w-3" />
+                  Inlet
                 </p>
               </div>
             </div>

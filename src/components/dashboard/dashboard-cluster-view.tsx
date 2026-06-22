@@ -27,10 +27,14 @@ export function DashboardClusterView({
   statusCounts,
   hostnameIpMap = {},
   platformStats = [],
+  totalRacks = 0,
+  totalRooms = 0,
 }: {
   statusCounts: ClusterStatusCounts;
   hostnameIpMap?: Record<string, string>;
   platformStats?: PlatformStat[];
+  totalRacks?: number;
+  totalRooms?: number;
 }) {
   const [cluster, setCluster] = useState<Cluster>("all");
 
@@ -42,6 +46,8 @@ export function DashboardClusterView({
         cluster={cluster}
         hostnameIpMap={hostnameIpMap}
         platformStats={platformStats}
+        totalRacks={totalRacks}
+        totalRooms={totalRooms}
       />
     </>
   );

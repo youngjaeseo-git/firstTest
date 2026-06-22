@@ -3,15 +3,12 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { DashboardSummaryCards } from "@/components/dashboard/summary-cards";
 import { DashboardClusterView } from "@/components/dashboard/dashboard-cluster-view";
 import { PageTransition } from "@/components/ui/page-transition";
 import { PageHeader } from "@/components/ui/page-header";
 import {
   LayoutDashboard,
-  ListChecks,
   Bell,
   Server,
   Building2,
@@ -243,52 +240,12 @@ export default async function DashboardPage() {
             }}
             hostnameIpMap={hostnameIpMap}
             platformStats={platformStats}
-          />
-
-          {/* Summary Cards */}
-          <DashboardSummaryCards
-            totalEquipment={totalEquipment}
-            activeCount={activeEquipmentCount}
-            activeList={activeEquipmentList}
-            maintenanceCount={maintenanceCount}
-            maintenanceList={maintenanceEquipmentList}
-            failedCount={failedCount}
-            failedList={failedEquipmentList}
             totalRacks={totalRacks}
             totalRooms={totalRooms}
           />
 
-          {/* Status Breakdown + Alerts (compact row) */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Card>
-              <SectionHeading icon={ListChecks} title="Status Breakdown" accent="cyan" className="mb-3" />
-              <div className="flex flex-wrap gap-2">
-                {statusBreakdown.map((s) => (
-                  <div
-                    key={s.status}
-                    className="flex items-center gap-2 rounded-lg border border-gray-800/60 bg-gray-800/20 px-3 py-2 transition-colors hover:bg-gray-800/40"
-                  >
-                    <Badge
-                      variant={
-                        s.status === "ACTIVE"
-                          ? "active"
-                          : s.status === "FAILED"
-                            ? "critical"
-                            : s.status === "MAINTENANCE" || s.status === "REPAIR"
-                              ? "maintenance"
-                              : "info"
-                      }
-                    >
-                      {s.status}
-                    </Badge>
-                    <span className="font-mono text-sm font-semibold text-gray-300">
-                      {s._count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
+          {/* Active Alerts */}
+          <div>
             <Card>
               <SectionHeading
                 icon={Bell}
