@@ -28,7 +28,7 @@
 
 | 항목 | 상태 | 설명 | 우선순위 |
 |------|------|------|----------|
-| Multi-Prometheus | 📋 미착수 | Lab-3 Prometheus(10.144.131.190:30003) 연동. **인프라 문제**: 47타겟 중 3개만 up, node-exporter 없음. 코드에서도 PROMETHEUS_URL 1개만 지원 | 높음 |
+| Multi-Prometheus | ⚠️ 부분 완료 | **node-exporter는 2026-06-15에 연동 완료** (`20260615-lab3-ne-complete.md`: Lab-3 17/22 UP). Lab-1 Prometheus가 Lab-3 `131.x:9100`을 직접 수집 → 웹 코드 `lab3` 필터(`instance=~"10.144.131..*"`)가 무변경으로 동작. **남은 것**: ① 06-15 작업이 재시작 후에도 유지되는지 사무실 확인(`20260622-2.sh`) ② Lab-3 cAdvisor/K8s 컨테이너 메트릭(Lab-3 자체 Prometheus 비기능 → 인프라팀 ConfigMap 수리 필요). **별도 Prometheus URL 동시 쿼리(코드 방식)는 불필요** — 통합 수집이 우월 | 중간 |
 | 조직별 접근 제어 | 📋 미착수 | 팀별 장비 가시성/조작 권한 분리 | 중간 |
 | DRAM 인증 테스트 관리 | 📋 미착수 | 파트넘 기반 테스트 계획/추적 | 중간 |
 | 워크로드 스텝 정보 | 📋 미착수 | YAML 파싱 기반 실행 단계 표시 | 낮음 |
@@ -70,7 +70,7 @@
 | Evaluations/Workloads 메뉴 | 실제로 사용하는가? 사이드바에서 숨길까? | 5,130줄 분량. 핵심 DCIM과 동떨어진 특수 용도 (TODO-cleanup.md 참조). **team-a/team-b 분석 완료**: Evaluations는 이미 사이드바에서 빠져있음. Workloads는 sidebar.tsx 1줄 삭제로 숨김 가능하나, **Dashboard의 ActiveWorkloads 위젯이 /workloads 링크를 계속 렌더링** → 사이드바만 숨기면 반쪽짜리. 이 위젯이 실제로 유용한지 회사에서 확인 필요 |
 | 장비 상세 페이지 중복 | /servers/[id]와 /infrastructure/[id] 중 어느 쪽을 메인으로? | 둘 다 단일 장비 상세를 보여줌. 데이터 겹침 |
 | Firmware 단독 메뉴 | 별도 메뉴 유지? 장비 상세에 통합? | 사용 빈도 낮을 가능성 |
-| Multi-Prometheus 방향 | Lab-3 인프라 복구가 먼저인가, 코드 준비가 먼저인가? | 현재 Lab-3 Prometheus에 node-exporter 없고 타겟 대부분 down |
+| Lab-3 cAdvisor 메트릭 | Lab-3 컨테이너 메트릭을 보려면 인프라팀에 ConfigMap 수리를 요청할 것인가? | **node-exporter(CPU/Mem/Disk/Net)는 06-15에 통합 완료**. 남은 cAdvisor/K8s 메트릭은 Lab-3 자체 Prometheus 복구 필요(인프라팀 권한). 4-에이전트 분석 결과 코드 우회(별도 URL)는 불필요·비권장 |
 | 온도 외부 DB | Grafana의 ddr4_temp 데이터를 연동할 것인가? | 구체적 요건 미확인 상태 |
 | 알림 규칙 평가 엔진 | 규칙을 실제로 Prometheus에서 평가할 것인가? | 현재 규칙 저장만 되고 평가 안 됨. 만료 추적만 자동 |
 
@@ -78,13 +78,16 @@
 
 ## Prometheus 연동 현황
 
+> ⚠️ 아래는 수집 경로별 현황. Lab-3 데이터는 **Lab-3 자체 Prometheus가 아니라 Lab-1 Prometheus가 직접 수집**하는 구조 (PCM·node-exporter 모두 hostname/IP 기반 직접 스크래이프).
+
 | 항목 | Lab-1 | Lab-3 |
 |------|-------|-------|
 | Prometheus 주소 | 10.100.175.248:8080 (ClusterIP) | 10.144.131.190:30003 |
-| 연결 상태 | ✅ 정상 | ❌ Lab-1에서 접근 불가 |
-| node-exporter | ✅ 정상 | ❌ 없음 |
-| cAdvisor | ✅ 정상 | ⚠️ 3/47 타겟만 up |
-| 코드 연동 | ✅ 단일 URL | ❌ Multi-URL 미지원 |
+| Lab-3 자체 Prometheus | — | ❌ 비기능 (K8s API 접근 불가, 타겟 0) — 인프라팀 영역 |
+| PCM(전력, :9200) | ✅ 정상 | ✅ Lab-1이 직접 수집 (`AE-SMC-GNRSP_PCM` 10/10) |
+| node-exporter(:9100) | ✅ 정상 | ⚠️ **06-15 연동 완료(17/22 UP)** — 재시작 후 유지 여부 사무실 확인 필요 |
+| cAdvisor/K8s 컨테이너 | ✅ 정상 | ❌ Lab-3 자체 Prometheus 필요 → 인프라팀 ConfigMap 수리 대기 |
+| 웹 코드 연동 | ✅ 단일 URL | ✅ `lab3` 필터 완성 — 통합 수집되면 무변경 동작 |
 
 ---
 
