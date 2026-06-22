@@ -8,11 +8,7 @@ cd "$APP_DIR"
 
 export PATH=$HOME/opt/node-20/bin:$PATH
 
-echo "=== 1. 최신 소스 가져오기 ==="
-git pull origin claude/dcim-management-system-6oyFy
-echo ""
-
-echo "=== 2. DB 환경변수 설정 ==="
+echo "=== 1. DB 환경변수 설정 ==="
 DB_CONTAINER=$(docker compose ps -q db 2>/dev/null)
 REAL_PASSWORD=$(docker inspect "$DB_CONTAINER" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep POSTGRES_PASSWORD | cut -d= -f2-)
 if [ -z "$REAL_PASSWORD" ]; then
@@ -26,18 +22,18 @@ export DATABASE_URL="postgresql://dcim:${REAL_PASSWORD}@localhost:${REAL_PORT}/d
 echo "DB URL 설정 완료"
 echo ""
 
-echo "=== 3. Prisma 준비 ==="
+echo "=== 2. Prisma 준비 ==="
 npx prisma generate 2>&1 | tail -1
 npx prisma migrate deploy 2>&1 || echo "마이그레이션 스킵 (변경 없음)"
 echo ""
 
-echo "=== 4. 프로덕션 빌드 ==="
+echo "=== 3. 프로덕션 빌드 ==="
 npm run build 2>&1
 echo ""
 echo "✅ 빌드 성공!"
 echo ""
 
-echo "=== 5. 서비스 재시작 ==="
+echo "=== 4. 서비스 재시작 ==="
 if systemctl is-active dcim >/dev/null 2>&1 || systemctl is-enabled dcim >/dev/null 2>&1; then
   systemctl restart dcim
   echo "✅ dcim 서비스 재시작 완료"

@@ -69,7 +69,7 @@ case "${1:-}" in
     echo "  재시작:     systemctl restart dcim"
     echo "  중지:       systemctl stop dcim"
     echo ""
-    echo "  코드 수정 후:  git pull && systemctl restart dcim"
+    echo "  코드 수정 후:  파일 복사 → systemctl restart dcim"
     echo "  프로덕션 전환: ${SERVICE_FILE} 에서 DCIM_MODE=prod 로 변경 후 restart"
     echo ""
 
