@@ -19,7 +19,6 @@ import {
   MemoryStick,
   Boxes,
   History,
-  Zap,
   Users,
   Map,
 } from "lucide-react";
@@ -52,17 +51,40 @@ export function Sidebar() {
         href="/"
         className="group flex h-16 items-center gap-3 border-b border-gray-800/80 px-5 transition-colors hover:bg-gray-800/50"
       >
-        <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#FF8200] via-[#EA002C] to-[#B5008E] shadow-lg shadow-[#EA002C]/30 transition-transform duration-200 group-hover:scale-105">
-          <Zap className="h-5 w-5 text-white drop-shadow-sm" fill="white" aria-hidden="true" />
-          <span className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-white/20" />
+        {/* Icon: glowing ring with DRAM cell grid */}
+        <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-105">
+          <span
+            className="pointer-events-none absolute inset-0 rounded-full bg-[#EA002C]/30 blur-md"
+            aria-hidden="true"
+          />
+          <svg viewBox="0 0 40 40" className="relative h-10 w-10" aria-hidden="true">
+            <defs>
+              <linearGradient id="brandRing" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#FF8200" />
+                <stop offset="100%" stopColor="#EA002C" />
+              </linearGradient>
+            </defs>
+            <circle cx="20" cy="20" r="15" fill="none" stroke="url(#brandRing)" strokeWidth="2" />
+            {[13, 20, 27].map((cy) =>
+              [13, 20, 27].map((cx) => (
+                <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.7" fill="#C2703D" />
+              )),
+            )}
+          </svg>
         </div>
         <div className="flex flex-col leading-none">
-          <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">
-            DRAM AE
-          </span>
-          <div className="mt-1 flex items-baseline gap-0.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[13px] font-bold leading-none">
+              <span className="text-[#EA002C]">SK</span>
+              <span className="text-[#FF8200]">hynix</span>
+            </span>
+            <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-gray-400">
+              DRAM AE
+            </span>
+          </div>
+          <div className="mt-1.5 flex items-baseline gap-0.5">
             <span className="text-[17px] font-bold tracking-tight text-gray-50">DC</span>
-            <span className="text-[17px] font-bold tracking-tight text-[#EA002C]">Express</span>
+            <span className="text-[17px] font-bold tracking-tight text-gray-50">Express</span>
           </div>
         </div>
       </Link>
