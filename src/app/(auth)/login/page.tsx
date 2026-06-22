@@ -32,8 +32,8 @@ function LoginForm() {
       callbackUrl,
     });
 
-    if (result?.error) {
-      setError("Invalid email or password.");
+    if (!result || !result.ok || result.error) {
+      setError(result?.error || "로그인에 실패했습니다. 다시 시도해주세요.");
       setLoading(false);
     } else {
       setSuccess(true);
