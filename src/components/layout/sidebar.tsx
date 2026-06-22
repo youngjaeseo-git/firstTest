@@ -73,12 +73,12 @@ export function Sidebar() {
           </svg>
         </div>
         <div className="flex flex-col leading-none">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-baseline gap-1.5">
             <span className="text-[13px] font-bold leading-none">
               <span className="text-[#EA002C]">SK</span>
               <span className="text-[#FF8200]">hynix</span>
             </span>
-            <span className="text-[9px] font-semibold uppercase tracking-[0.15em] text-gray-400">
+            <span className="text-[9px] font-semibold uppercase tracking-[0.02em] text-gray-400">
               DRAM AE
             </span>
           </div>
