@@ -1,4 +1,4 @@
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/db";
 import { RacksPageClient } from "@/components/racks/rack-detail-view";
