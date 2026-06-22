@@ -35,6 +35,22 @@ function LoginForm() {
     if (!result || !result.ok || result.error) {
       setError(result?.error || "로그인에 실패했습니다. 다시 시도해주세요.");
       setLoading(false);
+    } else if (result.url && result.url.includes("csrf=true")) {
+      const retry = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+        callbackUrl,
+      });
+      if (!retry || !retry.ok || retry.error) {
+        setError(retry?.error || "로그인에 실패했습니다. 다시 시도해주세요.");
+        setLoading(false);
+      } else {
+        setSuccess(true);
+        setTimeout(() => {
+          window.location.href = callbackUrl;
+        }, 400);
+      }
     } else {
       setSuccess(true);
       setTimeout(() => {
