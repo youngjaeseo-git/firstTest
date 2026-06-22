@@ -47,9 +47,12 @@ npx prisma generate 2>&1 | tail -1
 
 if [ "$MODE" = "prod" ]; then
   echo "[dcim] 프로덕션 모드 (port=$PORT)"
-  if [ ! -d ".next" ] || [ "$(find src -newer .next/BUILD_ID -type f 2>/dev/null | head -1)" ]; then
+  if [ ! -f ".next/BUILD_ID" ] || [ "$(find src -newer .next/BUILD_ID -type f 2>/dev/null | head -1)" ]; then
     echo "[dcim] 빌드 실행..."
     npm run build
+    echo "[dcim] 빌드 완료"
+  else
+    echo "[dcim] 빌드 캐시 사용 (변경 없음)"
   fi
   exec npm run start -- -p "$PORT"
 else

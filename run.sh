@@ -89,7 +89,7 @@ echo ""
 
 if [ "$MODE" = "prod" ]; then
   echo "    🚀 프로덕션 모드"
-  if [ ! -d ".next" ] || [ "$(find src -newer .next/BUILD_ID -type f 2>/dev/null | head -1)" ]; then
+  if [ ! -f ".next/BUILD_ID" ] || [ "$(find src -newer .next/BUILD_ID -type f 2>/dev/null | head -1)" ]; then
     echo "    빌드 실행 중... (최초 또는 코드 변경 시)"
     npm run build
     echo "    ✅ 빌드 완료"
