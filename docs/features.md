@@ -1,6 +1,6 @@
 # DCIM 기능 목록
 
-> 2026-06-05 기준 구현 상태
+> 2026-06-23 기준 구현 상태
 
 ---
 
@@ -12,7 +12,7 @@
 | 평균 CPU/Memory 사용률 | ✅ 완료 | node-exporter 우선, cAdvisor 폴백 |
 | 총 전력 소비량 | ✅ 완료 | Intel PCM Package_Joules_Consumed 합산 |
 | 네트워크 트래픽 요약 | ✅ 완료 | 인바운드/아웃바운드 합산 |
-| Fleet Top 5 CPU/Memory | ✅ 완료 | NE+cAdvisor dedup, hostname 표시 |
+| Fleet Top 5 CPU/Memory | ✅ 완료 | NE+cAdvisor dedup, hostname 표시, IP↔hostname 중복 제거(node_uname_info 기반) |
 | Lab-1/Lab-3 클러스터 필터 | ✅ 완료 | All/Lab-1/Lab-3 탭으로 메트릭 분리 |
 | Trend Sparkline | ✅ 완료 | CPU/Memory/Network/Power 추이 그래프 |
 | Platform 분포 | ✅ 완료 | GNR-AP/GNR-SP/SPR/Ampere/SRF별 장비 수 |
@@ -126,7 +126,7 @@
 
 | 기능 | 상태 | 설명 |
 |------|------|------|
-| Active 탭 | ✅ 완료 | Prometheus 실시간 Pod 상태 (namespace별 그룹) |
+| Active 탭 | ✅ 완료 | Prometheus 실시간 Pod 상태 (namespace별 그룹), Lab-1/Lab-3 듀얼 Prometheus 지원 |
 | 종료된 워크로드 | ✅ 완료 | DB에 기록된 과거 namespace를 Active 탭 하단 표시 |
 | History 탭 | ✅ 완료 | 프로젝트 달력 타임라인 시각화 |
 | Pod Health | ✅ 완료 | Running/Pending/Warning/Error/Completed 상태 |
@@ -204,14 +204,14 @@
 | 기능 | 상태 | 설명 |
 |------|------|------|
 | UI/디자인 개선 | 📋 예정 | 전체 페이지 디자인 통일·토큰 정리 (마지막 단계) |
-| Multi-Prometheus | 📋 예정 | Lab-3 Prometheus(10.144.131.190:30003) 연동. 현재 47타겟 중 3개만 up, node-exporter 없음 → 타겟 복구 필요 |
+| Multi-Prometheus | ✅ 완료 | Lab-3 Prometheus(10.144.131.190:30003) 듀얼 조회. instantQueryFrom() + source=lab3 API 파라미터. 대시보드 Active Workloads에서 Lab-3 Pod 표시 |
 | 온도 외부 DB 연동 | 📋 보류 | Grafana에 ddr4_temp CSV + 다수 PostgreSQL 존재. 구체적 요건 미확인 |
 | DB 컨테이너 이름 변경 | 📋 예정 | docker-compose DB 서비스명 firsttest-db-1 → dcim-db 등으로 변경 |
 | systemd 서비스 등록 | ✅ 완료 | `scripts/setup-service.sh --install`로 서비스 등록. dev/prod 모드 전환, 부팅 시 자동 시작, `systemctl restart dcim`으로 코드 반영 |
 | 프로덕션 빌드 | 📋 예정 | npm run build + start 전환 |
 | DRAM 인증 테스트 관리 | 📋 예정 | 파트넘 기반 테스트 계획/추적 |
 | 워크로드 스텝 정보 | 📋 예정 | YAML 파싱 기반 실행 단계 표시 |
-| 로고 디자인 확정 | 📋 예정 | 사이드바 로고 아이콘/스타일 최종 확정 (시안 검토 중) |
+| 로고 디자인 확정 | ✅ 완료 | SK hynix 브랜딩 로고 적용 (사이드바/로그인/회원가입). DRAM AE 워드마크 + 글로우 링 + 3x3 셀 그리드 |
 | 조직별 접근 제어 | 📋 예정 | 조직(팀) 단위로 장비 가시성·조작 권한 분리. 자기 조직 장비만 보이고 조작 가능, 타 조직 장비는 비노출. 조직별 보기/조작 권한을 별도 설정 |
 | 프로젝트 회고 준비 | ✅ 완료 | 바이브 코딩 경험 공유를 위한 회고 준비 자료 (docs/retrospective-prep.md). 4주간 읽어볼 파일 목록, 타임라인, 교훈 정리 |
 | 기술 데이터 흐름 문서 | ✅ 완료 | 전체 화면별 데이터 소스 매핑 문서 (docs/technical-data-flow.md) + 인터랙티브 다이어그램 (docs/data-flow-diagram.html). Prometheus/PostgreSQL/BMC/K8s 연동 상세 |

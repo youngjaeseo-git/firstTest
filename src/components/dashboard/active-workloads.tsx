@@ -39,11 +39,12 @@ interface WorkloadGroup {
 
 async function fetchInstant(
   query: string,
+  source?: "lab3",
 ): Promise<{ metric: Record<string, string>; value?: [number, string] }[]> {
   try {
-    const res = await fetch(
-      `/api/metrics/instant?query=${encodeURIComponent(query)}`,
-    );
+    let url = `/api/metrics/instant?query=${encodeURIComponent(query)}`;
+    if (source) url += `&source=${source}`;
+    const res = await fetch(url);
     if (!res.ok) return [];
     const json = await res.json();
     return json?.data?.result ?? [];
@@ -162,34 +163,71 @@ export function ActiveWorkloads({
   const fetchWorkloads = useCallback(async () => {
     const now = Math.floor(Date.now() / 1000);
 
-    let fetchFailed = false;
-    const podsRaw = await fetch(
-      `/api/metrics/instant?query=${encodeURIComponent(queries.workloadPods())}`,
-    )
-      .then((r) => {
-        if (!r.ok) throw new Error("workload pods query failed");
-        return r.json();
-      })
-      .catch(() => {
-        fetchFailed = true;
-        return null;
-      });
+    const needLab1 = cluster !== "lab3";
+    const needLab3 = cluster === "all" || cluster === "lab3";
 
-    if (fetchFailed) {
-      setError(true);
-      setLoading(false);
-      return;
+    let fetchFailed = false;
+    let lab1PodResults: { metric: Record<string, string>; value?: [number, string] }[] = [];
+
+    if (needLab1) {
+      const podsRaw = await fetch(
+        `/api/metrics/instant?query=${encodeURIComponent(queries.workloadPods())}`,
+      )
+        .then((r) => {
+          if (!r.ok) throw new Error("workload pods query failed");
+          return r.json();
+        })
+        .catch(() => {
+          fetchFailed = true;
+          return null;
+        });
+
+      if (fetchFailed) {
+        setError(true);
+        setLoading(false);
+        return;
+      }
+      lab1PodResults = podsRaw?.data?.result ?? [];
     }
 
-    const podResults: { metric: Record<string, string>; value?: [number, string] }[] =
-      podsRaw?.data?.result ?? [];
-    const [createdResults, phaseResults, waitingResults, nodeTempData, nodeInfoResults] = await Promise.all([
-      fetchInstant(queries.workloadPodCreated()),
-      fetchInstant(queries.workloadPodPhase()),
-      fetchInstant(queries.workloadPodWaitingReason()),
+    const [lab3Pods, lab3Created, lab3Phase, lab3Waiting] = needLab3
+      ? await Promise.all([
+          fetchInstant(queries.workloadPods(), "lab3"),
+          fetchInstant(queries.workloadPodCreated(), "lab3"),
+          fetchInstant(queries.workloadPodPhase(), "lab3"),
+          fetchInstant(queries.workloadPodWaitingReason(), "lab3"),
+        ])
+      : [[], [], [], []];
+
+    const lab3NodeSet = new Set<string>();
+    for (const r of lab3Pods) {
+      const node = r.metric.node || "";
+      if (node) lab3NodeSet.add(node);
+    }
+
+    const podResults = cluster === "lab3" ? lab3Pods : lab1PodResults.concat(
+      lab3Pods.filter((r) => {
+        const key = `${r.metric.namespace}/${r.metric.pod}`;
+        return !lab1PodResults.some((l) => `${l.metric.namespace}/${l.metric.pod}` === key);
+      }),
+    );
+
+    const lab1Extras = needLab1
+      ? await Promise.all([
+          fetchInstant(queries.workloadPodCreated()),
+          fetchInstant(queries.workloadPodPhase()),
+          fetchInstant(queries.workloadPodWaitingReason()),
+        ])
+      : [[], [], []];
+
+    const [nodeTempData, nodeInfoResults] = await Promise.all([
       fetch("/api/metrics/node-temps").then((r) => r.ok ? r.json() : {}).catch(() => ({})) as Promise<Record<string, number>>,
       fetchInstant(queries.kubeNodeInfo()),
     ]);
+
+    const createdResults = [...lab1Extras[0], ...lab3Created];
+    const phaseResults = [...lab1Extras[1], ...lab3Phase];
+    const waitingResults = [...lab1Extras[2], ...lab3Waiting];
 
     const nodeIpMap: Record<string, string> = {};
     for (const r of nodeInfoResults) {
@@ -260,10 +298,11 @@ export function ActiveWorkloads({
         const filteredPods = g.pods.filter((p) => {
           if (!p.node) return false;
           if (cluster === "all") return true;
-          const ip = nodeIpMap[p.node] || hostnameIpMap[p.node] || "";
-          if (!ip) return false;
-          if (cluster === "lab1") return ip.startsWith("10.144.38.");
-          if (cluster === "lab3") return ip.startsWith("10.144.131.");
+          if (cluster === "lab3") return lab3NodeSet.has(p.node);
+          if (cluster === "lab1") {
+            if (lab3NodeSet.has(p.node)) return false;
+            return true;
+          }
           return true;
         });
         if (filteredPods.length === 0) return null;

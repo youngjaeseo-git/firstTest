@@ -17,6 +17,9 @@ const DEMO_MODE = process.env.DEMO_MODE === "true";
 const PROMETHEUS_URL =
   process.env.PROMETHEUS_URL || "http://10.100.175.248:8080";
 
+export const LAB3_PROMETHEUS_URL =
+  process.env.LAB3_PROMETHEUS_URL || "http://10.144.131.190:30003";
+
 const FETCH_TIMEOUT_MS = 10000;
 
 function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
@@ -27,19 +30,33 @@ function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Respo
   );
 }
 
+export async function instantQueryFrom(
+  baseUrl: string,
+  query: string,
+  timeoutMs: number = FETCH_TIMEOUT_MS,
+): Promise<PrometheusQueryResult> {
+  const url = new URL("/api/v1/query", baseUrl);
+  url.searchParams.set("query", query);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url.toString(), {
+      signal: controller.signal,
+      next: { revalidate: 15 },
+    } as RequestInit);
+    if (!res.ok) throw new Error(`Prometheus query failed: ${res.statusText}`);
+    return res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function instantQuery(
   query: string,
 ): Promise<PrometheusQueryResult> {
   if (DEMO_MODE) return demoInstantQuery(query);
-
-  const url = new URL("/api/v1/query", PROMETHEUS_URL);
-  url.searchParams.set("query", query);
-
-  const res = await fetchWithTimeout(url.toString(), { next: { revalidate: 15 } } as RequestInit);
-  if (!res.ok) {
-    throw new Error(`Prometheus query failed: ${res.statusText}`);
-  }
-  return res.json();
+  return instantQueryFrom(PROMETHEUS_URL, query);
 }
 
 export async function rangeQuery(
