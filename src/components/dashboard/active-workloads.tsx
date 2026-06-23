@@ -255,30 +255,30 @@ export function ActiveWorkloads({
         .filter((nt) => nt.temp >= 0);
     });
 
-    const filtered = cluster === "all"
-      ? groupList
-      : groupList
-          .map((g) => {
-            const filteredPods = g.pods.filter((p) => {
-              if (!p.node) return false;
-              const ip = nodeIpMap[p.node] || hostnameIpMap[p.node] || "";
-              if (cluster === "lab1") return ip.startsWith("10.144.38.");
-              if (cluster === "lab3") return ip.startsWith("10.144.131.");
-              return true;
-            });
-            if (filteredPods.length === 0) return null;
-            const uniqueNodes = Array.from(new Set(filteredPods.map((p) => p.node).filter(Boolean)));
-            return {
-              ...g,
-              pods: filteredPods,
-              nodes: uniqueNodes,
-              worstHealth: worstHealth(filteredPods),
-              nodeTemps: uniqueNodes
-                .map((n) => ({ node: n, temp: nodeTempData[n] ?? -1 }))
-                .filter((nt) => nt.temp >= 0),
-            };
-          })
-          .filter((g): g is WorkloadGroup => g !== null);
+    const filtered = groupList
+      .map((g) => {
+        const filteredPods = g.pods.filter((p) => {
+          if (!p.node) return false;
+          if (cluster === "all") return true;
+          const ip = nodeIpMap[p.node] || hostnameIpMap[p.node] || "";
+          if (!ip) return true;
+          if (cluster === "lab1") return ip.startsWith("10.144.38.");
+          if (cluster === "lab3") return ip.startsWith("10.144.131.");
+          return true;
+        });
+        if (filteredPods.length === 0) return null;
+        const uniqueNodes = Array.from(new Set(filteredPods.map((p) => p.node).filter(Boolean)));
+        return {
+          ...g,
+          pods: filteredPods,
+          nodes: uniqueNodes,
+          worstHealth: worstHealth(filteredPods),
+          nodeTemps: uniqueNodes
+            .map((n) => ({ node: n, temp: nodeTempData[n] ?? -1 }))
+            .filter((nt) => nt.temp >= 0),
+        };
+      })
+      .filter((g): g is WorkloadGroup => g !== null);
 
     const sorted = filtered.sort(
       (a, b) => HEALTH_PRIORITY[b.worstHealth] - HEALTH_PRIORITY[a.worstHealth] || b.pods.length - a.pods.length,

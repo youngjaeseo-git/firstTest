@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Eye, EyeOff, Zap } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -59,11 +59,33 @@ export default function SignupPage() {
       <div className="rounded-xl border border-gray-800 bg-gray-900 p-8 shadow-2xl">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <div className="relative mx-auto mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#FF8200] via-[#EA002C] to-[#B5008E] shadow-lg shadow-[#EA002C]/25">
-            <Zap className="h-6 w-6 text-white drop-shadow-sm" fill="white" aria-hidden="true" />
-            <span className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-white/20" />
+          <div className="relative mx-auto mb-4 flex h-12 w-12 items-center justify-center">
+            <span className="pointer-events-none absolute inset-0 rounded-full bg-[#EA002C]/30 blur-md" aria-hidden="true" />
+            <svg viewBox="0 0 40 40" className="relative h-12 w-12" aria-hidden="true">
+              <defs>
+                <linearGradient id="signupBrandRing" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#FF8200" />
+                  <stop offset="100%" stopColor="#EA002C" />
+                </linearGradient>
+              </defs>
+              <circle cx="20" cy="20" r="15" fill="none" stroke="url(#signupBrandRing)" strokeWidth="2" />
+              {[13, 20, 27].map((cy) =>
+                [13, 20, 27].map((cx) => (
+                  <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.7" fill="#C2703D" />
+                )),
+              )}
+            </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-100">회원가입</h1>
+          <div className="flex items-baseline justify-center gap-1.5">
+            <span className="text-[13px] font-bold leading-none">
+              <span className="text-[#EA002C]">SK</span>
+              <span className="text-[#FF8200]">hynix</span>
+            </span>
+            <span className="text-[9px] font-semibold uppercase tracking-[0.02em] text-gray-400">
+              DRAM AE
+            </span>
+          </div>
+          <h1 className="mt-1.5 text-2xl font-bold text-gray-100">회원가입</h1>
           <p className="mt-1 text-sm text-gray-400">
             DC Express 계정 생성
           </p>
