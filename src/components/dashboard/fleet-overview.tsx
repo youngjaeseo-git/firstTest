@@ -143,15 +143,26 @@ export function FleetOverview({
   const [topMem, setTopMem] = useState<TopServer[]>([]);
 
   const fetchAll = useCallback(async () => {
-    const [neCpu, caCpu, neMem, caMem] = await Promise.all([
+    const [neCpu, caCpu, neMem, caMem, unameResults] = await Promise.all([
       fetchInstant(queries.fleetTopCpu(cluster)),
       fetchInstant(queries.fleetTopCpuCadvisor(cluster)),
       fetchInstant(queries.fleetTopMemory(cluster)),
       fetchInstant(queries.fleetTopMemoryCadvisor(cluster)),
+      fetchInstant("node_uname_info"),
     ]);
 
-    setTopCpu(dedupTopResults(neCpu, caCpu, hostnameIpMap));
-    setTopMem(dedupTopResults(neMem, caMem, hostnameIpMap));
+    const enrichedMap = { ...hostnameIpMap };
+    for (const r of unameResults) {
+      const inst = (r.metric.instance || "").replace(/:\d+$/, "");
+      const nodename = r.metric.nodename || "";
+      if (inst && nodename && inst !== nodename) {
+        if (!enrichedMap[inst]) enrichedMap[inst] = nodename;
+        if (!enrichedMap[nodename]) enrichedMap[nodename] = inst;
+      }
+    }
+
+    setTopCpu(dedupTopResults(neCpu, caCpu, enrichedMap));
+    setTopMem(dedupTopResults(neMem, caMem, enrichedMap));
   }, [cluster, hostnameIpMap]);
 
   useEffect(() => {

@@ -346,8 +346,8 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
                 <Thermometer className="h-4 w-4 text-orange-400" />
               </div>
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <div>
+            <div className="mt-2 grid grid-cols-3 divide-x divide-gray-700">
+              <div className="flex flex-col items-center">
                 <p className="text-xl font-bold text-gray-100">
                   {data.avgTemp !== null ? `${data.avgTemp.toFixed(1)}` : "-"}
                   <span className="text-sm text-gray-500">°C</span>
@@ -357,8 +357,7 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
                   CPU
                 </p>
               </div>
-              <div className="h-8 w-px bg-gray-700" />
-              <div>
+              <div className="flex flex-col items-center">
                 <p className="text-xl font-bold text-gray-100">
                   {memTemp.avgMemTemp !== null ? `${memTemp.avgMemTemp.toFixed(1)}` : "-"}
                   <span className="text-sm text-gray-500">°C</span>
@@ -368,8 +367,7 @@ export function PrometheusMetrics({ cluster, onClusterChange }: { cluster: Clust
                   DIMM
                 </p>
               </div>
-              <div className="h-8 w-px bg-gray-700" />
-              <div>
+              <div className="flex flex-col items-center">
                 <p className="text-xl font-bold text-gray-100">
                   {inletTemp.avgInletTemp !== null ? `${inletTemp.avgInletTemp.toFixed(1)}` : "-"}
                   <span className="text-sm text-gray-500">°C</span>
