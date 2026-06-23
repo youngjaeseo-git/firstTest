@@ -80,13 +80,15 @@ function dedupTopResults(
   caResults: { metric: Record<string, string>; value?: [number, string] }[],
   hostnameIpMap: Record<string, string>,
 ): TopServer[] {
-  const seen = new Set<string>();
-  const deduped: TopServer[] = [];
+  const bestByKey = new Map<string, TopServer>();
 
   function canonicalKey(raw: string): string {
     const host = raw.replace(/:\d+$/, "");
     const mapped = hostnameIpMap[host];
-    return mapped && /^\d+\.\d+\.\d+\.\d+$/.test(mapped) ? mapped : host;
+    if (mapped && /^\d+\.\d+\.\d+\.\d+$/.test(mapped)) return mapped;
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) return host;
+    if (mapped) return mapped;
+    return host;
   }
 
   function displayName(raw: string): string {
@@ -97,23 +99,27 @@ function dedupTopResults(
     return host;
   }
 
+  function upsert(instance: string, percent: number) {
+    const key = canonicalKey(instance);
+    const existing = bestByKey.get(key);
+    if (!existing || percent > existing.percent) {
+      bestByKey.set(key, { instance: displayName(instance), percent });
+    }
+  }
+
   for (const r of neResults) {
     if (!r.value) continue;
-    const key = canonicalKey(r.metric.instance || "");
-    if (seen.has(key)) continue;
-    seen.add(key);
-    deduped.push({ instance: displayName(r.metric.instance || ""), percent: parseFloat(r.value[1]) });
+    upsert(r.metric.instance || "", parseFloat(r.value[1]));
   }
 
   for (const r of caResults) {
     if (!r.value) continue;
-    const key = canonicalKey(r.metric.instance || "");
-    if (seen.has(key)) continue;
-    seen.add(key);
-    deduped.push({ instance: displayName(r.metric.instance || ""), percent: parseFloat(r.value[1]) });
+    upsert(r.metric.instance || "", parseFloat(r.value[1]));
   }
 
-  return deduped.sort((a, b) => b.percent - a.percent).slice(0, 5);
+  return Array.from(bestByKey.values())
+    .sort((a, b) => b.percent - a.percent)
+    .slice(0, 5);
 }
 
 export function FleetOverview({
