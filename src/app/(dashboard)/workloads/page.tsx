@@ -102,9 +102,12 @@ const BAR_PALETTE = [
 /* ─── Helpers ─── */
 async function fetchInstant(
   query: string,
+  source?: "lab3",
 ): Promise<{ metric: Record<string, string>; value?: [number, string] }[]> {
   try {
-    const res = await fetch(`/api/metrics/instant?query=${encodeURIComponent(query)}`);
+    let url = `/api/metrics/instant?query=${encodeURIComponent(query)}`;
+    if (source) url += `&source=${source}`;
+    const res = await fetch(url);
     if (!res.ok) return [];
     const json = await res.json();
     return json?.data?.result ?? [];
@@ -165,12 +168,27 @@ export default function WorkloadsPage() {
 
   const fetchActive = useCallback(async () => {
     const now = Math.floor(Date.now() / 1000);
-    const [podResults, createdResults, phaseResults, waitingResults] = await Promise.all([
+    const [lab1Pods, lab1Created, lab1Phase, lab1Waiting] = await Promise.all([
       fetchInstant(queries.workloadPods()),
       fetchInstant(queries.workloadPodCreated()),
       fetchInstant(queries.workloadPodPhase()),
       fetchInstant(queries.workloadPodWaitingReason()),
     ]);
+
+    // Lab-3 dual queries
+    const [lab3Pods, lab3Created, lab3Phase, lab3Waiting] = await Promise.all([
+      fetchInstant(queries.workloadPods(), "lab3"),
+      fetchInstant(queries.workloadPodCreated(), "lab3"),
+      fetchInstant(queries.workloadPodPhase(), "lab3"),
+      fetchInstant(queries.workloadPodWaitingReason(), "lab3"),
+    ]);
+
+    // Dedup: Lab-3 pods not already in Lab-1
+    const lab1Keys = new Set(lab1Pods.map(r => `${r.metric.namespace}/${r.metric.pod}`));
+    const podResults = lab1Pods.concat(lab3Pods.filter(r => !lab1Keys.has(`${r.metric.namespace}/${r.metric.pod}`)));
+    const createdResults = lab1Created.concat(lab3Created);
+    const phaseResults = lab1Phase.concat(lab3Phase);
+    const waitingResults = lab1Waiting.concat(lab3Waiting);
 
     const createdMap: Record<string, number> = {};
     for (const r of createdResults) {
@@ -1072,11 +1090,24 @@ function ProjectPopup({
       if (project.namespace) {
         try {
           const nsFilter = `namespace="${project.namespace}"`;
-          const [podRes, phaseRes, waitingRes] = await Promise.all([
+          const [lab1Pod, lab1Phase, lab1Waiting] = await Promise.all([
             fetchPopupInstant(`kube_pod_info{${nsFilter}}`),
             fetchPopupInstant(`kube_pod_status_phase{${nsFilter}}==1`),
             fetchPopupInstant(`kube_pod_container_status_waiting_reason{${nsFilter}}==1`),
           ]);
+
+          // Lab-3 dual queries
+          const [lab3Pod, lab3Phase, lab3Waiting] = await Promise.all([
+            fetchPopupInstant(`kube_pod_info{${nsFilter}}`, "lab3"),
+            fetchPopupInstant(`kube_pod_status_phase{${nsFilter}}==1`, "lab3"),
+            fetchPopupInstant(`kube_pod_container_status_waiting_reason{${nsFilter}}==1`, "lab3"),
+          ]);
+
+          // Dedup: Lab-3 pods not already in Lab-1
+          const lab1PodKeys = new Set(lab1Pod.map(r => r.metric.pod || ""));
+          const podRes = lab1Pod.concat(lab3Pod.filter(r => !lab1PodKeys.has(r.metric.pod || "")));
+          const phaseRes = lab1Phase.concat(lab3Phase);
+          const waitingRes = lab1Waiting.concat(lab3Waiting);
 
           const phaseMap: Record<string, string> = {};
           for (const r of phaseRes) phaseMap[r.metric.pod || ""] = r.metric.phase || "";
@@ -1359,9 +1390,12 @@ function ProjectPopup({
 
 async function fetchPopupInstant(
   query: string,
+  source?: "lab3",
 ): Promise<{ metric: Record<string, string>; value?: [number, string] }[]> {
   try {
-    const res = await fetch(`/api/metrics/instant?query=${encodeURIComponent(query)}`);
+    let url = `/api/metrics/instant?query=${encodeURIComponent(query)}`;
+    if (source) url += `&source=${source}`;
+    const res = await fetch(url);
     if (!res.ok) return [];
     const json = await res.json();
     return json?.data?.result ?? [];

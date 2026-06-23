@@ -38,6 +38,10 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        if (!user.approved) {
+          throw new Error("PENDING_APPROVAL");
+        }
+
         return {
           id: user.id,
           email: user.email,

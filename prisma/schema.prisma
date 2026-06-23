@@ -20,6 +20,7 @@ model User {
   password      String?
   image         String?
   role          Role      @default(VIEWER)
+  approved      Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

@@ -26,6 +26,7 @@ export async function GET() {
       name: true,
       email: true,
       role: true,
+      approved: true,
       createdAt: true,
     },
     orderBy: { createdAt: "asc" },
@@ -60,12 +61,14 @@ export async function POST(req: NextRequest) {
       email,
       password: hashedPassword,
       role: role || "VIEWER",
+      approved: true,
     },
     select: {
       id: true,
       name: true,
       email: true,
       role: true,
+      approved: true,
       createdAt: true,
     },
   });

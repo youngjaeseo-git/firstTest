@@ -126,7 +126,7 @@
 
 | 기능 | 상태 | 설명 |
 |------|------|------|
-| Active 탭 | ✅ 완료 | Prometheus 실시간 Pod 상태 (namespace별 그룹), Lab-1/Lab-3 듀얼 Prometheus 지원 |
+| Active 탭 | ✅ 완료 | Prometheus 실시간 Pod 상태 (namespace별 그룹), Lab-1/Lab-3 듀얼 Prometheus 지원 (대시보드 + /workloads + 상세 페이지) |
 | 종료된 워크로드 | ✅ 완료 | DB에 기록된 과거 namespace를 Active 탭 하단 표시 |
 | History 탭 | ✅ 완료 | 프로젝트 달력 타임라인 시각화 |
 | Pod Health | ✅ 완료 | Running/Pending/Warning/Error/Completed 상태 |
@@ -161,6 +161,7 @@
 | 서버 사용 현황 (Assignments) | ✅ 완료 | 장비별 사용자 할당/반납 + 이력 추적, /assignments 전체 현황 페이지 |
 | 감사 로그 적용 범위 | ✅ 완료 | equipment·rack·room·user·alert-rule·discovery·assignment CRUD 전반 logAudit |
 | Audit Log Export | ✅ 완료 | CSV 내보내기 (날짜 필터 + 이스케이프) |
+| 가입 승인 시스템 | ✅ 완료 | 공개 회원가입 시 approved=false, 관리자 승인 후 로그인 가능. 관리 페이지에서 승인/거부 처리 |
 
 ---
 

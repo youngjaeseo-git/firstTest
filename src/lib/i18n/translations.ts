@@ -511,6 +511,12 @@ export const translations: Record<Language, Record<string, string>> = {
     "settings.usersLoadError": "Failed to load users.",
     "settings.createError": "Failed to create.",
     "settings.roleChangeError": "Failed to change role.",
+    "settings.pendingApproval": "Pending Approval",
+    "settings.approved": "Approved",
+    "settings.approve": "Approve",
+    "settings.reject": "Reject",
+    "settings.approveConfirm": "Approve this user?",
+    "settings.rejectConfirm": "Reject and delete this signup request?",
 
     // ── Servers page ──
     "servers.title": "Servers",
@@ -1093,6 +1099,12 @@ export const translations: Record<Language, Record<string, string>> = {
     "settings.usersLoadError": "사용자 목록을 불러올 수 없습니다.",
     "settings.createError": "생성에 실패했습니다.",
     "settings.roleChangeError": "역할 변경에 실패했습니다.",
+    "settings.pendingApproval": "승인 대기",
+    "settings.approved": "승인됨",
+    "settings.approve": "승인",
+    "settings.reject": "거부",
+    "settings.approveConfirm": "이 사용자를 승인하시겠습니까?",
+    "settings.rejectConfirm": "이 가입 요청을 거부하고 삭제하시겠습니까?",
 
     // ── Servers page ──
     "servers.title": "서버",

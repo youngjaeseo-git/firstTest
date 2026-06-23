@@ -118,9 +118,12 @@ const PROJECT_STATUS_COLORS: Record<string, string> = {
 
 async function fetchInstant(
   query: string,
+  source?: "lab3",
 ): Promise<{ metric: Record<string, string>; value?: [number, string] }[]> {
   try {
-    const res = await fetch(`/api/metrics/instant?query=${encodeURIComponent(query)}`);
+    let url = `/api/metrics/instant?query=${encodeURIComponent(query)}`;
+    if (source) url += `&source=${source}`;
+    const res = await fetch(url);
     if (!res.ok) return [];
     const json = await res.json();
     return json?.data?.result ?? [];
@@ -177,7 +180,9 @@ export default function WorkloadDetailPage() {
   const fetchPods = useCallback(async () => {
     const now = Math.floor(Date.now() / 1000);
     const nsFilter = `namespace="${ns}"`;
-    const [podRes, createdRes, phaseRes, waitingRes, cpuRes, memRes] = await Promise.all([
+
+    // Lab-1 queries
+    const [lab1Pod, lab1Created, lab1Phase, lab1Waiting, lab1Cpu, lab1Mem] = await Promise.all([
       fetchInstant(`kube_pod_info{${nsFilter}}`),
       fetchInstant(`kube_pod_created{${nsFilter}}`),
       fetchInstant(`kube_pod_status_phase{${nsFilter}}==1`),
@@ -185,6 +190,25 @@ export default function WorkloadDetailPage() {
       fetchInstant(`sum by(pod, namespace)(rate(container_cpu_usage_seconds_total{${nsFilter},container!=""}[5m])) * 100`),
       fetchInstant(`sum by(pod, namespace)(container_memory_working_set_bytes{${nsFilter},container!=""})`),
     ]);
+
+    // Lab-3 dual queries
+    const [lab3Pod, lab3Created, lab3Phase, lab3Waiting, lab3Cpu, lab3Mem] = await Promise.all([
+      fetchInstant(`kube_pod_info{${nsFilter}}`, "lab3"),
+      fetchInstant(`kube_pod_created{${nsFilter}}`, "lab3"),
+      fetchInstant(`kube_pod_status_phase{${nsFilter}}==1`, "lab3"),
+      fetchInstant(`kube_pod_container_status_waiting_reason{${nsFilter}}==1`, "lab3"),
+      fetchInstant(`sum by(pod, namespace)(rate(container_cpu_usage_seconds_total{${nsFilter},container!=""}[5m])) * 100`, "lab3"),
+      fetchInstant(`sum by(pod, namespace)(container_memory_working_set_bytes{${nsFilter},container!=""})`,"lab3"),
+    ]);
+
+    // Dedup and merge
+    const lab1PodKeys = new Set(lab1Pod.map(r => r.metric.pod || ""));
+    const podRes = lab1Pod.concat(lab3Pod.filter(r => !lab1PodKeys.has(r.metric.pod || "")));
+    const createdRes = lab1Created.concat(lab3Created);
+    const phaseRes = lab1Phase.concat(lab3Phase);
+    const waitingRes = lab1Waiting.concat(lab3Waiting);
+    const cpuRes = lab1Cpu.concat(lab3Cpu);
+    const memRes = lab1Mem.concat(lab3Mem);
 
     const createdMap: Record<string, number> = {};
     for (const r of createdRes) {

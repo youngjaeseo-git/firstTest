@@ -39,5 +39,11 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json(user, { status: 201 });
+  return NextResponse.json(
+    {
+      message: "가입 신청이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.",
+      ...user,
+    },
+    { status: 201 },
+  );
 }

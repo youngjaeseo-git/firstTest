@@ -10,6 +10,7 @@ interface UserData {
   name: string | null;
   email: string;
   role: string;
+  approved: boolean;
   createdAt: string;
 }
 
@@ -83,11 +84,43 @@ export default function UsersPage() {
       });
       if (res.ok) {
         setUsers((prev) =>
-          prev.map((u) => (u.id === userId ? { ...u, role } : u))
+          prev.map((u) => (u.id === userId ? { ...u, role } : u)),
         );
       }
     } catch {
       setError(t("settings.roleChangeError"));
+    }
+  }
+
+  async function handleApprove(userId: string) {
+    if (!confirm(t("settings.approveConfirm"))) return;
+    try {
+      const res = await fetch(`/api/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approved: true }),
+      });
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, approved: true } : u)),
+        );
+      }
+    } catch {
+      setError(t("settings.roleChangeError"));
+    }
+  }
+
+  async function handleReject(userId: string) {
+    if (!confirm(t("settings.rejectConfirm"))) return;
+    try {
+      const res = await fetch(`/api/users/${userId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setUsers((prev) => prev.filter((u) => u.id !== userId));
+      }
+    } catch {
+      setError(t("common.serverError"));
     }
   }
 
@@ -101,6 +134,9 @@ export default function UsersPage() {
         return "info" as const;
     }
   };
+
+  const pendingUsers = users.filter((u) => !u.approved);
+  const approvedUsers = users.filter((u) => u.approved);
 
   const inputClass =
     "w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
@@ -131,9 +167,14 @@ export default function UsersPage() {
       {showForm && (
         <Card>
           <p className="mb-4 font-medium">{t("settings.newUser")}</p>
-          <form onSubmit={handleCreateUser} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <form
+            onSubmit={handleCreateUser}
+            className="grid grid-cols-1 gap-4 md:grid-cols-2"
+          >
             <div>
-              <label className="mb-1 block text-sm text-gray-300">{t("common.name")}</label>
+              <label className="mb-1 block text-sm text-gray-300">
+                {t("common.name")}
+              </label>
               <input
                 className={inputClass}
                 value={newName}
@@ -142,7 +183,9 @@ export default function UsersPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-gray-300">{t("settings.email")} *</label>
+              <label className="mb-1 block text-sm text-gray-300">
+                {t("settings.email")} *
+              </label>
               <input
                 type="email"
                 required
@@ -153,7 +196,9 @@ export default function UsersPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-gray-300">{t("settings.password")} *</label>
+              <label className="mb-1 block text-sm text-gray-300">
+                {t("settings.password")} *
+              </label>
               <input
                 type="password"
                 required
@@ -164,7 +209,9 @@ export default function UsersPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-gray-300">{t("settings.role")}</label>
+              <label className="mb-1 block text-sm text-gray-300">
+                {t("settings.role")}
+              </label>
               <select
                 className={inputClass}
                 value={newRole}
@@ -175,7 +222,7 @@ export default function UsersPage() {
                 <option value="ADMIN">Admin</option>
               </select>
             </div>
-            <div className="md:col-span-2 flex justify-end">
+            <div className="flex justify-end md:col-span-2">
               <button
                 type="submit"
                 disabled={saving}
@@ -188,6 +235,64 @@ export default function UsersPage() {
         </Card>
       )}
 
+      {/* Pending Approval Section */}
+      {pendingUsers.length > 0 && (
+        <Card>
+          <div className="mb-4 flex items-center gap-2">
+            <h2 className="font-medium">{t("settings.pendingApproval")}</h2>
+            <Badge variant="warning">{pendingUsers.length}</Badge>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-700 text-left text-xs text-gray-400">
+                  <th className="px-3 py-2">{t("common.name")}</th>
+                  <th className="px-3 py-2">{t("settings.email")}</th>
+                  <th className="px-3 py-2">{t("settings.role")}</th>
+                  <th className="px-3 py-2">{t("settings.createdAt")}</th>
+                  <th className="px-3 py-2">{t("common.actions")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-800">
+                {pendingUsers.map((user) => (
+                  <tr key={user.id}>
+                    <td className="px-3 py-2 font-medium">
+                      {user.name || "-"}
+                    </td>
+                    <td className="px-3 py-2 text-gray-300">{user.email}</td>
+                    <td className="px-3 py-2">
+                      <Badge variant={roleBadgeVariant(user.role)}>
+                        {user.role}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-2 text-xs text-gray-400">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleApprove(user.id)}
+                          className="rounded bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700"
+                        >
+                          {t("settings.approve")}
+                        </button>
+                        <button
+                          onClick={() => handleReject(user.id)}
+                          className="rounded bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700"
+                        >
+                          {t("settings.reject")}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* Approved Users */}
       <Card>
         {loading ? (
           <p className="text-center text-gray-400">Loading...</p>
@@ -199,12 +304,13 @@ export default function UsersPage() {
                   <th className="px-3 py-2">{t("common.name")}</th>
                   <th className="px-3 py-2">{t("settings.email")}</th>
                   <th className="px-3 py-2">{t("settings.role")}</th>
+                  <th className="px-3 py-2">{t("common.status")}</th>
                   <th className="px-3 py-2">{t("settings.createdAt")}</th>
                   <th className="px-3 py-2">{t("settings.changeRole")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800">
-                {users.map((user) => (
+                {approvedUsers.map((user) => (
                   <tr key={user.id}>
                     <td className="px-3 py-2 font-medium">
                       {user.name || "-"}
@@ -213,6 +319,11 @@ export default function UsersPage() {
                     <td className="px-3 py-2">
                       <Badge variant={roleBadgeVariant(user.role)}>
                         {user.role}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-2">
+                      <Badge variant="active">
+                        {t("settings.approved")}
                       </Badge>
                     </td>
                     <td className="px-3 py-2 text-xs text-gray-400">

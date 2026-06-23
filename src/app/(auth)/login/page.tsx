@@ -33,7 +33,12 @@ function LoginForm() {
     });
 
     if (!result || !result.ok || result.error) {
-      setError(result?.error || "로그인에 실패했습니다. 다시 시도해주세요.");
+      const errMsg = result?.error;
+      if (errMsg?.includes("PENDING_APPROVAL")) {
+        setError("승인 대기 중입니다. 관리자에게 문의하세요.");
+      } else {
+        setError(errMsg || "로그인에 실패했습니다. 다시 시도해주세요.");
+      }
       setLoading(false);
     } else if (result.url && result.url.includes("csrf=true")) {
       const retry = await signIn("credentials", {
@@ -43,7 +48,12 @@ function LoginForm() {
         callbackUrl,
       });
       if (!retry || !retry.ok || retry.error) {
-        setError(retry?.error || "로그인에 실패했습니다. 다시 시도해주세요.");
+        const retryErr = retry?.error;
+        if (retryErr?.includes("PENDING_APPROVAL")) {
+          setError("승인 대기 중입니다. 관리자에게 문의하세요.");
+        } else {
+          setError(retryErr || "로그인에 실패했습니다. 다시 시도해주세요.");
+        }
         setLoading(false);
       } else {
         setSuccess(true);
@@ -134,9 +144,9 @@ function LoginForm() {
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
-              className="rounded-lg bg-green-500/10 border border-green-500/20 px-4 py-3 text-sm text-green-400"
+              className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-4 py-3 text-sm text-yellow-400"
             >
-              Registration complete. Please sign in.
+              가입 신청이 완료되었습니다. 관리자 승인을 기다려주세요.
             </motion.div>
           )}
           {loggedOut && (
