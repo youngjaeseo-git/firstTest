@@ -261,7 +261,7 @@ export function ActiveWorkloads({
           if (!p.node) return false;
           if (cluster === "all") return true;
           const ip = nodeIpMap[p.node] || hostnameIpMap[p.node] || "";
-          if (!ip) return true;
+          if (!ip) return false;
           if (cluster === "lab1") return ip.startsWith("10.144.38.");
           if (cluster === "lab3") return ip.startsWith("10.144.131.");
           return true;

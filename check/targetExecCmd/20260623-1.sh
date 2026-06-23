@@ -11,8 +11,8 @@ case "$ACTION" in
     echo "=== 테스트 네임스페이스+Pod 생성 ==="
     kubectl create namespace $NS 2>/dev/null
     for i in 1 2 3; do
-      kubectl run test-pod-$i -n $NS --image=busybox --restart=Never \
-        --command -- sleep 3600 2>/dev/null && echo "  test-pod-$i 생성" || echo "  test-pod-$i 이미 존재"
+      kubectl run test-pod-$i -n $NS --image=registry.k8s.io/pause:3.9 --restart=Never \
+        2>/dev/null && echo "  test-pod-$i 생성" || echo "  test-pod-$i 이미 존재"
     done
     sleep 3
     echo ""
