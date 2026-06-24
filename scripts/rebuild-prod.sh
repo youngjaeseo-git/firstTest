@@ -23,8 +23,8 @@ echo "DB URL 설정 완료"
 echo ""
 
 echo "=== 2. Prisma 준비 ==="
+npx prisma db push 2>&1 | tail -3
 npx prisma generate 2>&1 | tail -1
-npx prisma migrate deploy 2>&1 || echo "마이그레이션 스킵 (변경 없음)"
 echo ""
 
 echo "=== 3. 프로덕션 빌드 ==="
