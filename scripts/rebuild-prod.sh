@@ -10,7 +10,8 @@ export PATH=$HOME/opt/node-20/bin:$PATH
 
 echo "=== 0. 서비스 중지 (NFS lock 방지) ==="
 if systemctl is-active dcim >/dev/null 2>&1; then
-  systemctl stop dcim
+  systemctl kill --signal=SIGKILL dcim 2>/dev/null || true
+  systemctl stop dcim 2>/dev/null || true
   echo "  dcim 서비스 중지 완료"
   sleep 1
 else
