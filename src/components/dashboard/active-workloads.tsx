@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, MetricError } from "@/components/ui/states";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { FlaskConical, Clock, Server, Calendar, Thermometer } from "lucide-react";
+import { FlaskConical, Clock, Server, Calendar, Thermometer, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { queries } from "@/lib/prometheus";
 import type { Cluster } from "@/lib/prometheus";
@@ -159,6 +159,7 @@ export function ActiveWorkloads({
   const [totalNodes, setTotalNodes] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [lab3Failed, setLab3Failed] = useState(false);
 
   const fetchWorkloads = useCallback(async () => {
     const now = Math.floor(Date.now() / 1000);
@@ -190,13 +191,17 @@ export function ActiveWorkloads({
       lab1PodResults = podsRaw?.data?.result ?? [];
     }
 
+    let lab3DidFail = false;
     const [lab3Pods, lab3Created, lab3Phase, lab3Waiting] = needLab3
       ? await Promise.all([
           fetchInstant(queries.workloadPods(), "lab3"),
           fetchInstant(queries.workloadPodCreated(), "lab3"),
           fetchInstant(queries.workloadPodPhase(), "lab3"),
           fetchInstant(queries.workloadPodWaitingReason(), "lab3"),
-        ])
+        ]).then((res) => {
+          if (res[0].length === 0 && res[1].length === 0) lab3DidFail = true;
+          return res;
+        })
       : [[], [], [], []];
 
     const lab3NodeSet = new Set<string>();
@@ -228,13 +233,6 @@ export function ActiveWorkloads({
     const createdResults = [...lab1Extras[0], ...lab3Created];
     const phaseResults = [...lab1Extras[1], ...lab3Phase];
     const waitingResults = [...lab1Extras[2], ...lab3Waiting];
-
-    const nodeIpMap: Record<string, string> = {};
-    for (const r of nodeInfoResults) {
-      const nodeName = r.metric.node || "";
-      const ip = r.metric.internal_ip || "";
-      if (nodeName && ip) nodeIpMap[nodeName] = ip;
-    }
 
     const createdMap: Record<string, number> = {};
     for (const r of createdResults) {
@@ -330,6 +328,7 @@ export function ActiveWorkloads({
     setTotalPods(filteredPodCount);
     setTotalNodes(filteredNodeSet.size);
     setError(false);
+    setLab3Failed(needLab3 && lab3DidFail);
     setLoading(false);
   }, [cluster, hostnameIpMap]);
 
@@ -361,6 +360,13 @@ export function ActiveWorkloads({
             </div>
           }
         />
+
+        {lab3Failed && !loading && (
+          <div className="mb-2 flex items-center gap-2 rounded-md border border-yellow-600/40 bg-yellow-900/20 px-3 py-1.5 text-xs text-yellow-400">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            Lab-3 Prometheus 데이터를 가져올 수 없습니다
+          </div>
+        )}
 
         {loading && groups.length === 0 ? (
           <div className="space-y-2">

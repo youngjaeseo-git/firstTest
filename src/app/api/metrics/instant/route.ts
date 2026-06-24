@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const result = source === "lab3"
-      ? await instantQueryFrom(LAB3_PROMETHEUS_URL, query, 5000)
+      ? await instantQueryFrom(LAB3_PROMETHEUS_URL, query, 3000)
       : await instantQuery(query);
     return NextResponse.json(result, {
       headers: { "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30" },

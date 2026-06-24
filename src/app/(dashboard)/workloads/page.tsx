@@ -169,6 +169,7 @@ export default function WorkloadsPage() {
   const [groups, setGroups] = useState<WorkloadGroup[]>([]);
   const [allProjects, setAllProjects] = useState<EvalProject[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lab3Failed, setLab3Failed] = useState(false);
 
   const fetchActive = useCallback(async () => {
     const now = Math.floor(Date.now() / 1000);
@@ -184,13 +185,17 @@ export default function WorkloadsPage() {
         ])
       : [EMPTY, EMPTY, EMPTY, EMPTY];
 
+    let lab3DidFail = false;
     const [lab3Pods, lab3Created, lab3Phase, lab3Waiting] = needLab3
       ? await Promise.all([
           fetchInstant(queries.workloadPods(), "lab3"),
           fetchInstant(queries.workloadPodCreated(), "lab3"),
           fetchInstant(queries.workloadPodPhase(), "lab3"),
           fetchInstant(queries.workloadPodWaitingReason(), "lab3"),
-        ])
+        ]).then((res) => {
+          if (res[0].length === 0 && res[1].length === 0) lab3DidFail = true;
+          return res;
+        })
       : [EMPTY, EMPTY, EMPTY, EMPTY];
 
     const lab1Keys = new Set(lab1Pods.map(r => `${r.metric.namespace}/${r.metric.pod}`));
@@ -247,6 +252,7 @@ export default function WorkloadsPage() {
         (a, b) => HEALTH_PRIORITY[b.worstHealth] - HEALTH_PRIORITY[a.worstHealth] || b.pods.length - a.pods.length,
       ),
     );
+    setLab3Failed(needLab3 && lab3DidFail);
     setLoading(false);
   }, [cluster]);
 
@@ -298,6 +304,13 @@ export default function WorkloadsPage() {
             </div>
           }
         />
+
+        {lab3Failed && !loading && (
+          <div className="flex items-center gap-2 rounded-md border border-yellow-600/40 bg-yellow-900/20 px-3 py-1.5 text-xs text-yellow-400">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            Lab-3 Prometheus 데이터를 가져올 수 없습니다
+          </div>
+        )}
 
         <div className="flex gap-1 border-b border-gray-800">
           {(["active", "history"] as TabKey[]).map((t) => (

@@ -24,7 +24,7 @@
 - **Lab-1 → Lab-3 메트릭 수집 (2026-06-10 확정)**:
   - **federation 없음** — ConfigMap에 /federate 미존재
   - PCM 메트릭: AE-SMC-GNRAP_PCM, AE-SMC-GNRSP_PCM job에서 **hostname 기반** 수집 (Grafana 정상 확인)
-  - **node-exporter(:9100): Lab-1 config에 미포함** → Lab-3 CPU/Mem/Disk/Net 미수집
+  - **node-exporter(:9100): Lab-1 config에 추가 완료 (2026-06-15)** → Lab-3 17대 UP, 5대 DOWN(서버 꺼짐)
   - kubernetes-pods: Lab-3 SRF(10.144.131.121:9100) 1대 up으로 자동 발견
 - **node-exporter**: DaemonSet 배포됨, DESIRED/CURRENT/READY=16/16/16, Pod 9개 Running
 - **K8s 노드 (21개, 2026-06-09 방화벽 조치 후 재확인)**:
