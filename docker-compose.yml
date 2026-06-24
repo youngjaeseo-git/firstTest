@@ -1,5 +1,6 @@
 services:
   db:
+    container_name: dcim-db
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: dcim
@@ -16,6 +17,7 @@ services:
       retries: 5
 
   app:
+    container_name: dcim-app
     build: .
     ports:
       - "${APP_PORT:-3000}:3000"

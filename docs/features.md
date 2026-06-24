@@ -209,7 +209,7 @@
 | UI/디자인 개선 — 나머지 | 📋 예정 | raw button→Button 컴포넌트 교체, inputClass 중복 제거, 카드/테이블 패딩 표준화 등 |
 | Multi-Prometheus | ✅ 완료 | Lab-3 Prometheus(10.144.131.190:30003) 듀얼 조회. instantQueryFrom() + source=lab3 API 파라미터. 대시보드 Active Workloads에서 Lab-3 Pod 표시 |
 | 온도 외부 DB 연동 | 📋 보류 | Grafana에 ddr4_temp CSV + 다수 PostgreSQL 존재. 구체적 요건 미확인 |
-| DB 컨테이너 이름 변경 | 📋 예정 | docker-compose DB 서비스명 firsttest-db-1 → dcim-db 등으로 변경 |
+| DB 컨테이너 이름 변경 | ✅ 완료 | docker-compose container_name: dcim-db / dcim-app 명시 |
 | systemd 서비스 등록 | ✅ 완료 | `scripts/setup-service.sh --install`로 서비스 등록. dev/prod 모드 전환, 부팅 시 자동 시작, `systemctl restart dcim`으로 코드 반영 |
 | 프로덕션 빌드 | 📋 예정 | npm run build + start 전환 |
 | DRAM 인증 테스트 관리 | 📋 예정 | 파트넘 기반 테스트 계획/추적 |
