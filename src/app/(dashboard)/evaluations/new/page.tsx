@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus, Trash2, FlaskConical, Zap } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface PhaseInput {
   name: string;
@@ -87,13 +88,18 @@ export default function NewEvaluationPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="space-y-3">
         <Link href="/evaluations">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-1 h-4 w-4" /> Back
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">New Evaluation Project</h1>
+        <PageHeader
+          icon={Plus}
+          title="New Evaluation Project"
+          subtitle="새 메모리 평가 프로젝트 생성"
+          accent="green"
+        />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

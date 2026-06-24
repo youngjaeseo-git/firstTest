@@ -4,6 +4,8 @@ import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { MemoryEditor } from "@/components/memory/memory-editor";
+import { PageHeader } from "@/components/ui/page-header";
+import { Edit } from "lucide-react";
 
 interface MemorySlot {
   slotName: string;
@@ -139,18 +141,20 @@ export default function MemoryEditPage() {
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6">
-      <div>
-        <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
-          <Link href="/infrastructure" className="hover:text-gray-200">Infrastructure</Link>
-          <span>/</span>
-          <Link href={`/infrastructure/${id}`} className="hover:text-gray-200">{hostname}</Link>
-          <span>/</span>
-          <Link href={`/infrastructure/${id}/memory`} className="hover:text-gray-200">Memory</Link>
-          <span>/</span>
-          <span>Edit</span>
-        </div>
-        <h1 className="text-2xl font-bold">Edit Memory Configuration</h1>
+      <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+        <Link href="/infrastructure" className="hover:text-gray-200">Infrastructure</Link>
+        <span>/</span>
+        <Link href={`/infrastructure/${id}`} className="hover:text-gray-200">{hostname}</Link>
+        <span>/</span>
+        <Link href={`/infrastructure/${id}/memory`} className="hover:text-gray-200">Memory</Link>
+        <span>/</span>
+        <span>Edit</span>
       </div>
+      <PageHeader
+        icon={Edit}
+        title="Edit Memory Configuration"
+        accent="purple"
+      />
 
       {error && (
         <div className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400">

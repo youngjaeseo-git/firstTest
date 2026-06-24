@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm";
-import { RefreshCw, Power, Zap, ChevronLeft, CheckSquare, Square, Minus, Pencil, Save, X } from "lucide-react";
+import { RefreshCw, Power, Zap, ChevronLeft, CheckSquare, Square, Minus, Pencil, Save, X, Server } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface EquipmentItem {
   id: string;
@@ -304,10 +305,12 @@ export default function BmcManagementPage() {
           <span>/</span>
           <span>BMC Management</span>
         </div>
-        <h1 className="text-2xl font-bold">BMC 관리</h1>
-        <p className="mt-1 text-sm text-gray-400">
-          BMC IP 매핑 관리, 하드웨어 정보 갱신, 전원 제어
-        </p>
+        <PageHeader
+          icon={Server}
+          title="BMC 관리"
+          subtitle="BMC IP 매핑 관리, 하드웨어 정보 갱신, 전원 제어"
+          accent="amber"
+        />
       </div>
 
       {/* Tab navigation */}

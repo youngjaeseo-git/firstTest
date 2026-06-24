@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Settings as SettingsIcon,
 } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function SettingsPage() {
   const user = await getSessionUser();
@@ -64,15 +65,12 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-sm text-gray-400">
-          시스템 설정 및 관리 — 현재 로그인:{" "}
-          <span className="font-mono text-gray-300">
-            {user?.email} ({user?.role})
-          </span>
-        </p>
-      </div>
+      <PageHeader
+        icon={SettingsIcon}
+        title="Settings"
+        subtitle={<>시스템 설정 및 관리 — 현재 로그인: <span className="font-mono text-gray-300">{user?.email} ({user?.role})</span></>}
+        accent="gray"
+      />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => {

@@ -5,6 +5,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
+import { Settings } from "lucide-react";
 
 interface RoomData {
   id: string;
@@ -292,16 +294,18 @@ export default function EditEquipmentPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div>
-        <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
-          <Link href="/infrastructure" className="hover:text-gray-200">Infrastructure</Link>
-          <span>/</span>
-          <Link href={`/infrastructure/${id}`} className="hover:text-gray-200">{hostname || "Equipment"}</Link>
-          <span>/</span>
-          <span>Edit</span>
-        </div>
-        <h1 className="text-2xl font-bold">장비 수정</h1>
+      <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+        <Link href="/infrastructure" className="hover:text-gray-200">Infrastructure</Link>
+        <span>/</span>
+        <Link href={`/infrastructure/${id}`} className="hover:text-gray-200">{hostname || "Equipment"}</Link>
+        <span>/</span>
+        <span>Edit</span>
       </div>
+      <PageHeader
+        icon={Settings}
+        title="장비 수정"
+        accent="blue"
+      />
 
       {error && (
         <div className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400">

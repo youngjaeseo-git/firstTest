@@ -5,6 +5,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
+import { Plus } from "lucide-react";
 
 interface RoomData {
   id: string;
@@ -326,16 +328,18 @@ export default function NewEquipmentPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       {/* Header */}
-      <div>
-        <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
-          <Link href="/infrastructure" className="hover:text-gray-200">
-            Infrastructure
-          </Link>
-          <span>/</span>
-          <span>New Equipment</span>
-        </div>
-        <h1 className="text-2xl font-bold">장비 등록</h1>
+      <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+        <Link href="/infrastructure" className="hover:text-gray-200">
+          Infrastructure
+        </Link>
+        <span>/</span>
+        <span>New Equipment</span>
       </div>
+      <PageHeader
+        icon={Plus}
+        title="장비 등록"
+        accent="blue"
+      />
 
       {error && (
         <div className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400">

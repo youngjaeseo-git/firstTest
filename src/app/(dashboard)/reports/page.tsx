@@ -124,7 +124,7 @@ export default async function ReportsPage() {
         icon={FileText}
         title="Reports"
         subtitle={`인프라 현황 및 알림 통계 리포트 · 생성시각 ${reportDate}`}
-        accent="blue"
+        accent="amber"
         right={
           <ReportActions
             equipmentData={equipmentData}

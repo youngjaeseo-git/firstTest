@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, FlaskConical, Zap, Calendar, CheckCircle2, Clock, Pause, XCircle } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface Phase {
   id: string;
@@ -74,18 +75,20 @@ export default function EvaluationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Memory Evaluations</h1>
-          <p className="mt-1 text-sm text-gray-400">메모리 제품 평가 프로젝트 관리</p>
-        </div>
-        <Link href="/evaluations/new">
-          <Button>
-            <Plus className="mr-1.5 h-4 w-4" />
-            New Project
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        icon={FlaskConical}
+        title="Memory Evaluations"
+        subtitle="메모리 제품 평가 프로젝트 관리"
+        accent="green"
+        right={
+          <Link href="/evaluations/new">
+            <Button>
+              <Plus className="mr-1.5 h-4 w-4" />
+              New Project
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Status filter tabs */}
       <div className="flex gap-1 rounded-lg bg-gray-900/80 p-1">

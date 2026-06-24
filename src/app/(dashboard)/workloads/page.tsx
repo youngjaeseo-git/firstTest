@@ -30,7 +30,7 @@ import {
   Circle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { queries } from "@/lib/prometheus";
+import { queries, type Cluster } from "@/lib/prometheus";
 
 /* ─── Types ─── */
 type PodHealth = "running" | "pending" | "warning" | "error" | "succeeded";
@@ -100,10 +100,13 @@ const BAR_PALETTE = [
 ];
 
 /* ─── Helpers ─── */
+type MR = { metric: Record<string, string>; value?: [number, string] };
+const EMPTY: MR[] = [];
+
 async function fetchInstant(
   query: string,
   source?: "lab3",
-): Promise<{ metric: Record<string, string>; value?: [number, string] }[]> {
+): Promise<MR[]> {
   try {
     let url = `/api/metrics/instant?query=${encodeURIComponent(query)}`;
     if (source) url += `&source=${source}`;
@@ -162,28 +165,34 @@ type TabKey = "active" | "history";
 /* ─── Main Page ─── */
 export default function WorkloadsPage() {
   const [tab, setTab] = useState<TabKey>("active");
+  const [cluster, setCluster] = useState<Cluster>("all");
   const [groups, setGroups] = useState<WorkloadGroup[]>([]);
   const [allProjects, setAllProjects] = useState<EvalProject[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchActive = useCallback(async () => {
     const now = Math.floor(Date.now() / 1000);
-    const [lab1Pods, lab1Created, lab1Phase, lab1Waiting] = await Promise.all([
-      fetchInstant(queries.workloadPods()),
-      fetchInstant(queries.workloadPodCreated()),
-      fetchInstant(queries.workloadPodPhase()),
-      fetchInstant(queries.workloadPodWaitingReason()),
-    ]);
+    const needLab1 = cluster !== "lab3";
+    const needLab3 = cluster === "all" || cluster === "lab3";
 
-    // Lab-3 dual queries
-    const [lab3Pods, lab3Created, lab3Phase, lab3Waiting] = await Promise.all([
-      fetchInstant(queries.workloadPods(), "lab3"),
-      fetchInstant(queries.workloadPodCreated(), "lab3"),
-      fetchInstant(queries.workloadPodPhase(), "lab3"),
-      fetchInstant(queries.workloadPodWaitingReason(), "lab3"),
-    ]);
+    const [lab1Pods, lab1Created, lab1Phase, lab1Waiting] = needLab1
+      ? await Promise.all([
+          fetchInstant(queries.workloadPods()),
+          fetchInstant(queries.workloadPodCreated()),
+          fetchInstant(queries.workloadPodPhase()),
+          fetchInstant(queries.workloadPodWaitingReason()),
+        ])
+      : [EMPTY, EMPTY, EMPTY, EMPTY];
 
-    // Dedup: Lab-3 pods not already in Lab-1
+    const [lab3Pods, lab3Created, lab3Phase, lab3Waiting] = needLab3
+      ? await Promise.all([
+          fetchInstant(queries.workloadPods(), "lab3"),
+          fetchInstant(queries.workloadPodCreated(), "lab3"),
+          fetchInstant(queries.workloadPodPhase(), "lab3"),
+          fetchInstant(queries.workloadPodWaitingReason(), "lab3"),
+        ])
+      : [EMPTY, EMPTY, EMPTY, EMPTY];
+
     const lab1Keys = new Set(lab1Pods.map(r => `${r.metric.namespace}/${r.metric.pod}`));
     const podResults = lab1Pods.concat(lab3Pods.filter(r => !lab1Keys.has(`${r.metric.namespace}/${r.metric.pod}`)));
     const createdResults = lab1Created.concat(lab3Created);
@@ -239,7 +248,7 @@ export default function WorkloadsPage() {
       ),
     );
     setLoading(false);
-  }, []);
+  }, [cluster]);
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -270,6 +279,24 @@ export default function WorkloadsPage() {
           title="Workloads"
           subtitle="평가 워크로드 현황 및 이력 관리"
           accent="violet"
+          right={
+            <div className="flex gap-1 rounded-lg bg-gray-800/60 p-1">
+              {(["all", "lab1", "lab3"] as Cluster[]).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => { setCluster(c); setLoading(true); }}
+                  className={cn(
+                    "rounded-md px-3 py-1 text-xs font-medium transition-colors",
+                    cluster === c
+                      ? "bg-violet-600 text-white"
+                      : "text-gray-400 hover:text-gray-200",
+                  )}
+                >
+                  {c === "all" ? "All" : c === "lab1" ? "Lab-1" : "Lab-3"}
+                </button>
+              ))}
+            </div>
+          }
         />
 
         <div className="flex gap-1 border-b border-gray-800">

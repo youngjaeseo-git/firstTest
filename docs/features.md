@@ -1,6 +1,6 @@
 # DCIM 기능 목록
 
-> 2026-06-23 기준 구현 상태
+> 2026-06-24 기준 구현 상태
 
 ---
 
@@ -130,6 +130,7 @@
 | 종료된 워크로드 | ✅ 완료 | DB에 기록된 과거 namespace를 Active 탭 하단 표시 |
 | History 탭 | ✅ 완료 | 프로젝트 달력 타임라인 시각화 |
 | Pod Health | ✅ 완료 | Running/Pending/Warning/Error/Completed 상태 |
+| 클러스터 필터 | ✅ 완료 | All/Lab-1/Lab-3 필터로 워크로드 목록+상세 페이지에서 클러스터별 Pod 조회 |
 
 ---
 
@@ -204,7 +205,8 @@
 
 | 기능 | 상태 | 설명 |
 |------|------|------|
-| UI/디자인 개선 | 📋 예정 | 전체 페이지 디자인 통일·토큰 정리 (마지막 단계) |
+| UI/디자인 개선 — PageHeader 통일 | ✅ 완료 | 17개 페이지의 raw h1 태그를 PageHeader 컴포넌트로 교체. 아이콘+그라데이션 배경+액센트 색상 통일 |
+| UI/디자인 개선 — 나머지 | 📋 예정 | raw button→Button 컴포넌트 교체, inputClass 중복 제거, 카드/테이블 패딩 표준화 등 |
 | Multi-Prometheus | ✅ 완료 | Lab-3 Prometheus(10.144.131.190:30003) 듀얼 조회. instantQueryFrom() + source=lab3 API 파라미터. 대시보드 Active Workloads에서 Lab-3 Pod 표시 |
 | 온도 외부 DB 연동 | 📋 보류 | Grafana에 ddr4_temp CSV + 다수 PostgreSQL 존재. 구체적 요건 미확인 |
 | DB 컨테이너 이름 변경 | 📋 예정 | docker-compose DB 서비스명 firsttest-db-1 → dcim-db 등으로 변경 |

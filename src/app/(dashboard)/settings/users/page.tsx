@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useT } from "@/lib/i18n/i18n-context";
+import { Users } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface UserData {
   id: string;
@@ -143,20 +145,20 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{t("settings.users")}</h1>
-          <p className="mt-1 text-sm text-gray-400">
-            {t("settings.usersDesc")}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          {showForm ? t("common.cancel") : t("settings.addUser")}
-        </button>
-      </div>
+      <PageHeader
+        icon={Users}
+        title={t("settings.users")}
+        subtitle={t("settings.usersDesc")}
+        accent="blue"
+        right={
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            {showForm ? t("common.cancel") : t("settings.addUser")}
+          </button>
+        }
+      />
 
       {error && (
         <div className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400">

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge, SeverityBadge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/ui/page-transition";
+import { PageHeader } from "@/components/ui/page-header";
+import { History } from "lucide-react";
 
 interface AlertRow {
   id: string;
@@ -159,27 +161,27 @@ export default function AlertHistoryPage() {
     <PageTransition>
       <div className="space-y-6">
         {/* Breadcrumb & Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
-              <Link href="/alerts" className="hover:text-gray-200">
-                Alerts
-              </Link>
-              <span>/</span>
-              <span>History</span>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight">Alert History</h1>
-            <p className="mt-1 text-sm text-gray-400">
-              All alert records with filtering and pagination
-            </p>
-          </div>
-          <Link
-            href="/alerts"
-            className="rounded-lg border border-gray-700/60 bg-gray-800/60 px-4 py-2 text-sm font-medium text-gray-200 hover:border-blue-500/50 hover:text-blue-300 transition-all"
-          >
-            Back to Alerts
+        <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+          <Link href="/alerts" className="hover:text-gray-200">
+            Alerts
           </Link>
+          <span>/</span>
+          <span>History</span>
         </div>
+        <PageHeader
+          icon={History}
+          title="Alert History"
+          subtitle="All alert records with filtering and pagination"
+          accent="red"
+          right={
+            <Link
+              href="/alerts"
+              className="rounded-lg border border-gray-700/60 bg-gray-800/60 px-4 py-2 text-sm font-medium text-gray-200 hover:border-blue-500/50 hover:text-blue-300 transition-all"
+            >
+              Back to Alerts
+            </Link>
+          }
+        />
 
         {/* Filters */}
         <Card className="p-4">

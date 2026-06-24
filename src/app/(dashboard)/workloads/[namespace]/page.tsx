@@ -28,7 +28,7 @@ import {
   Archive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { queries } from "@/lib/prometheus";
+import { queries, type Cluster } from "@/lib/prometheus";
 
 /* ─── Types ─── */
 type PodHealth = "running" | "pending" | "warning" | "error" | "succeeded";
@@ -116,10 +116,13 @@ const PROJECT_STATUS_COLORS: Record<string, string> = {
   CANCELLED: "bg-red-900/50 text-red-400",
 };
 
+type MR = { metric: Record<string, string>; value?: [number, string] };
+const EMPTY: MR[] = [];
+
 async function fetchInstant(
   query: string,
   source?: "lab3",
-): Promise<{ metric: Record<string, string>; value?: [number, string] }[]> {
+): Promise<MR[]> {
   try {
     let url = `/api/metrics/instant?query=${encodeURIComponent(query)}`;
     if (source) url += `&source=${source}`;
@@ -172,6 +175,7 @@ export default function WorkloadDetailPage() {
   const { toast } = useToast();
 
   const [tab, setTab] = useState<TabKey>("pods");
+  const [cluster, setCluster] = useState<Cluster>("all");
   const [pods, setPods] = useState<PodInfo[]>([]);
   const [nodes, setNodes] = useState<string[]>([]);
   const [data, setData] = useState<WorkloadData | null>(null);
@@ -180,28 +184,31 @@ export default function WorkloadDetailPage() {
   const fetchPods = useCallback(async () => {
     const now = Math.floor(Date.now() / 1000);
     const nsFilter = `namespace="${ns}"`;
+    const needLab1 = cluster !== "lab3";
+    const needLab3 = cluster === "all" || cluster === "lab3";
 
-    // Lab-1 queries
-    const [lab1Pod, lab1Created, lab1Phase, lab1Waiting, lab1Cpu, lab1Mem] = await Promise.all([
-      fetchInstant(`kube_pod_info{${nsFilter}}`),
-      fetchInstant(`kube_pod_created{${nsFilter}}`),
-      fetchInstant(`kube_pod_status_phase{${nsFilter}}==1`),
-      fetchInstant(`kube_pod_container_status_waiting_reason{${nsFilter}}==1`),
-      fetchInstant(`sum by(pod, namespace)(rate(container_cpu_usage_seconds_total{${nsFilter},container!=""}[5m])) * 100`),
-      fetchInstant(`sum by(pod, namespace)(container_memory_working_set_bytes{${nsFilter},container!=""})`),
-    ]);
+    const [lab1Pod, lab1Created, lab1Phase, lab1Waiting, lab1Cpu, lab1Mem] = needLab1
+      ? await Promise.all([
+          fetchInstant(`kube_pod_info{${nsFilter}}`),
+          fetchInstant(`kube_pod_created{${nsFilter}}`),
+          fetchInstant(`kube_pod_status_phase{${nsFilter}}==1`),
+          fetchInstant(`kube_pod_container_status_waiting_reason{${nsFilter}}==1`),
+          fetchInstant(`sum by(pod, namespace)(rate(container_cpu_usage_seconds_total{${nsFilter},container!=""}[5m])) * 100`),
+          fetchInstant(`sum by(pod, namespace)(container_memory_working_set_bytes{${nsFilter},container!=""})`),
+        ])
+      : [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY];
 
-    // Lab-3 dual queries
-    const [lab3Pod, lab3Created, lab3Phase, lab3Waiting, lab3Cpu, lab3Mem] = await Promise.all([
-      fetchInstant(`kube_pod_info{${nsFilter}}`, "lab3"),
-      fetchInstant(`kube_pod_created{${nsFilter}}`, "lab3"),
-      fetchInstant(`kube_pod_status_phase{${nsFilter}}==1`, "lab3"),
-      fetchInstant(`kube_pod_container_status_waiting_reason{${nsFilter}}==1`, "lab3"),
-      fetchInstant(`sum by(pod, namespace)(rate(container_cpu_usage_seconds_total{${nsFilter},container!=""}[5m])) * 100`, "lab3"),
-      fetchInstant(`sum by(pod, namespace)(container_memory_working_set_bytes{${nsFilter},container!=""})`,"lab3"),
-    ]);
+    const [lab3Pod, lab3Created, lab3Phase, lab3Waiting, lab3Cpu, lab3Mem] = needLab3
+      ? await Promise.all([
+          fetchInstant(`kube_pod_info{${nsFilter}}`, "lab3"),
+          fetchInstant(`kube_pod_created{${nsFilter}}`, "lab3"),
+          fetchInstant(`kube_pod_status_phase{${nsFilter}}==1`, "lab3"),
+          fetchInstant(`kube_pod_container_status_waiting_reason{${nsFilter}}==1`, "lab3"),
+          fetchInstant(`sum by(pod, namespace)(rate(container_cpu_usage_seconds_total{${nsFilter},container!=""}[5m])) * 100`, "lab3"),
+          fetchInstant(`sum by(pod, namespace)(container_memory_working_set_bytes{${nsFilter},container!=""})`,"lab3"),
+        ])
+      : [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY];
 
-    // Dedup and merge
     const lab1PodKeys = new Set(lab1Pod.map(r => r.metric.pod || ""));
     const podRes = lab1Pod.concat(lab3Pod.filter(r => !lab1PodKeys.has(r.metric.pod || "")));
     const createdRes = lab1Created.concat(lab3Created);
@@ -259,7 +266,7 @@ export default function WorkloadDetailPage() {
     const nodeList: string[] = [];
     allNodes.forEach((n) => nodeList.push(n));
     setNodes(nodeList.sort());
-  }, [ns]);
+  }, [ns, cluster]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -319,15 +326,33 @@ export default function WorkloadDetailPage() {
                 <p className="text-sm text-gray-500">{activeProject.description}</p>
               )}
             </div>
-            <div className="flex items-center gap-4 text-xs text-gray-500">
-              <span className="flex items-center gap-1">
-                <FlaskConical className="h-3 w-3" />
-                {pods.length} pod{pods.length !== 1 ? "s" : ""}
-              </span>
-              <span className="flex items-center gap-1">
-                <Server className="h-3 w-3" />
-                {nodes.length} node{nodes.length !== 1 ? "s" : ""}
-              </span>
+            <div className="flex items-center gap-4">
+              <div className="flex gap-1 rounded-lg bg-gray-800/60 p-1">
+                {(["all", "lab1", "lab3"] as Cluster[]).map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setCluster(c)}
+                    className={cn(
+                      "rounded-md px-3 py-1 text-xs font-medium transition-colors",
+                      cluster === c
+                        ? "bg-violet-600 text-white"
+                        : "text-gray-400 hover:text-gray-200",
+                    )}
+                  >
+                    {c === "all" ? "All" : c === "lab1" ? "Lab-1" : "Lab-3"}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-4 text-xs text-gray-500">
+                <span className="flex items-center gap-1">
+                  <FlaskConical className="h-3 w-3" />
+                  {pods.length} pod{pods.length !== 1 ? "s" : ""}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Server className="h-3 w-3" />
+                  {nodes.length} node{nodes.length !== 1 ? "s" : ""}
+                </span>
+              </div>
             </div>
           </div>
 

@@ -3,6 +3,8 @@
 import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { Upload } from "lucide-react";
 
 interface ParsedRow {
   [key: string]: string;
@@ -200,41 +202,41 @@ export default function BulkImportPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-sm text-gray-400 mb-1">
-            <Link href="/infrastructure" className="hover:text-gray-50">
-              Infrastructure
-            </Link>
-            <span>/</span>
-            <span>일괄 등록</span>
-          </div>
-          <h1 className="text-2xl font-bold">장비 일괄 등록</h1>
-          <p className="text-gray-400 mt-1">
-            CSV 파일로 다수의 장비를 한 번에 등록합니다
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <a
-            href="/api/equipment/template?format=csv"
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm flex items-center gap-2 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            CSV 템플릿 다운로드
-          </a>
-          <a
-            href="/api/equipment/template?format=json"
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm flex items-center gap-2 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            JSON 템플릿
-          </a>
-        </div>
+      <div className="flex items-center gap-2 text-sm text-gray-400 mb-1">
+        <Link href="/infrastructure" className="hover:text-gray-50">
+          Infrastructure
+        </Link>
+        <span>/</span>
+        <span>일괄 등록</span>
       </div>
+      <PageHeader
+        icon={Upload}
+        title="장비 일괄 등록"
+        subtitle="CSV 파일로 다수의 장비를 한 번에 등록합니다"
+        accent="blue"
+        right={
+          <div className="flex gap-2">
+            <a
+              href="/api/equipment/template?format=csv"
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm flex items-center gap-2 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              CSV 템플릿 다운로드
+            </a>
+            <a
+              href="/api/equipment/template?format=json"
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm flex items-center gap-2 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              JSON 템플릿
+            </a>
+          </div>
+        }
+      />
 
       {/* Step indicator */}
       <div className="flex items-center gap-4 text-sm">

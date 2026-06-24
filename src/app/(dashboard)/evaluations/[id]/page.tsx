@@ -12,6 +12,7 @@ import {
   CheckCircle2, Circle, AlertTriangle, PlayCircle, Clock,
   GanttChart,
 } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 
 /* ─── Types ─── */
 interface Equipment { id: string; hostname: string | null; ipAddress: string | null }
@@ -116,32 +117,39 @@ export default function EvalDetailPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <Link href="/evaluations" className="mb-1 flex items-center gap-1 text-sm text-gray-400 hover:text-gray-200">
+        <Link href="/evaluations" className="mb-3 flex items-center gap-1 text-sm text-gray-400 hover:text-gray-200">
           <ChevronLeft className="h-3 w-3" /> Evaluations
         </Link>
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              {project.evalType === "ACCELERATED"
-                ? <Zap className="h-4 w-4 text-amber-400" />
-                : <FlaskConical className="h-4 w-4 text-blue-400" />}
-              <span className="text-xs text-gray-500 uppercase">{project.evalType}</span>
-              <StatusSelect projectId={project.id} current={project.status} onUpdate={fetchProject} />
-            </div>
-            <h1 className="text-2xl font-bold">{project.title}</h1>
-            {memSpec && <p className="mt-1 text-sm text-gray-400">{memSpec}</p>}
-            {project.description && <p className="mt-1 text-sm text-gray-500">{project.description}</p>}
-          </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            {project.startDate && (
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                {new Date(project.startDate).toLocaleDateString("ko-KR")}
-                {project.endDate && ` ~ ${new Date(project.endDate).toLocaleDateString("ko-KR")}`}
-              </span>
-            )}
-          </div>
+        <div className="flex items-center gap-2 mb-2">
+          {project.evalType === "ACCELERATED"
+            ? <Zap className="h-4 w-4 text-amber-400" />
+            : <FlaskConical className="h-4 w-4 text-blue-400" />}
+          <span className="text-xs text-gray-500 uppercase">{project.evalType}</span>
+          <StatusSelect projectId={project.id} current={project.status} onUpdate={fetchProject} />
         </div>
+        <PageHeader
+          icon={FlaskConical}
+          title={project.title}
+          subtitle={
+            <>
+              {memSpec && <span>{memSpec}</span>}
+              {memSpec && project.description && <span> &mdash; </span>}
+              {project.description && <span>{project.description}</span>}
+            </>
+          }
+          accent="green"
+          right={
+            project.startDate ? (
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {new Date(project.startDate).toLocaleDateString("ko-KR")}
+                  {project.endDate && ` ~ ${new Date(project.endDate).toLocaleDateString("ko-KR")}`}
+                </span>
+              </div>
+            ) : undefined
+          }
+        />
       </div>
 
       {/* Tabs */}

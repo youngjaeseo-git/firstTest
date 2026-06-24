@@ -19,6 +19,8 @@ import { RefreshHwButton } from "@/components/equipment/refresh-hw-button";
 import { EquipmentHistory } from "@/components/equipment/equipment-history";
 import { DeleteEquipmentButton } from "@/components/equipment/delete-equipment-button";
 import { EquipmentAssignments } from "@/components/equipment/equipment-assignments";
+import { PageHeader } from "@/components/ui/page-header";
+import { Server } from "lucide-react";
 
 export default async function EquipmentDetailPage({
   params,
@@ -51,40 +53,39 @@ export default async function EquipmentDetailPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
-            <Link href="/infrastructure" className="hover:text-gray-200">
-              Infrastructure
-            </Link>
-            <span>/</span>
-            <span>{equipment.hostname || equipment.serialNumber}</span>
-          </div>
-          <h1 className="flex items-center gap-3 text-2xl font-bold">
-            {equipment.hostname || "Unnamed Equipment"}
-            <StatusBadge status={equipment.status} />
-          </h1>
-        </div>
-        <div className="flex gap-2">
-          {equipment.bmcIpAddress && (
-            <RefreshHwButton equipmentId={equipment.id} />
-          )}
-          <Link href={`/infrastructure/${equipment.id}/memory`}>
-            <Button variant="outline">Memory 상세</Button>
-          </Link>
-          {user?.role === "ADMIN" && (
-            <>
-              <Link href={`/infrastructure/${equipment.id}/edit`}>
-                <Button>편집</Button>
-              </Link>
-              <DeleteEquipmentButton
-                equipmentId={equipment.id}
-                equipmentName={equipment.hostname || equipment.serialNumber || "장비"}
-              />
-            </>
-          )}
-        </div>
+      <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+        <Link href="/infrastructure" className="hover:text-gray-200">
+          Infrastructure
+        </Link>
+        <span>/</span>
+        <span>{equipment.hostname || equipment.serialNumber}</span>
       </div>
+      <PageHeader
+        icon={Server}
+        title={<span className="flex items-center gap-3">{equipment.hostname || "Unnamed Equipment"}<StatusBadge status={equipment.status} /></span>}
+        accent="blue"
+        right={
+          <div className="flex gap-2">
+            {equipment.bmcIpAddress && (
+              <RefreshHwButton equipmentId={equipment.id} />
+            )}
+            <Link href={`/infrastructure/${equipment.id}/memory`}>
+              <Button variant="outline">Memory 상세</Button>
+            </Link>
+            {user?.role === "ADMIN" && (
+              <>
+                <Link href={`/infrastructure/${equipment.id}/edit`}>
+                  <Button>편집</Button>
+                </Link>
+                <DeleteEquipmentButton
+                  equipmentId={equipment.id}
+                  equipmentName={equipment.hostname || equipment.serialNumber || "장비"}
+                />
+              </>
+            )}
+          </div>
+        }
+      />
 
       {/* Summary cards */}
       <div className="rounded-xl border border-gray-800/80 bg-gray-900/80 p-5 backdrop-blur-sm">

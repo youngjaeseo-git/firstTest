@@ -14,6 +14,8 @@ import { MemorySlotDiagram } from "@/components/memory/memory-slot-diagram";
 import { PowerStateIndicator } from "@/components/metrics/power-state-indicator";
 import { getSessionUser, canControlPower } from "@/lib/rbac";
 import { EquipmentAssignments } from "@/components/equipment/equipment-assignments";
+import { PageHeader } from "@/components/ui/page-header";
+import { Activity } from "lucide-react";
 
 export default async function ServerDetailPage({
   params,
@@ -60,22 +62,24 @@ export default async function ServerDetailPage({
             ]}
             className="mb-1"
           />
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold tracking-tight">
-              {equipment.hostname || "Unnamed Server"}
-            </h1>
-            <div className="flex gap-2">
-              {equipment.bmcIpAddress && (
-                <RefreshHwButton equipmentId={equipment.id} />
-              )}
-              <Link
-                href={`/infrastructure/${equipment.id}`}
-                className="rounded-lg border border-gray-700/60 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800/80 hover:border-gray-600 transition-all"
-              >
-                자산 관리
-              </Link>
-            </div>
-          </div>
+          <PageHeader
+            icon={Activity}
+            title={equipment.hostname || "Unnamed Server"}
+            accent="cyan"
+            right={
+              <div className="flex gap-2">
+                {equipment.bmcIpAddress && (
+                  <RefreshHwButton equipmentId={equipment.id} />
+                )}
+                <Link
+                  href={`/infrastructure/${equipment.id}`}
+                  className="rounded-lg border border-gray-700/60 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800/80 hover:border-gray-600 transition-all"
+                >
+                  자산 관리
+                </Link>
+              </div>
+            }
+          />
         </div>
 
         {/* Summary info bar */}

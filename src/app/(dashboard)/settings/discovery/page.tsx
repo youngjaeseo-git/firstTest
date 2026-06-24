@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useConfirm } from "@/components/ui/confirm";
 import { useT } from "@/lib/i18n/i18n-context";
+import { Radar } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface Target {
   id: string;
@@ -152,12 +154,12 @@ export default function DiscoveryPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("discovery.title")}</h1>
-        <p className="mt-1 text-sm text-gray-400">
-          {t("discovery.description")}
-        </p>
-      </div>
+      <PageHeader
+        icon={Radar}
+        title={t("discovery.title")}
+        subtitle={t("discovery.description")}
+        accent="cyan"
+      />
 
       <Card>
         <div className="flex items-center justify-between">

@@ -12,6 +12,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { MemorySlotDiagram } from "@/components/memory/memory-slot-diagram";
+import { PageHeader } from "@/components/ui/page-header";
+import { MemoryStick } from "lucide-react";
 
 export default async function MemoryDetailPage({
   params,
@@ -57,28 +59,28 @@ export default async function MemoryDetailPage({
   return (
     <div className="space-y-6">
       {/* Breadcrumb & Title */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
-            <Link href="/infrastructure" className="hover:text-gray-200">Infrastructure</Link>
-            <span>/</span>
-            <Link href={`/infrastructure/${equipment.id}`} className="hover:text-gray-200">
-              {equipment.hostname || equipment.serialNumber}
-            </Link>
-            <span>/</span>
-            <span>Memory</span>
-          </div>
-          <h1 className="text-2xl font-bold">
-            Memory Detail - {equipment.hostname || "Equipment"}
-          </h1>
-        </div>
-        <Link
-          href={`/infrastructure/${equipment.id}/memory/edit`}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          Edit
+      <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+        <Link href="/infrastructure" className="hover:text-gray-200">Infrastructure</Link>
+        <span>/</span>
+        <Link href={`/infrastructure/${equipment.id}`} className="hover:text-gray-200">
+          {equipment.hostname || equipment.serialNumber}
         </Link>
+        <span>/</span>
+        <span>Memory</span>
       </div>
+      <PageHeader
+        icon={MemoryStick}
+        title={`Memory Detail - ${equipment.hostname || "Equipment"}`}
+        accent="purple"
+        right={
+          <Link
+            href={`/infrastructure/${equipment.id}/memory/edit`}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Edit
+          </Link>
+        }
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">

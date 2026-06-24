@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge, SeverityBadge } from "@/components/ui/badge";
 import { useConfirm } from "@/components/ui/confirm";
+import { PageHeader } from "@/components/ui/page-header";
+import { ShieldAlert } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
 
 interface AlertRule {
@@ -181,27 +183,27 @@ export default function AlertRulesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
-            <Link href="/alerts" className="hover:text-gray-200">
-              {t("nav.alerts")}
-            </Link>
-            <span>/</span>
-            <span>{t("alerts.rules")}</span>
-          </div>
-          <h1 className="text-2xl font-bold">{t("alerts.rules")}</h1>
-          <p className="mt-1 text-sm text-gray-400">
-            {t("alerts.rulesDesc")}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          {showForm ? t("common.cancel") : t("alerts.addRule")}
-        </button>
+      <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+        <Link href="/alerts" className="hover:text-gray-200">
+          {t("nav.alerts")}
+        </Link>
+        <span>/</span>
+        <span>{t("alerts.rules")}</span>
       </div>
+      <PageHeader
+        icon={ShieldAlert}
+        title={t("alerts.rules")}
+        subtitle={t("alerts.rulesDesc")}
+        accent="red"
+        right={
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            {showForm ? t("common.cancel") : t("alerts.addRule")}
+          </button>
+        }
+      />
 
       {error && (
         <div className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400">
