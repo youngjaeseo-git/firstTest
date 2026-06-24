@@ -234,20 +234,20 @@ export default function SearchPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800 text-left text-xs text-gray-500 uppercase">
-                  <th className="pb-2 pr-3">Hostname</th>
-                  <th className="pb-2 pr-3">IP</th>
-                  <th className="pb-2 pr-3">Status</th>
-                  <th className="pb-2 pr-3">Manufacturer / Model</th>
-                  <th className="pb-2 pr-3">CPU</th>
-                  <th className="pb-2 pr-3">Memory</th>
-                  <th className="pb-2 pr-3">BIOS</th>
-                  <th className="pb-2 pr-3">Location</th>
+                  <th className="px-3 py-2">Hostname</th>
+                  <th className="px-3 py-2">IP</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2">Manufacturer / Model</th>
+                  <th className="px-3 py-2">CPU</th>
+                  <th className="px-3 py-2">Memory</th>
+                  <th className="px-3 py-2">BIOS</th>
+                  <th className="px-3 py-2">Location</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-800">
                 {results.items.map((eq) => (
-                  <tr key={eq.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                    <td className="py-2 pr-3">
+                  <tr key={eq.id} className="hover:bg-gray-800/30">
+                    <td className="px-3 py-2">
                       <Link
                         href={`/servers/${eq.id}`}
                         className="font-mono text-blue-400 hover:underline"
@@ -255,17 +255,17 @@ export default function SearchPage() {
                         {eq.hostname || "-"}
                       </Link>
                     </td>
-                    <td className="py-2 pr-3 font-mono text-gray-400">{eq.ipAddress || "-"}</td>
-                    <td className="py-2 pr-3"><StatusBadge status={eq.status} /></td>
-                    <td className="py-2 pr-3 text-gray-300 max-w-[180px] truncate">
+                    <td className="px-3 py-2 font-mono text-gray-400">{eq.ipAddress || "-"}</td>
+                    <td className="px-3 py-2"><StatusBadge status={eq.status} /></td>
+                    <td className="px-3 py-2 text-gray-300 max-w-[180px] truncate">
                       {eq.manufacturer || ""} {eq.model || "-"}
                     </td>
-                    <td className="py-2 pr-3 text-gray-400 max-w-[200px] truncate">
+                    <td className="px-3 py-2 text-gray-400 max-w-[200px] truncate">
                       {eq.cpus.length > 0
                         ? `${eq.cpus.length}x ${eq.cpus[0].model || "?"} (${eq.cpus[0].cores || "?"}C)`
                         : "-"}
                     </td>
-                    <td className="py-2 pr-3 text-gray-400">
+                    <td className="px-3 py-2 text-gray-400">
                       {eq.totalMemoryGB
                         ? `${eq.totalMemoryGB}GB`
                         : "-"}
@@ -275,10 +275,10 @@ export default function SearchPage() {
                         </span>
                       )}
                     </td>
-                    <td className="py-2 pr-3 font-mono text-xs text-gray-500 max-w-[120px] truncate">
+                    <td className="px-3 py-2 font-mono text-xs text-gray-500 max-w-[120px] truncate">
                       {eq.biosVersion || "-"}
                     </td>
-                    <td className="py-2 pr-3 text-gray-500 text-xs">
+                    <td className="px-3 py-2 text-gray-500 text-xs">
                       {eq.rack ? (
                         `${eq.rack.room.name} / ${eq.rack.name}`
                       ) : (

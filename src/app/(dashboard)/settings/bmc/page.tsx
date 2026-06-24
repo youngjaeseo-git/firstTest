@@ -385,19 +385,19 @@ export default function BmcManagementPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-800 text-left text-xs text-gray-500 uppercase">
-                      <th className="pb-2 pr-3">Hostname</th>
-                      <th className="pb-2 pr-3">Host IP</th>
-                      <th className="pb-2 pr-3">BMC IP</th>
-                      <th className="pb-2 pr-3">Model</th>
-                      <th className="pb-2 pr-3 w-20">Actions</th>
+                      <th className="px-3 py-2">Hostname</th>
+                      <th className="px-3 py-2">Host IP</th>
+                      <th className="px-3 py-2">BMC IP</th>
+                      <th className="px-3 py-2">Model</th>
+                      <th className="px-3 py-2 w-20">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-800">
                     {filteredForMapping.map((eq) => (
-                      <tr key={eq.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                        <td className="py-2 pr-3 font-mono text-gray-200">{eq.hostname || "-"}</td>
-                        <td className="py-2 pr-3 font-mono text-gray-400">{eq.ipAddress || "-"}</td>
-                        <td className="py-2 pr-3">
+                      <tr key={eq.id} className="hover:bg-gray-800/30">
+                        <td className="px-3 py-2 font-mono text-gray-200">{eq.hostname || "-"}</td>
+                        <td className="px-3 py-2 font-mono text-gray-400">{eq.ipAddress || "-"}</td>
+                        <td className="px-3 py-2">
                           {editingId === eq.id ? (
                             <div className="flex items-center gap-1">
                               <input
@@ -432,10 +432,10 @@ export default function BmcManagementPage() {
                             </span>
                           )}
                         </td>
-                        <td className="py-2 pr-3 text-gray-500 text-xs truncate max-w-[180px]">
+                        <td className="px-3 py-2 text-gray-500 text-xs truncate max-w-[180px]">
                           {eq.model || "-"}
                         </td>
-                        <td className="py-2 pr-3">
+                        <td className="px-3 py-2">
                           {editingId !== eq.id && (
                             <button
                               onClick={() => startEdit(eq)}
@@ -585,7 +585,7 @@ export default function BmcManagementPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800 text-left text-xs text-gray-500 uppercase">
-                  <th className="pb-2 pr-3 w-8">
+                  <th className="px-3 py-2 w-8">
                     <button onClick={selectAll} className="text-gray-400 hover:text-gray-200">
                       {allSelected ? (
                         <CheckSquare className="h-4 w-4" />
@@ -596,42 +596,42 @@ export default function BmcManagementPage() {
                       )}
                     </button>
                   </th>
-                  <th className="pb-2 pr-3">Hostname</th>
-                  <th className="pb-2 pr-3">IP</th>
-                  <th className="pb-2 pr-3">BMC IP</th>
-                  <th className="pb-2 pr-3">Status</th>
-                  <th className="pb-2 pr-3">Model</th>
-                  <th className="pb-2 pr-3">Power</th>
+                  <th className="px-3 py-2">Hostname</th>
+                  <th className="px-3 py-2">IP</th>
+                  <th className="px-3 py-2">BMC IP</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2">Model</th>
+                  <th className="px-3 py-2">Power</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-800">
                 {equipment.map((eq) => (
                   <tr
                     key={eq.id}
                     onClick={() => toggleSelect(eq.id)}
-                    className={`border-b border-gray-800/50 cursor-pointer transition-colors ${
+                    className={`cursor-pointer transition-colors ${
                       selected.has(eq.id)
                         ? "bg-blue-900/20"
                         : "hover:bg-gray-800/30"
                     }`}
                   >
-                    <td className="py-2 pr-3">
+                    <td className="px-3 py-2">
                       {selected.has(eq.id) ? (
                         <CheckSquare className="h-4 w-4 text-blue-400" />
                       ) : (
                         <Square className="h-4 w-4 text-gray-600" />
                       )}
                     </td>
-                    <td className="py-2 pr-3 font-mono text-gray-200">{eq.hostname || "-"}</td>
-                    <td className="py-2 pr-3 font-mono text-gray-400">{eq.ipAddress || "-"}</td>
-                    <td className="py-2 pr-3 font-mono text-gray-400">{eq.bmcIpAddress}</td>
-                    <td className="py-2 pr-3"><StatusBadge status={eq.status} /></td>
-                    <td className="py-2 pr-3 text-gray-400 truncate max-w-[200px]">
+                    <td className="px-3 py-2 font-mono text-gray-200">{eq.hostname || "-"}</td>
+                    <td className="px-3 py-2 font-mono text-gray-400">{eq.ipAddress || "-"}</td>
+                    <td className="px-3 py-2 font-mono text-gray-400">{eq.bmcIpAddress}</td>
+                    <td className="px-3 py-2"><StatusBadge status={eq.status} /></td>
+                    <td className="px-3 py-2 text-gray-400 truncate max-w-[200px]">
                       {eq.manufacturer && eq.model
                         ? `${eq.manufacturer} ${eq.model}`
                         : eq.model || eq.manufacturer || "-"}
                     </td>
-                    <td className="py-2 pr-3">
+                    <td className="px-3 py-2">
                       {powerStates[eq.id] ? (
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${

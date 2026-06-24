@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useT } from "@/lib/i18n/i18n-context";
 import { Users } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { inputClass } from "@/lib/styles";
 
 interface UserData {
   id: string;
@@ -139,9 +140,6 @@ export default function UsersPage() {
 
   const pendingUsers = users.filter((u) => !u.approved);
   const approvedUsers = users.filter((u) => u.approved);
-
-  const inputClass =
-    "w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 
   return (
     <div className="space-y-6">

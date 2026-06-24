@@ -328,9 +328,9 @@ export default async function ReportsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-800 text-left text-xs text-gray-400 print:border-gray-300 print:text-gray-600">
-                    <th className="py-2">Rule</th>
-                    <th className="py-2">Severity</th>
-                    <th className="py-2 text-right">Count</th>
+                    <th className="px-3 py-2">Rule</th>
+                    <th className="px-3 py-2">Severity</th>
+                    <th className="px-3 py-2 text-right">Count</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800 print:divide-gray-300">
@@ -338,15 +338,15 @@ export default async function ReportsPage() {
                     const rule = ruleMap.get(r.ruleId!);
                     return (
                       <tr key={r.ruleId}>
-                        <td className="py-2 text-gray-100 print:text-gray-900">
+                        <td className="px-3 py-2 text-gray-100 print:text-gray-900">
                           {rule?.name || "(deleted)"}
                         </td>
-                        <td className="py-2">
+                        <td className="px-3 py-2">
                           {rule?.severity && (
                             <SeverityBadge severity={rule.severity} />
                           )}
                         </td>
-                        <td className="py-2 text-right font-mono">
+                        <td className="px-3 py-2 text-right font-mono">
                           {r._count._all}
                         </td>
                       </tr>
@@ -369,23 +369,23 @@ export default async function ReportsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800 text-left text-xs text-gray-400 print:border-gray-300 print:text-gray-600">
-                  <th className="py-2">Time</th>
-                  <th className="py-2">Severity</th>
-                  <th className="py-2">Summary</th>
-                  <th className="py-2">Source</th>
+                  <th className="px-3 py-2">Time</th>
+                  <th className="px-3 py-2">Severity</th>
+                  <th className="px-3 py-2">Summary</th>
+                  <th className="px-3 py-2">Source</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800 print:divide-gray-300">
                 {recentAlerts.map((a) => (
                   <tr key={a.id}>
-                    <td className="py-2 text-xs text-gray-400 print:text-gray-600">
+                    <td className="px-3 py-2 text-xs text-gray-400 print:text-gray-600">
                       {a.firedAt.toLocaleString("ko-KR")}
                     </td>
-                    <td className="py-2">
+                    <td className="px-3 py-2">
                       <SeverityBadge severity={a.severity} />
                     </td>
-                    <td className="py-2 text-gray-100 print:text-gray-900">{a.summary}</td>
-                    <td className="py-2 font-mono text-xs text-gray-500 print:text-gray-600">
+                    <td className="px-3 py-2 text-gray-100 print:text-gray-900">{a.summary}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-gray-500 print:text-gray-600">
                       {a.source || "-"}
                     </td>
                   </tr>

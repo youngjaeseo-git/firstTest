@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm";
 import { useT } from "@/lib/i18n/i18n-context";
 import { Radar } from "lucide-react";
@@ -169,13 +170,12 @@ export default function DiscoveryPage() {
               {t("discovery.syncDesc")}
             </p>
           </div>
-          <button
+          <Button
             onClick={handleSync}
             disabled={syncing}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {syncing ? t("discovery.syncing") : t("discovery.syncRun")}
-          </button>
+          </Button>
         </div>
       </Card>
 
@@ -299,21 +299,23 @@ export default function DiscoveryPage() {
                     </td>
                     <td className="px-3 py-2">
                       {target.equipmentId ? (
-                        <button
+                        <Button
+                          variant="destructive"
+                          size="sm"
                           onClick={() => handleUnregister(target.id)}
                           disabled={unregistering === target.id}
-                          className="rounded bg-red-600/80 px-2 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
                         >
                           {unregistering === target.id ? "..." : t("discovery.unregister")}
-                        </button>
+                        </Button>
                       ) : (
-                        <button
+                        <Button
+                          size="sm"
                           onClick={() => handleRegister(target.id)}
                           disabled={registering === target.id}
-                          className="rounded bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                          className="bg-green-600 hover:bg-green-700"
                         >
                           {registering === target.id ? "..." : t("discovery.register")}
-                        </button>
+                        </Button>
                       )}
                     </td>
                   </tr>
@@ -322,23 +324,25 @@ export default function DiscoveryPage() {
             </table>
             {totalPages > 1 && (
               <div className="mt-3 flex items-center justify-center gap-3">
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
-                  className="rounded bg-gray-700 px-3 py-1 text-xs text-gray-300 hover:bg-gray-600 disabled:opacity-40"
                 >
                   ← {t("common.prev")}
-                </button>
+                </Button>
                 <span className="text-xs text-gray-400">
                   {page + 1} / {totalPages}
                 </span>
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
-                  className="rounded bg-gray-700 px-3 py-1 text-xs text-gray-300 hover:bg-gray-600 disabled:opacity-40"
                 >
                   {t("common.next")} →
-                </button>
+                </Button>
               </div>
             )}
           </div>

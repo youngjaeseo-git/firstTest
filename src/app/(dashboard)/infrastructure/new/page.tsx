@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { Plus } from "lucide-react";
+import { inputClass, labelClass } from "@/lib/styles";
 
 interface RoomData {
   id: string;
@@ -319,9 +320,6 @@ export default function NewEquipmentPage() {
     }
   }
 
-  const inputClass =
-    "w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
-  const labelClass = "mb-1 block text-sm font-medium text-gray-300";
   const sectionHeaderClass =
     "flex cursor-pointer items-center justify-between rounded-lg bg-gray-800/50 px-4 py-3";
 

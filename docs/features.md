@@ -206,8 +206,10 @@
 | 기능 | 상태 | 설명 |
 |------|------|------|
 | UI/디자인 개선 — PageHeader 통일 | ✅ 완료 | 17개 페이지의 raw h1 태그를 PageHeader 컴포넌트로 교체. 아이콘+그라데이션 배경+액센트 색상 통일 |
-| UI/디자인 개선 — 나머지 | 📋 예정 | raw button→Button 컴포넌트 교체, inputClass 중복 제거, 카드/테이블 패딩 표준화 등 |
-| Multi-Prometheus | ✅ 완료 | Lab-3 Prometheus(10.144.131.190:30003) 듀얼 조회. instantQueryFrom() + source=lab3 API 파라미터. 대시보드 Active Workloads에서 Lab-3 Pod 표시 |
+| UI/디자인 개선 — Button 표준화 | ✅ 완료 | evaluations, discovery, prometheus-diagnostic, organizations 페이지의 raw button→shadcn Button 컴포넌트 교체 (19개 버튼) |
+| UI/디자인 개선 — inputClass 추출 | ✅ 완료 | 5개 페이지에 중복된 inputClass/labelClass를 `src/lib/styles.ts` 공유 모듈로 추출 |
+| UI/디자인 개선 — 테이블 패딩 표준화 | ✅ 완료 | firmware, reports, search, bmc 4개 페이지의 테이블 th/td 패딩을 `px-3 py-2` + `divide-y divide-gray-800` 표준 패턴으로 통일 |
+| Multi-Prometheus | ✅ 완료 | Lab-3 Prometheus(10.144.131.190:30003) 듀얼 조회. instantQueryFrom() + source=lab3 API 파라미터. 대시보드 Active Workloads에서 Lab-3 Pod 표시. Lab-3 장애 시 경고 배너 표시 (대시보드 + 워크로드) |
 | 온도 외부 DB 연동 | 📋 보류 | Grafana에 ddr4_temp CSV + 다수 PostgreSQL 존재. 구체적 요건 미확인 |
 | DB 컨테이너 이름 변경 | ✅ 완료 | docker-compose container_name: dcim-db / dcim-app 명시 |
 | systemd 서비스 등록 | ✅ 완료 | `scripts/setup-service.sh --install`로 서비스 등록. dev/prod 모드 전환, 부팅 시 자동 시작, `systemctl restart dcim`으로 코드 반영 |
@@ -218,7 +220,8 @@
 | 조직별 접근 제어 | ✅ 완료 | Organization/UserOrganization 모델, Equipment.organizationId FK. ADMIN은 전체 접근, 비ADMIN은 소속 조직 장비만 조회/조작. JWT에 orgIds 캐싱. Equipment CRUD + 13개 하위 API + 검색/디스커버리에 조직 필터 적용. Admin 조직 관리 페이지 (/settings/organizations) |
 | 프로젝트 회고 준비 | ✅ 완료 | 바이브 코딩 경험 공유를 위한 회고 준비 자료 (docs/retrospective-prep.md). 4주간 읽어볼 파일 목록, 타임라인, 교훈 정리 |
 | 기술 데이터 흐름 문서 | ✅ 완료 | 전체 화면별 데이터 소스 매핑 문서 (docs/technical-data-flow.md) + 인터랙티브 다이어그램 (docs/data-flow-diagram.html). Prometheus/PostgreSQL/BMC/K8s 연동 상세 |
-| 결과보고서 | 📝 기획 완료 | 프로젝트 마무리 보고서 기획안 (docs/final-report-plan.md). 8개 섹션, A4 7-8페이지 분량. 본문 작성 대기 |
+| 결과보고서 | ✅ 완료 | 프로젝트 최종 보고서 본문 작성 (docs/final-report.md). 8개 섹션 — 요약, 배경, 비포/애프터, 활용 시나리오, 아키텍처, AI 개발 경험, 성과/한계, 향후 계획 |
+| 장애 시나리오 매뉴얼 | ✅ 완료 | 20개 장애 시나리오 대응 매뉴얼 (docs/failure-scenarios.md). 증상/원인/진단/복구/예방 + 에스컬레이션 가이드 + 정기 점검 체크리스트 |
 | 프로젝트 진행 현황 | ✅ 완료 | 전체 진행 현황 + 미완료 + 결정 필요 사항 정리 (docs/project-status.md) |
 
 ---

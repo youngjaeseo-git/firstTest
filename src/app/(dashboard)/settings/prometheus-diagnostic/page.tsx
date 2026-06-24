@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { useT } from "@/lib/i18n/i18n-context";
 import {
@@ -110,22 +111,24 @@ export default function PrometheusDiagnosticPage() {
         accent="amber"
         right={
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={collectOsInfo}
               disabled={osLoading}
-              className="flex items-center gap-2 rounded-lg bg-blue-600/20 px-4 py-2 text-sm font-medium text-blue-400 ring-1 ring-blue-500/30 transition-colors hover:bg-blue-600/30 disabled:opacity-50"
             >
-              <Monitor className={`h-4 w-4 ${osLoading ? "animate-spin" : ""}`} />
+              <Monitor className={`mr-1 h-4 w-4 ${osLoading ? "animate-spin" : ""}`} />
               OS 정보 수집
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={fetchDiagnostic}
               disabled={loading}
-              className="flex items-center gap-2 rounded-lg bg-amber-600/20 px-4 py-2 text-sm font-medium text-amber-400 ring-1 ring-amber-500/30 transition-colors hover:bg-amber-600/30 disabled:opacity-50"
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw className={`mr-1 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               {t("diagnostic.recheck")}
-            </button>
+            </Button>
           </div>
         }
       />

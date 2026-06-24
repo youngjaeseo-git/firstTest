@@ -8,6 +8,7 @@ import { useConfirm } from "@/components/ui/confirm";
 import { PageHeader } from "@/components/ui/page-header";
 import { ShieldAlert } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
+import { inputClass, labelClass } from "@/lib/styles";
 
 interface AlertRule {
   id: string;
@@ -176,10 +177,6 @@ export default function AlertRulesPage() {
     await fetch(`/api/alert-rules/${id}`, { method: "DELETE" });
     await loadRules();
   }
-
-  const inputClass =
-    "w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
-  const labelClass = "mb-1 block text-sm font-medium text-gray-300";
 
   return (
     <div className="space-y-6">

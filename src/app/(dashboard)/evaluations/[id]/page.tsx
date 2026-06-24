@@ -283,12 +283,14 @@ function OverviewTab({ project, onUpdate }: { project: Project; onUpdate: () => 
               );
             })}
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setAddingPhase(true)}
-            className="mt-3 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300"
+            className="mt-3"
           >
-            <Plus className="h-3 w-3" /> Add Phase
-          </button>
+            <Plus className="h-3 w-3 mr-1" /> Add Phase
+          </Button>
           {addingPhase && (
             <AddPhaseForm
               projectId={project.id}
@@ -302,12 +304,13 @@ function OverviewTab({ project, onUpdate }: { project: Project; onUpdate: () => 
       {project.phases.length === 0 && (
         <Card>
           <p className="text-gray-500 text-sm mb-2">아직 평가 단계가 없습니다.</p>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setAddingPhase(true)}
-            className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
           >
-            <Plus className="h-3 w-3" /> Add Phase
-          </button>
+            <Plus className="h-3 w-3 mr-1" /> Add Phase
+          </Button>
           {addingPhase && (
             <AddPhaseForm
               projectId={project.id}

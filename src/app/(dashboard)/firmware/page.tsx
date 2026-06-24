@@ -217,18 +217,18 @@ export default function FirmwarePage() {
                             <div className="bg-gray-900/50 px-5 py-2">
                               <table className="w-full text-xs">
                                 <thead>
-                                  <tr className="text-gray-600 uppercase">
-                                    <th className="pb-1 text-left">Hostname</th>
-                                    <th className="pb-1 text-left">IP</th>
-                                    <th className="pb-1 text-left">BMC IP</th>
-                                    <th className="pb-1 text-left">Status</th>
-                                    <th className="pb-1 text-left">Location</th>
+                                  <tr className="border-b border-gray-800 text-gray-600 uppercase">
+                                    <th className="px-3 py-2 text-left">Hostname</th>
+                                    <th className="px-3 py-2 text-left">IP</th>
+                                    <th className="px-3 py-2 text-left">BMC IP</th>
+                                    <th className="px-3 py-2 text-left">Status</th>
+                                    <th className="px-3 py-2 text-left">Location</th>
                                   </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="divide-y divide-gray-800">
                                   {fv.equipment.map((eq) => (
-                                    <tr key={eq.id} className="border-t border-gray-800/30">
-                                      <td className="py-1.5">
+                                    <tr key={eq.id}>
+                                      <td className="px-3 py-2">
                                         <Link
                                           href={`/servers/${eq.id}`}
                                           className="font-mono text-blue-400 hover:underline"
@@ -236,10 +236,10 @@ export default function FirmwarePage() {
                                           {eq.hostname || "-"}
                                         </Link>
                                       </td>
-                                      <td className="py-1.5 font-mono text-gray-400">{eq.ipAddress || "-"}</td>
-                                      <td className="py-1.5 font-mono text-gray-500">{eq.bmcIpAddress || "-"}</td>
-                                      <td className="py-1.5"><StatusBadge status={eq.status} /></td>
-                                      <td className="py-1.5 text-gray-500">
+                                      <td className="px-3 py-2 font-mono text-gray-400">{eq.ipAddress || "-"}</td>
+                                      <td className="px-3 py-2 font-mono text-gray-500">{eq.bmcIpAddress || "-"}</td>
+                                      <td className="px-3 py-2"><StatusBadge status={eq.status} /></td>
+                                      <td className="px-3 py-2 text-gray-500">
                                         {eq.rack ? `${eq.rack.room.name} / ${eq.rack.name}` : "-"}
                                       </td>
                                     </tr>

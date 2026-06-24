@@ -5,10 +5,12 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useT } from "@/lib/i18n/i18n-context";
 import { cn } from "@/lib/utils";
+import { inputClass } from "@/lib/styles";
 import {
   Building2,
   Users,
@@ -85,9 +87,6 @@ export default function OrganizationsPage() {
   const [usersLoaded, setUsersLoaded] = useState(false);
   const [addingMember, setAddingMember] = useState(false);
   const [memberRole, setMemberRole] = useState("VIEWER");
-
-  const inputClass =
-    "w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 
   /* ── Data loading ─────────────────────────────────────── */
 
@@ -331,12 +330,12 @@ export default function OrganizationsPage() {
         subtitle={t("org.subtitle")}
         accent="blue"
         right={
-          <button
+          <Button
+            variant={showCreate ? "secondary" : "default"}
             onClick={() => setShowCreate(!showCreate)}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
             {showCreate ? t("common.cancel") : t("org.addOrg")}
-          </button>
+          </Button>
         }
       />
 
@@ -377,13 +376,13 @@ export default function OrganizationsPage() {
               </div>
             </div>
             <div className="flex justify-end">
-              <button
+              <Button
                 type="submit"
                 disabled={creating}
-                className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                className="bg-green-600 hover:bg-green-500 shadow-green-600/20"
               >
                 {creating ? t("common.saving") : t("org.createOrg")}
-              </button>
+              </Button>
             </div>
           </form>
         </Card>
@@ -410,16 +409,18 @@ export default function OrganizationsPage() {
               <Card key={org.id} className="overflow-hidden">
                 {/* ── Org header ── */}
                 <div className="flex items-center gap-3">
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleToggleExpand(org.id)}
-                    className="flex-shrink-0 rounded p-1 text-gray-400 hover:bg-gray-800 hover:text-gray-200"
+                    className="h-8 w-8 flex-shrink-0"
                   >
                     {isExpanded ? (
                       <ChevronDown className="h-5 w-5" />
                     ) : (
                       <ChevronRight className="h-5 w-5" />
                     )}
-                  </button>
+                  </Button>
 
                   <div
                     className="min-w-0 flex-1 cursor-pointer"
@@ -440,25 +441,27 @@ export default function OrganizationsPage() {
                           placeholder={t("common.description")}
                           onClick={(e) => e.stopPropagation()}
                         />
-                        <button
+                        <Button
+                          size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleUpdate(org.id);
                           }}
                           disabled={saving}
-                          className="rounded bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                          className="bg-green-600 hover:bg-green-500 shadow-green-600/20"
                         >
                           {saving ? t("common.saving") : t("common.save")}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             setEditingId(null);
                           }}
-                          className="rounded bg-gray-700 px-3 py-1.5 text-xs font-medium text-gray-300 hover:bg-gray-600"
                         >
                           {t("common.cancel")}
-                        </button>
+                        </Button>
                       </div>
                     ) : (
                       <div>
@@ -492,26 +495,30 @@ export default function OrganizationsPage() {
                   {/* Action buttons */}
                   {!isEditing && (
                     <div className="flex items-center gap-1">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleStartEdit(org);
                         }}
-                        className="rounded p-1.5 text-gray-400 hover:bg-gray-800 hover:text-blue-400"
+                        className="h-8 w-8 hover:text-blue-400"
                         title={t("common.edit")}
                       >
                         <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDelete(org.id);
                         }}
-                        className="rounded p-1.5 text-gray-400 hover:bg-gray-800 hover:text-red-400"
+                        className="h-8 w-8 hover:text-red-400"
                         title={t("common.delete")}
                       >
                         <Trash2 className="h-4 w-4" />
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -525,25 +532,26 @@ export default function OrganizationsPage() {
                         <Users className="h-4 w-4 text-blue-400" />
                         {t("org.members")} ({members.length})
                       </h4>
-                      <button
+                      <Button
+                        variant={showAddMember ? "secondary" : "outline"}
+                        size="sm"
                         onClick={() => {
                           setShowAddMember(!showAddMember);
                           if (!usersLoaded) loadUsers();
                         }}
-                        className="flex items-center gap-1 rounded bg-blue-600/20 px-3 py-1.5 text-xs font-medium text-blue-400 hover:bg-blue-600/30"
                       >
                         {showAddMember ? (
                           <>
-                            <X className="h-3.5 w-3.5" />
+                            <X className="mr-1 h-3.5 w-3.5" />
                             {t("common.cancel")}
                           </>
                         ) : (
                           <>
-                            <UserPlus className="h-3.5 w-3.5" />
+                            <UserPlus className="mr-1 h-3.5 w-3.5" />
                             {t("org.addMember")}
                           </>
                         )}
-                      </button>
+                      </Button>
                     </div>
 
                     {/* Add member form */}
@@ -590,13 +598,14 @@ export default function OrganizationsPage() {
                                     </span>
                                   )}
                                 </div>
-                                <button
+                                <Button
+                                  size="icon"
                                   onClick={() => handleAddMember(u.id)}
                                   disabled={addingMember}
-                                  className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                                  className="h-7 w-7"
                                 >
                                   <Plus className="h-3.5 w-3.5" />
-                                </button>
+                                </Button>
                               </div>
                             ))}
                           </div>
@@ -651,14 +660,15 @@ export default function OrganizationsPage() {
                                   {new Date(m.joinedAt).toLocaleDateString()}
                                 </td>
                                 <td className="px-3 py-2">
-                                  <button
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
                                     onClick={() =>
                                       handleRemoveMember(m.userId)
                                     }
-                                    className="rounded bg-red-600/20 px-2 py-1 text-xs font-medium text-red-400 hover:bg-red-600/30"
                                   >
                                     {t("common.remove")}
-                                  </button>
+                                  </Button>
                                 </td>
                               </tr>
                             ))}
