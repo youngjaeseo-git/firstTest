@@ -289,6 +289,11 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Auto-assign organization for non-ADMIN users
+  const autoOrgId = user.role !== "ADMIN" && user.orgIds.length > 0
+    ? user.orgIds[0]
+    : null;
+
   // Bulk create in transaction
   const created = await prisma.$transaction(async (tx) => {
     const results = [];
@@ -330,6 +335,7 @@ export async function POST(req: NextRequest) {
           totalMemoryGB: row.totalMemoryGB ? parseInt(String(row.totalMemoryGB)) : null,
           notes: row.notes || null,
           cpus: cpuData,
+          ...(autoOrgId ? { organizationId: autoOrgId } : {}),
         },
       });
       results.push(eq);

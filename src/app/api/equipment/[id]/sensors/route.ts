@@ -27,6 +27,15 @@ export async function GET(
   if (!equipment) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  // Org-based access check
+  if (
+    user.role !== "ADMIN" &&
+    (!equipment.organizationId || !user.orgIds.includes(equipment.organizationId))
+  ) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   if (!equipment.bmcIpAddress) {
     return NextResponse.json(
       { error: "No BMC IP configured" },

@@ -6,10 +6,29 @@ import { parseBody } from "@/lib/api-validation";
 import { UpdateEquipmentSchema } from "@/lib/schemas/equipment";
 import { checkRackPlacement } from "@/lib/rack-placement";
 
+/** Helper: check if user has access to the given equipment's organization */
+async function canAccessEquipment(
+  userId: string,
+  userRole: string,
+  equipmentOrgId: string | null,
+): Promise<boolean> {
+  if (userRole === "ADMIN") return true;
+  if (!equipmentOrgId) return false;
+  const membership = await prisma.userOrganization.findUnique({
+    where: { userId_organizationId: { userId, organizationId: equipmentOrgId } },
+  });
+  return !!membership;
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const equipment = await prisma.equipment.findUnique({
     where: { id },
@@ -24,6 +43,11 @@ export async function GET(
 
   if (!equipment) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Org-based access check
+  if (!(await canAccessEquipment(user.id, user.role, equipment.organizationId))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   return NextResponse.json(equipment);
@@ -49,6 +73,11 @@ export async function PUT(
   const before = await prisma.equipment.findUnique({ where: { id } });
   if (!before) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Org-based access check
+  if (!(await canAccessEquipment(user.id, user.role, before.organizationId))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Resolve effective rack placement after merging the partial update with
@@ -150,8 +179,13 @@ export async function DELETE(
 
   const equipment = await prisma.equipment.findUnique({
     where: { id },
-    select: { hostname: true, ipAddress: true, serialNumber: true, type: true },
+    select: { hostname: true, ipAddress: true, serialNumber: true, type: true, organizationId: true },
   });
+
+  // Org-based access check
+  if (equipment && !(await canAccessEquipment(user.id, user.role, equipment.organizationId))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   await prisma.equipment.delete({ where: { id } });
 

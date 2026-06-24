@@ -42,11 +42,17 @@ export const authOptions: NextAuthOptions = {
           throw new Error("PENDING_APPROVAL");
         }
 
+        const orgs = await prisma.userOrganization.findMany({
+          where: { userId: user.id },
+          select: { organizationId: true },
+        });
+
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
+          orgIds: orgs.map(o => o.organizationId),
         };
       },
     }),
@@ -56,6 +62,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.role = (user as unknown as { role: string }).role;
         token.id = user.id;
+        token.orgIds = (user as unknown as { orgIds: string[] }).orgIds;
       }
       return token;
     },
@@ -64,6 +71,8 @@ export const authOptions: NextAuthOptions = {
         (session.user as { role: string; id: string }).role =
           token.role as string;
         (session.user as { id: string }).id = token.id as string;
+        (session.user as { orgIds: string[] }).orgIds =
+          (token.orgIds as string[]) ?? [];
       }
       return session;
     },

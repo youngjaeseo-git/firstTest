@@ -10,6 +10,7 @@ import {
   Cpu,
   Stethoscope,
   ShieldCheck,
+  Building2,
   Settings as SettingsIcon,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
@@ -24,6 +25,13 @@ export default async function SettingsPage() {
       title: "사용자 관리",
       description: "사용자 계정 생성, 역할 변경, 삭제",
       icon: Users,
+      adminOnly: true,
+    },
+    {
+      href: "/settings/organizations",
+      title: "조직 관리",
+      description: "조직 생성, 멤버 관리, 장비 할당",
+      icon: Building2,
       adminOnly: true,
     },
     {

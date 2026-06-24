@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getSessionUser, equipmentOrgFilter } from "@/lib/rbac";
 
 export async function GET(req: NextRequest) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const q = req.nextUrl.searchParams.get("q")?.trim();
   if (!q || q.length < 2) {
     return NextResponse.json({
@@ -14,16 +20,20 @@ export async function GET(req: NextRequest) {
 
   const limit = 5;
 
+  const orgFilter = equipmentOrgFilter(user);
+  const equipmentWhere = {
+    ...orgFilter,
+    OR: [
+      { hostname: { contains: q, mode: "insensitive" as const } },
+      { ipAddress: { contains: q, mode: "insensitive" as const } },
+      { serialNumber: { contains: q, mode: "insensitive" as const } },
+      { model: { contains: q, mode: "insensitive" as const } },
+    ],
+  };
+
   const [servers, rooms, racks, alerts] = await Promise.all([
     prisma.equipment.findMany({
-      where: {
-        OR: [
-          { hostname: { contains: q, mode: "insensitive" } },
-          { ipAddress: { contains: q, mode: "insensitive" } },
-          { serialNumber: { contains: q, mode: "insensitive" } },
-          { model: { contains: q, mode: "insensitive" } },
-        ],
-      },
+      where: equipmentWhere,
       select: {
         id: true,
         hostname: true,

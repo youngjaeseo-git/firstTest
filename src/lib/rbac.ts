@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 export async function getSessionUser() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return null;
-  return session.user as { id: string; email: string; name: string; role: Role };
+  return session.user as { id: string; email: string; name: string; role: Role; orgIds: string[] };
 }
 
 export async function requireAuth() {
@@ -50,4 +50,19 @@ export function canManageUsers(role: Role): boolean {
  */
 export function canControlPower(role: Role): boolean {
   return role === "ADMIN" || role === "OPERATOR";
+}
+
+export function isAdmin(role: Role): boolean {
+  return role === "ADMIN";
+}
+
+export function equipmentOrgFilter(user: { role: Role; orgIds: string[] }): object | undefined {
+  if (user.role === "ADMIN") return undefined;
+  return { organizationId: { in: user.orgIds } };
+}
+
+export function buildOrgWhere(user: { role: Role; orgIds: string[] }, existingWhere?: Record<string, unknown>): Record<string, unknown> {
+  const orgFilter = equipmentOrgFilter(user);
+  if (!orgFilter) return existingWhere || {};
+  return { ...existingWhere, ...orgFilter };
 }

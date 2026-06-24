@@ -179,9 +179,26 @@ export async function POST(req: NextRequest) {
       id: true,
       hostname: true,
       bmcIpAddress: true,
+      organizationId: true,
       rack: { select: { room: { select: { bmcProxyUrl: true } } } },
     },
   });
+
+  // Org-based access check: verify all equipment belong to user's org
+  if (user.role !== "ADMIN") {
+    const forbidden = equipmentList.filter(
+      (e) => !e.organizationId || !user.orgIds.includes(e.organizationId),
+    );
+    if (forbidden.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Forbidden — some equipment belongs to a different organization",
+          forbiddenIds: forbidden.map((e) => e.id),
+        },
+        { status: 403 },
+      );
+    }
+  }
 
   const equipmentMap = new Map(equipmentList.map((e) => [e.id, e]));
   const results: ResultItem[] = [];

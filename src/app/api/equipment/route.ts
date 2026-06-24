@@ -6,6 +6,11 @@ import { parseBody } from "@/lib/api-validation";
 import { CreateEquipmentSchema } from "@/lib/schemas/equipment";
 
 export async function GET(req: NextRequest) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = req.nextUrl;
   const status = searchParams.get("status");
   const type = searchParams.get("type");
@@ -20,6 +25,17 @@ export async function GET(req: NextRequest) {
   const unracked = searchParams.get("unracked");
 
   const where: Record<string, unknown> = {};
+
+  // Organization-based filtering: non-ADMIN users only see equipment in their orgs
+  if (user.role !== "ADMIN") {
+    const memberships = await prisma.userOrganization.findMany({
+      where: { userId: user.id },
+      select: { organizationId: true },
+    });
+    const orgIds = memberships.map((m) => m.organizationId);
+    where.organizationId = { in: orgIds };
+  }
+
   if (unracked === "true") where.rackId = null;
   if (status) where.status = status;
   if (type) where.type = type;
@@ -58,11 +74,23 @@ export async function POST(req: NextRequest) {
 
   const parsed = await parseBody(req, CreateEquipmentSchema);
   if (parsed.response) return parsed.response;
-  const { cpus, memories, ...equipmentData } = parsed.data;
+  const { cpus, memories, organizationId: bodyOrgId, ...equipmentData } = parsed.data as typeof parsed.data & { organizationId?: string };
+
+  // Determine organizationId: use provided value, or auto-assign for non-ADMIN
+  let resolvedOrgId: string | null = bodyOrgId ?? null;
+  if (!resolvedOrgId && user.role !== "ADMIN") {
+    const firstMembership = await prisma.userOrganization.findFirst({
+      where: { userId: user.id },
+      select: { organizationId: true },
+      orderBy: { joinedAt: "asc" },
+    });
+    resolvedOrgId = firstMembership?.organizationId ?? null;
+  }
 
   const equipment = await prisma.equipment.create({
     data: {
       ...equipmentData,
+      organizationId: resolvedOrgId,
       cpus: cpus ? { create: cpus } : undefined,
       memories: memories ? { create: memories } : undefined,
     },

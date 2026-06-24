@@ -28,6 +28,30 @@ model User {
   sessions      Session[]
   alertAcks     AlertAcknowledgement[]
   auditLogs     AuditLog[]
+  organizations UserOrganization[]
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members   UserOrganization[]
+  equipment Equipment[]
+}
+
+model UserOrganization {
+  userId         String
+  organizationId String
+  role           Role     @default(VIEWER)
+  joinedAt       DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([userId, organizationId])
 }
 
 model Account {
@@ -166,6 +190,8 @@ model Equipment {
   updatedAt      DateTime        @updatedAt
 
   rack             Rack?              @relation(fields: [rackId], references: [id], onDelete: SetNull)
+  organizationId   String?
+  organization     Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   cpus             EquipmentCpu[]
   memories         EquipmentMemory[]
   networkPorts     NetworkPort[]
@@ -175,6 +201,8 @@ model Equipment {
 
   // Prometheus target label for metric queries (legacy, prefer PrometheusTarget relation)
   prometheusInstance String?
+
+  @@index([organizationId])
 }
 
 enum EquipmentType {

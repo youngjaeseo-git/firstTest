@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { GET } from "./route";
-import { prisma } from "@/lib/db";
+import { getSessionUser } from "@/lib/rbac";
 
 vi.mock("@/lib/db");
+vi.mock("@/lib/rbac");
+
+import { GET } from "./route";
+import { prisma } from "@/lib/db";
 
 function makeRequest(q: string | null) {
   const url = q
@@ -15,6 +18,13 @@ function makeRequest(q: string | null) {
 describe("GET /api/search", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.mocked(getSessionUser).mockResolvedValue({
+      id: "user-1",
+      email: "test@test.com",
+      name: "Test",
+      role: "ADMIN",
+      orgIds: [],
+    });
     (prisma.equipment.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (prisma.room.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (prisma.rack.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);

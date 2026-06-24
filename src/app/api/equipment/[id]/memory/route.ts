@@ -15,7 +15,25 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
+
+  // Org-based access check
+  const eq = await prisma.equipment.findUnique({
+    where: { id },
+    select: { organizationId: true },
+  });
+  if (!eq) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (user.role !== "ADMIN" && eq.organizationId && !user.orgIds?.includes(eq.organizationId)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const memories = await prisma.equipmentMemory.findMany({
     where: { equipmentId: id },
     orderBy: { slotIndex: "asc" },
@@ -51,6 +69,18 @@ export async function PUT(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (!canEdit(user.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Org-based access check
+  const eq = await prisma.equipment.findUnique({
+    where: { id },
+    select: { organizationId: true },
+  });
+  if (!eq) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (user.role !== "ADMIN" && eq.organizationId && !user.orgIds?.includes(eq.organizationId)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

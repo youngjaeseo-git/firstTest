@@ -28,6 +28,22 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const equipment = await prisma.equipment.findUnique({
+    where: { id },
+    select: { organizationId: true },
+  });
+  if (!equipment) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Org-based access check
+  if (
+    user.role !== "ADMIN" &&
+    (!equipment.organizationId || !user.orgIds.includes(equipment.organizationId))
+  ) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const assignments = await prisma.equipmentAssignment.findMany({
     where: { equipmentId: id },
     orderBy: [{ releasedAt: "asc" }, { assignedAt: "desc" }],
@@ -55,6 +71,14 @@ export async function POST(
   const equipment = await prisma.equipment.findUnique({ where: { id } });
   if (!equipment) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Org-based access check
+  if (
+    user.role !== "ADMIN" &&
+    (!equipment.organizationId || !user.orgIds.includes(equipment.organizationId))
+  ) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const assignment = await prisma.equipmentAssignment.create({
@@ -90,6 +114,21 @@ export async function PATCH(
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Org-based access check
+  const equipment = await prisma.equipment.findUnique({
+    where: { id },
+    select: { organizationId: true },
+  });
+  if (!equipment) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (
+    user.role !== "ADMIN" &&
+    (!equipment.organizationId || !user.orgIds.includes(equipment.organizationId))
+  ) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const parsed = await parseBody(req, ReleaseAssignmentSchema);

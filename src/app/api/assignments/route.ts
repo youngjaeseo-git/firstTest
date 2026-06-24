@@ -13,8 +13,16 @@ export async function GET(req: NextRequest) {
   const showHistory = req.nextUrl.searchParams.get("history") === "true";
   const search = req.nextUrl.searchParams.get("q")?.trim().toLowerCase() || "";
 
+  const orgFilter = user.role !== "ADMIN"
+    ? { equipment: { organizationId: { in: user.orgIds } } }
+    : {};
+
+  const assignmentWhere = showHistory
+    ? { ...orgFilter }
+    : { releasedAt: null, ...orgFilter };
+
   const assignments = await prisma.equipmentAssignment.findMany({
-    where: showHistory ? {} : { releasedAt: null },
+    where: assignmentWhere,
     orderBy: showHistory
       ? { assignedAt: "desc" }
       : [{ assignedAt: "desc" }],

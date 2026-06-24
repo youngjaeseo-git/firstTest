@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getSessionUser, equipmentOrgFilter } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = req.nextUrl;
   const q = searchParams.get("q")?.trim() || "";
   const cpuModel = searchParams.get("cpuModel") || "";
@@ -17,7 +23,7 @@ export async function GET(req: NextRequest) {
   const parsedLimit = parseInt(searchParams.get("limit") || "100");
   const limit = Math.min(Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 100, 500);
 
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = { ...equipmentOrgFilter(user) };
   const andConditions: Record<string, unknown>[] = [];
 
   if (q) {

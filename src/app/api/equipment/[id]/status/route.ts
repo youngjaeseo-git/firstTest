@@ -44,6 +44,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  // Org-based access check
+  if (user.role !== "ADMIN" && equipment.organizationId && !user.orgIds?.includes(equipment.organizationId)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const oldStatus = equipment.status;
 
   const updated = await prisma.equipment.update({

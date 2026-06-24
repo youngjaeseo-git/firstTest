@@ -36,6 +36,18 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Org-based access check
+  const eq = await prisma.equipment.findUnique({
+    where: { id },
+    select: { organizationId: true },
+  });
+  if (!eq) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (user.role !== "ADMIN" && eq.organizationId && !user.orgIds?.includes(eq.organizationId)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const limitParam = parseInt(
     req.nextUrl.searchParams.get("limit") || "50",
     10,
@@ -76,6 +88,11 @@ export async function POST(
   const equipment = await prisma.equipment.findUnique({ where: { id } });
   if (!equipment) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Org-based access check
+  if (user.role !== "ADMIN" && equipment.organizationId && !user.orgIds?.includes(equipment.organizationId)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   await logAudit({

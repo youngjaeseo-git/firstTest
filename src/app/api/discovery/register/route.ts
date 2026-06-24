@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { parseBody } from "@/lib/api-validation";
 import { instantQuery } from "@/lib/prometheus";
 import {
@@ -16,6 +14,7 @@ import {
 } from "@/lib/bmc-credentials";
 import { MemoryType } from "@prisma/client";
 import { logAudit } from "@/lib/audit";
+import { getSessionUser, canEdit } from "@/lib/rbac";
 
 const BMC_SUBNET = "192.168.10";
 
@@ -74,8 +73,8 @@ async function fetchRedfishInfo(
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role: string }).role !== "ADMIN") {
+  const user = await getSessionUser();
+  if (!user || !canEdit(user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -267,6 +266,11 @@ export async function POST(req: Request) {
         }))
       : [];
 
+  // Assign organization: non-ADMIN users get their first org
+  const resolvedOrgId = user.role !== "ADMIN" && user.orgIds.length > 0
+    ? user.orgIds[0]
+    : null;
+
   let equipment;
   try {
     equipment = await prisma.equipment.create({
@@ -284,6 +288,7 @@ export async function POST(req: Request) {
         osVersion: osImage || null,
         biosVersion,
         notes: notes || null,
+        organizationId: resolvedOrgId,
         prometheusInstance: instance,
         prometheusTarget: { connect: { id: target.id } },
         ...(cpuCreateData.length > 0
@@ -310,7 +315,7 @@ export async function POST(req: Request) {
   }
 
   await logAudit({
-    userId: (session.user as { id: string }).id,
+    userId: user.id,
     action: "CREATE",
     entityType: "Equipment",
     entityId: equipment.id,

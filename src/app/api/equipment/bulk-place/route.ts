@@ -47,8 +47,24 @@ export async function POST(req: NextRequest) {
   // 2. Verify all equipment exist
   const existingEquipment = await prisma.equipment.findMany({
     where: { id: { in: equipmentIds } },
-    select: { id: true },
+    select: { id: true, organizationId: true },
   });
+
+  // Org-based access check: verify all equipment belong to user's org
+  if (user.role !== "ADMIN") {
+    const forbidden = existingEquipment.filter(
+      (e) => !e.organizationId || !user.orgIds.includes(e.organizationId),
+    );
+    if (forbidden.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Forbidden — some equipment belongs to a different organization",
+          forbiddenIds: forbidden.map((e) => e.id),
+        },
+        { status: 403 },
+      );
+    }
+  }
   const existingEquipmentIds = new Set(existingEquipment.map((e) => e.id));
 
   // 3. Verify all racks exist
