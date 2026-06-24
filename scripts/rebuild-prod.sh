@@ -8,6 +8,16 @@ cd "$APP_DIR"
 
 export PATH=$HOME/opt/node-20/bin:$PATH
 
+echo "=== 0. 서비스 중지 (NFS lock 방지) ==="
+if systemctl is-active dcim >/dev/null 2>&1; then
+  systemctl stop dcim
+  echo "  dcim 서비스 중지 완료"
+  sleep 1
+else
+  echo "  dcim 서비스 미실행 — 건너뜀"
+fi
+echo ""
+
 echo "=== 1. DB 환경변수 설정 ==="
 DB_CONTAINER=$(docker compose ps -q db 2>/dev/null || true)
 REAL_PASSWORD=$(docker inspect "$DB_CONTAINER" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep POSTGRES_PASSWORD | cut -d= -f2- || true)
@@ -51,10 +61,10 @@ echo ""
 echo "빌드 성공!"
 echo ""
 
-echo "=== 4. 서비스 재시작 ==="
-if systemctl is-active dcim >/dev/null 2>&1 || systemctl is-enabled dcim >/dev/null 2>&1; then
-  systemctl restart dcim
-  echo "✅ dcim 서비스 재시작 완료"
+echo "=== 4. 서비스 시작 ==="
+if systemctl is-enabled dcim >/dev/null 2>&1; then
+  systemctl start dcim
+  echo "✅ dcim 서비스 시작 완료"
   echo ""
   echo "상태 확인: sudo systemctl status dcim"
   echo "로그 확인: sudo journalctl -u dcim -f"
