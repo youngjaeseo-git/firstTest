@@ -24,8 +24,11 @@ echo "=========================================="
 PROM="http://10.144.38.100:30003"
 
 echo "--- B4: Lab-3 장비 DB ipAddress 확인 ---"
-docker exec dcim-db psql -U dcim -d dcim -t -A -c \
+DB_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E 'dcim-db|firsttest-db' | head -1)
+if [ -z "$DB_CONTAINER" ]; then echo "ERR: DB 컨테이너 없음"; else
+docker exec "$DB_CONTAINER" psql -U dcim -d dcim -t -A -c \
   "SELECT COUNT(*), COUNT(CASE WHEN \"ipAddress\" LIKE '10.144.131.%' THEN 1 END) FROM \"Equipment\" WHERE \"ipAddress\" LIKE '10.144.131.%' OR hostname LIKE 's222h%';"
+fi
 
 echo "--- B5-1: Lab-3 PCM UP/DOWN ---"
 for JOB in AE-SMC-GNRAP_PCM AE-SMC-GNRSP_PCM; do
