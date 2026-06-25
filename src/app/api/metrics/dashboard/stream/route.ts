@@ -1,5 +1,7 @@
+import { NextResponse } from "next/server";
 import { fetchDashboardMetrics } from "../fetch-metrics";
 import { prisma } from "@/lib/db";
+import { getSessionUser } from "@/lib/rbac";
 import type { Cluster } from "@/lib/prometheus";
 
 export const dynamic = "force-dynamic";
@@ -7,6 +9,11 @@ export const dynamic = "force-dynamic";
 const PUSH_INTERVAL_MS = 15_000;
 
 export async function GET(request: Request) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const url = new URL(request.url);
   const cluster = (url.searchParams.get("cluster") || "all") as Cluster;
   const encoder = new TextEncoder();

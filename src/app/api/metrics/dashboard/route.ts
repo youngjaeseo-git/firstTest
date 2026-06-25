@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchDashboardMetrics } from "./fetch-metrics";
 import { prisma } from "@/lib/db";
+import { getSessionUser } from "@/lib/rbac";
 import type { Cluster } from "@/lib/prometheus";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const cluster = (request.nextUrl.searchParams.get("cluster") || "all") as Cluster;
 
   const equipment = await prisma.equipment.findMany({

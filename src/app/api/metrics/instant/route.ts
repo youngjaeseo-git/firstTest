@@ -2,8 +2,14 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { instantQuery, instantQueryFrom, LAB3_PROMETHEUS_URL } from "@/lib/prometheus";
+import { getSessionUser } from "@/lib/rbac";
 
 export async function GET(req: NextRequest) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const query = req.nextUrl.searchParams.get("query");
   if (!query) {
     return NextResponse.json({ error: "Missing query" }, { status: 400 });

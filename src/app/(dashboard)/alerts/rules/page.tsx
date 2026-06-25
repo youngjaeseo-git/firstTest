@@ -86,6 +86,8 @@ export default function AlertRulesPage() {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
 
+  const [editingRule, setEditingRule] = useState<AlertRule | null>(null);
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [metric, setMetric] = useState("");
@@ -118,36 +120,58 @@ export default function AlertRulesPage() {
     setCategory(preset.category);
   }
 
+  function startEdit(rule: AlertRule) {
+    setEditingRule(rule);
+    setName(rule.name);
+    setDescription(rule.description || "");
+    setMetric(rule.metric);
+    setCondition(rule.condition);
+    setDuration(rule.duration);
+    setSeverity(rule.severity);
+    setCategory(rule.category || "");
+    setShowForm(true);
+  }
+
+  function resetForm() {
+    setEditingRule(null);
+    setName("");
+    setDescription("");
+    setMetric("");
+    setCondition("");
+    setDuration(60);
+    setSeverity("WARNING");
+    setCategory("");
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError("");
     try {
-      const res = await fetch("/api/alert-rules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          description: description || null,
-          metric,
-          condition,
-          duration,
-          severity,
-          category: category || null,
-        }),
-      });
+      const payload = {
+        name,
+        description: description || null,
+        metric,
+        condition,
+        duration,
+        severity,
+        category: category || null,
+      };
+      const isEdit = !!editingRule;
+      const res = await fetch(
+        isEdit ? `/api/alert-rules/${editingRule!.id}` : "/api/alert-rules",
+        {
+          method: isEdit ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
       if (!res.ok) {
         const data = await res.json();
         setError(data.error || t("alerts.createError"));
       } else {
         setShowForm(false);
-        setName("");
-        setDescription("");
-        setMetric("");
-        setCondition("");
-        setDuration(60);
-        setSeverity("WARNING");
-        setCategory("");
+        resetForm();
         await loadRules();
       }
     } catch {
@@ -194,7 +218,15 @@ export default function AlertRulesPage() {
         accent="red"
         right={
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              if (showForm) {
+                setShowForm(false);
+                resetForm();
+              } else {
+                resetForm();
+                setShowForm(true);
+              }
+            }}
             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
             {showForm ? t("common.cancel") : t("alerts.addRule")}
@@ -211,7 +243,7 @@ export default function AlertRulesPage() {
       {/* New Rule Form */}
       {showForm && (
         <Card>
-          <p className="mb-4 font-medium">{t("alerts.newRule")}</p>
+          <p className="mb-4 font-medium">{editingRule ? t("common.edit") : t("alerts.newRule")}</p>
 
           {/* Presets */}
           <div className="mb-4">
@@ -319,7 +351,7 @@ export default function AlertRulesPage() {
                 disabled={saving}
                 className="rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
               >
-                {saving ? t("common.saving") : t("alerts.createRule")}
+                {saving ? t("common.saving") : editingRule ? t("common.save") : t("alerts.createRule")}
               </button>
             </div>
           </form>
@@ -389,12 +421,20 @@ export default function AlertRulesPage() {
                       </label>
                     </td>
                     <td className="px-3 py-2">
-                      <button
-                        onClick={() => deleteRule(r.id)}
-                        className="text-xs text-red-400 hover:text-red-300"
-                      >
-                        {t("common.delete")}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => startEdit(r)}
+                          className="text-xs text-blue-400 hover:text-blue-300"
+                        >
+                          {t("common.edit")}
+                        </button>
+                        <button
+                          onClick={() => deleteRule(r.id)}
+                          className="text-xs text-red-400 hover:text-red-300"
+                        >
+                          {t("common.delete")}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

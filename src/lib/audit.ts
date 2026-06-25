@@ -18,7 +18,8 @@ export type AuditAction =
   | "MAINTENANCE_START"
   | "MAINTENANCE_END"
   | "BULK_POWER"
-  | "BULK_REFRESH_HW";
+  | "BULK_REFRESH_HW"
+  | "EXPORT";
 
 export type AuditEntityType =
   | "Equipment"
@@ -32,7 +33,8 @@ export type AuditEntityType =
   | "RoomElement"
   | "MaintenanceWindow"
   | "NotificationChannel"
-  | "EscalationPolicy";
+  | "EscalationPolicy"
+  | "Report";
 
 export interface AuditLogInput {
   userId: string;

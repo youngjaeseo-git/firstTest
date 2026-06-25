@@ -436,6 +436,8 @@ function OverviewTab({ project, onUpdate }: { project: Project; onUpdate: () => 
 /* ─── Add Phase Form ─── */
 function AddPhaseForm({ projectId, onDone, onCancel }: { projectId: string; onDone: () => void; onCancel: () => void }) {
   const [name, setName] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [showConfig, setShowConfig] = useState(false);
   const [config, setConfig] = useState<StepConfig>({});
   const setC = (k: keyof StepConfig, v: string | boolean | number | string[]) => setConfig((p) => ({ ...p, [k]: v }));
@@ -448,7 +450,12 @@ function AddPhaseForm({ projectId, onDone, onCancel }: { projectId: string; onDo
     await fetch(`/api/evaluations/${projectId}/phases`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), config: hasConfig ? config : null }),
+      body: JSON.stringify({
+        name: name.trim(),
+        config: hasConfig ? config : null,
+        startDate: startDate || null,
+        endDate: endDate || null,
+      }),
     });
     onDone();
   };
@@ -469,6 +476,26 @@ function AddPhaseForm({ projectId, onDone, onCancel }: { projectId: string; onDo
         </Button>
         <Button size="sm" onClick={submit} disabled={!name.trim()}>Add</Button>
         <Button size="sm" variant="outline" onClick={onCancel}>Cancel</Button>
+      </div>
+      <div className="flex gap-2">
+        <div className="flex items-center gap-1.5">
+          <label className="text-[10px] text-gray-500 whitespace-nowrap">Start</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200"
+          />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <label className="text-[10px] text-gray-500 whitespace-nowrap">End</label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200"
+          />
+        </div>
       </div>
       {showConfig && (
         <div className="grid grid-cols-3 gap-2 rounded border border-gray-700/50 bg-gray-900/30 p-3">

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getSessionUser } from "@/lib/rbac";
 import { parseBody } from "@/lib/api-validation";
 import { logAudit } from "@/lib/audit";
 
@@ -24,14 +25,18 @@ const CreateSchema = z
   });
 
 export async function GET() {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const windows = await prisma.maintenanceWindow.findMany({
       orderBy: { startTime: "desc" },
     });
     return NextResponse.json(windows);
   } catch {
-    // Table may not exist before migration.
-    return NextResponse.json([]);
+    return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
   }
 }
 

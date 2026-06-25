@@ -19,6 +19,22 @@ interface ReportActionsProps {
   periodEnd: string;
 }
 
+/** Fire-and-forget audit log for report exports. */
+function logReportExport(format: "CSV" | "PDF") {
+  fetch("/api/audit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "EXPORT",
+      entityType: "Report",
+      entityId: "equipment-report",
+      changes: { format, exportedAt: new Date().toISOString() },
+    }),
+  }).catch(() => {
+    // Audit failures should never block the export action
+  });
+}
+
 export function ReportActions({
   equipmentData,
   reportDate,
@@ -28,10 +44,12 @@ export function ReportActions({
   const t = useT();
 
   function handlePrint() {
+    logReportExport("PDF");
     window.print();
   }
 
   function handleExportCsv() {
+    logReportExport("CSV");
     const headers = [
       "Status",
       "Type",

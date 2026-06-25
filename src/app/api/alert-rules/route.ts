@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getSessionUser } from "@/lib/rbac";
 import { parseBody } from "@/lib/api-validation";
 import { logAudit } from "@/lib/audit";
 
@@ -20,6 +21,11 @@ const CreateRuleSchema = z.object({
 });
 
 export async function GET() {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const rules = await prisma.alertRule.findMany({
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { alerts: true } } },

@@ -66,3 +66,21 @@ export async function PATCH(
 
   return NextResponse.json(result);
 }
+
+export async function DELETE(
+  req: NextRequest,
+) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { searchParams } = req.nextUrl;
+  const resultId = searchParams.get("resultId");
+  if (!resultId) {
+    return NextResponse.json({ error: "resultId required" }, { status: 400 });
+  }
+
+  await prisma.evalResult.delete({ where: { id: resultId } });
+  return NextResponse.json({ success: true });
+}

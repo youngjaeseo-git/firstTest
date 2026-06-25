@@ -65,3 +65,27 @@ export async function PATCH(
 
   return NextResponse.json(phase);
 }
+
+export async function DELETE(
+  req: NextRequest,
+) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { searchParams } = req.nextUrl;
+  const phaseId = searchParams.get("phaseId");
+  if (!phaseId) {
+    return NextResponse.json({ error: "phaseId required" }, { status: 400 });
+  }
+
+  // Cascade: delete related results and tasks, then the phase itself
+  await prisma.$transaction([
+    prisma.evalResult.deleteMany({ where: { phaseId } }),
+    prisma.evalTask.deleteMany({ where: { phaseId } }),
+    prisma.evalPhase.delete({ where: { id: phaseId } }),
+  ]);
+
+  return NextResponse.json({ success: true });
+}

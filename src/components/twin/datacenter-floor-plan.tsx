@@ -513,7 +513,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ width: tw, height: th }),
-        }).catch(() => {});
+        }).catch(() => { toast({ type: "error", title: "크기 일괄 저장 실패" }); });
       }
     } else {
       let targetRoom: RoomData | undefined;
@@ -537,11 +537,11 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ width: tw, height: th }),
-        }).catch(() => {});
+        }).catch(() => { toast({ type: "error", title: "크기 일괄 저장 실패" }); });
       }
     }
     setContextMenu(null);
-  }, [contextMenu, rooms, addedElems, removedIds]);
+  }, [contextMenu, rooms, addedElems, removedIds, toast]);
 
   const handleContextMenuToggle = useCallback(() => {
     if (!contextMenu?.meta) { setContextMenu(null); return; }
@@ -593,8 +593,9 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
       await fetch(`/api/room-elements/${elemId}`, { method: "DELETE" });
     } catch {
       setRemovedIds((prev) => { const s = new Set(prev); s.delete(elemId); return s; });
+      toast({ type: "error", title: "요소 삭제 실패" });
     }
-  }, []);
+  }, [toast]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -678,7 +679,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ layoutX: Math.round(newRect.x), layoutY: Math.round(newRect.y), layoutW: Math.round(newRect.w), layoutH: Math.round(newRect.h) }),
-          }).catch(() => {});
+          }).catch(() => { toast({ type: "error", title: "Room 크기 저장 실패 (새로고침 시 원래 크기로 복원됩니다)" }); });
         } else {
           setSizeOverrides((prev) => ({ ...prev, [dr.id]: { w: resizeState.w, h: resizeState.h } }));
           const url = dr.kind === "rack" ? `/api/racks/${dr.id}` : `/api/room-elements/${dr.id}`;
@@ -686,7 +687,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ width: resizeState.w, height: resizeState.h }),
-          }).catch(() => {});
+          }).catch(() => { toast({ type: "error", title: "크기 저장 실패 (새로고침 시 원래 크기로 복원됩니다)" }); });
         }
         setResizeState(null);
         dragRef.current = null;
@@ -698,7 +699,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ layoutX: Math.round(newRect.x), layoutY: Math.round(newRect.y), layoutW: Math.round(newRect.w), layoutH: Math.round(newRect.h) }),
-          }).catch(() => {});
+          }).catch(() => { toast({ type: "error", title: "Room 위치 저장 실패 (새로고침 시 원래 위치로 복원됩니다)" }); });
         } else if (rightDragged.current) {
           const rx = dragState.x - dr.roomRect.x;
           const ry = dragState.y - dr.roomRect.y;
@@ -714,7 +715,7 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
     }
     isMouseDown.current = false;
     setIsPanning(false);
-  }, [dragState, resizeState, savePosition, roomRectOverrides, lab1, lab2, lab3, lab1RectBase, lab2RectBase, lab3RectBase]);
+  }, [dragState, resizeState, savePosition, roomRectOverrides, lab1, lab2, lab3, lab1RectBase, lab2RectBase, lab3RectBase, toast]);
 
   const handleClickCapture = useCallback((e: React.MouseEvent) => {
     if (hasDragged.current) {

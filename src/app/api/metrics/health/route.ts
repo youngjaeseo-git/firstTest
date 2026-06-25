@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getSessionUser } from "@/lib/rbac";
 
 const PROMETHEUS_URL =
   process.env.PROMETHEUS_URL || "http://10.100.175.248:8080";
@@ -11,6 +12,11 @@ function escapeRe(s: string): string {
 }
 
 export async function GET() {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const results: Record<string, unknown> = {
     promUrl: PROMETHEUS_URL,
     timestamp: new Date().toISOString(),
