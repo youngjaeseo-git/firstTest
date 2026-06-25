@@ -59,7 +59,6 @@ export const translations: Record<Language, Record<string, string>> = {
     "common.details": "Details",
     "common.description": "Description",
     "common.enabled": "Enabled",
-    "common.disabled": "Disabled",
 
     // ── Dashboard ──
     "dashboard.avgCpu": "Avg CPU Usage",
@@ -84,15 +83,10 @@ export const translations: Record<Language, Record<string, string>> = {
     "dashboard.fleet.topCpu": "Fleet Top 5 — CPU",
     "dashboard.fleet.topMem": "Fleet Top 5 — Memory",
     "dashboard.fleet.platformStatus": "Platform Status",
-    "dashboard.fleet.serverStatus": "Server Status",
     "dashboard.fleet.infraSummary": "Infra Summary",
     "dashboard.fleet.active": "Active",
     "dashboard.fleet.maintenance": "Maintenance",
     "dashboard.fleet.failed": "Failed",
-    "dashboard.fleet.cpuTrend": "Fleet CPU",
-    "dashboard.fleet.memTrend": "Fleet Memory",
-    "dashboard.fleet.netTrend": "Fleet Network",
-    "dashboard.fleet.powerTrend": "Fleet Power",
     "dashboard.prometheus.unavailable": "Prometheus Unavailable",
     "dashboard.prometheus.cannotFetch": "Cannot fetch live metrics",
     "dashboard.totalEquipment": "Total Equipment",
