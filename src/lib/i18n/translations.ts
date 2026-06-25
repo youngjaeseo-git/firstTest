@@ -662,6 +662,59 @@ export const translations: Record<Language, Record<string, string>> = {
     // ── Memory (additions) ──
     "memory.node": "Node",
 
+    // ── Alert Settings ──
+    "alertSettings.tabs.channels": "Notification Channels",
+    "alertSettings.tabs.escalation": "Escalation Policies",
+    "alertSettings.tabs.maintenance": "Maintenance Windows",
+    "alertSettings.channels.title": "Notification Channels",
+    "alertSettings.channels.desc":
+      "Where alerts are delivered. Used by escalation policies.",
+    "alertSettings.channels.add": "Add Channel",
+    "alertSettings.channels.close": "Close",
+    "alertSettings.channels.noChannels": "No channels configured.",
+    "alertSettings.channels.deleteTitle": "Delete channel",
+    "alertSettings.channels.deleteMsg": "Remove this notification channel?",
+    "alertSettings.channels.deleted": "Channel deleted",
+    "alertSettings.channels.created": "Channel created",
+    "alertSettings.channels.testSending": "Sending test…",
+    "alertSettings.channels.testSent": "Test sent",
+    "alertSettings.channels.testFailed": "Test not delivered",
+    "alertSettings.escalation.title": "Escalation Policies",
+    "alertSettings.escalation.desc":
+      "Notify a channel when an alert of a given severity stays unacknowledged.",
+    "alertSettings.escalation.add": "Add Policy",
+    "alertSettings.escalation.close": "Close",
+    "alertSettings.escalation.noPolicies": "No escalation policies.",
+    "alertSettings.escalation.deleteTitle": "Delete policy",
+    "alertSettings.escalation.deleteMsg": "Remove this escalation policy?",
+    "alertSettings.escalation.deleted": "Policy deleted",
+    "alertSettings.escalation.created": "Policy created",
+    "alertSettings.maintenance.title": "Maintenance Windows",
+    "alertSettings.maintenance.desc":
+      "Suppress alerts during planned maintenance. Active windows mute matching alerts.",
+    "alertSettings.maintenance.add": "Add Window",
+    "alertSettings.maintenance.close": "Close",
+    "alertSettings.maintenance.noWindows": "No maintenance windows.",
+    "alertSettings.maintenance.deleteTitle": "Delete window",
+    "alertSettings.maintenance.deleteMsg": "Remove this maintenance window?",
+    "alertSettings.maintenance.deleted": "Window deleted",
+    "alertSettings.maintenance.created": "Maintenance window created",
+
+    // ── Alert History breadcrumb ──
+    "alertHistory.breadcrumb.alerts": "Alerts",
+    "alertHistory.breadcrumb.history": "History",
+
+    // ── Workloads (subtitle) ──
+    "workloads.subtitle":
+      "Evaluation workload status and history management",
+
+    // ── Capacity (subtitle) ──
+    "capacity.subtitle":
+      "Power / Space / Cooling / Compute capacity overview",
+
+    // ── Reports (subtitle) ──
+    "reports.subtitle": "Infrastructure status and alert statistics report",
+
     // ── Status labels ──
     "status.active": "Active",
     "status.maintenance": "Maintenance",
@@ -1319,6 +1372,59 @@ export const translations: Record<Language, Record<string, string>> = {
 
     // ── Memory (additions) ──
     "memory.node": "노드",
+
+    // ── Alert Settings ──
+    "alertSettings.tabs.channels": "알림 채널",
+    "alertSettings.tabs.escalation": "에스컬레이션 정책",
+    "alertSettings.tabs.maintenance": "유지보수 창",
+    "alertSettings.channels.title": "알림 채널",
+    "alertSettings.channels.desc":
+      "알림이 전달되는 채널입니다. 에스컬레이션 정책에서 사용됩니다.",
+    "alertSettings.channels.add": "채널 추가",
+    "alertSettings.channels.close": "닫기",
+    "alertSettings.channels.noChannels": "설정된 채널이 없습니다.",
+    "alertSettings.channels.deleteTitle": "채널 삭제",
+    "alertSettings.channels.deleteMsg": "이 알림 채널을 삭제하시겠습니까?",
+    "alertSettings.channels.deleted": "채널이 삭제되었습니다",
+    "alertSettings.channels.created": "채널이 생성되었습니다",
+    "alertSettings.channels.testSending": "테스트 전송 중…",
+    "alertSettings.channels.testSent": "테스트 전송 완료",
+    "alertSettings.channels.testFailed": "테스트 전송 실패",
+    "alertSettings.escalation.title": "에스컬레이션 정책",
+    "alertSettings.escalation.desc":
+      "특정 심각도의 알림이 확인되지 않을 때 채널로 알림을 보냅니다.",
+    "alertSettings.escalation.add": "정책 추가",
+    "alertSettings.escalation.close": "닫기",
+    "alertSettings.escalation.noPolicies": "에스컬레이션 정책이 없습니다.",
+    "alertSettings.escalation.deleteTitle": "정책 삭제",
+    "alertSettings.escalation.deleteMsg":
+      "이 에스컬레이션 정책을 삭제하시겠습니까?",
+    "alertSettings.escalation.deleted": "정책이 삭제되었습니다",
+    "alertSettings.escalation.created": "정책이 생성되었습니다",
+    "alertSettings.maintenance.title": "유지보수 창",
+    "alertSettings.maintenance.desc":
+      "계획된 유지보수 동안 알림을 억제합니다. 활성 창은 해당 알림을 음소거합니다.",
+    "alertSettings.maintenance.add": "유지보수 창 추가",
+    "alertSettings.maintenance.close": "닫기",
+    "alertSettings.maintenance.noWindows": "유지보수 창이 없습니다.",
+    "alertSettings.maintenance.deleteTitle": "유지보수 창 삭제",
+    "alertSettings.maintenance.deleteMsg":
+      "이 유지보수 창을 삭제하시겠습니까?",
+    "alertSettings.maintenance.deleted": "유지보수 창이 삭제되었습니다",
+    "alertSettings.maintenance.created": "유지보수 창이 생성되었습니다",
+
+    // ── Alert History breadcrumb ──
+    "alertHistory.breadcrumb.alerts": "알림",
+    "alertHistory.breadcrumb.history": "이력",
+
+    // ── Workloads (subtitle) ──
+    "workloads.subtitle": "평가 워크로드 현황 및 이력 관리",
+
+    // ── Capacity (subtitle) ──
+    "capacity.subtitle": "전력 / 공간 / 냉각 / 컴퓨팅 용량 현황",
+
+    // ── Reports (subtitle) ──
+    "reports.subtitle": "인프라 현황 및 알림 통계 리포트",
 
     // ── Status labels ──
     "status.active": "운영중",

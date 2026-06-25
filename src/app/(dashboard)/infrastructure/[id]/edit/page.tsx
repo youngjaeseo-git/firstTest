@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { Settings } from "lucide-react";
 import { inputClass, labelClass } from "@/lib/styles";
+import { useT } from "@/lib/i18n/i18n-context";
+import { EQUIPMENT_TYPES, EQUIPMENT_STATUSES } from "@/lib/schemas/equipment";
 
 interface RoomData {
   id: string;
@@ -74,21 +76,11 @@ interface MemoryData {
   formFactor: string | null;
 }
 
-const EQUIPMENT_TYPES = [
-  "SERVER", "SWITCH", "ROUTER", "FIREWALL", "STORAGE",
-  "PDU", "UPS", "PATCH_PANEL", "OTHER",
-];
-
-const EQUIPMENT_STATUSES = [
-  "PLANNED", "RECEIVING", "INSTALLED", "ACTIVE", "MAINTENANCE",
-  "REPAIR", "FAILED", "DECOMMISSIONED", "DISPOSED",
-];
-
-
 export default function EditEquipmentPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
+  const t = useT();
 
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -285,7 +277,7 @@ export default function EditEquipmentPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center text-gray-400">
-        Loading...
+        {t("common.loading")}
       </div>
     );
   }

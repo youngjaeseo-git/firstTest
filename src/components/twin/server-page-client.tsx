@@ -303,7 +303,7 @@ export function ServerPageClient({ rooms, servers, initialView = "list" }: Serve
               onChange={(e) => setFilterModel(e.target.value)}
               className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-300 focus:border-blue-500 focus:outline-none"
             >
-              <option value="all">Model: 전체</option>
+              <option value="all">{t("filter.modelAll")}</option>
               {modelOptions.map((m) => (
                 <option key={m} value={m}>{m}</option>
               ))}
@@ -313,7 +313,7 @@ export function ServerPageClient({ rooms, servers, initialView = "list" }: Serve
               onChange={(e) => setFilterStatus(e.target.value)}
               className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-300 focus:border-blue-500 focus:outline-none"
             >
-              <option value="all">Status: 전체</option>
+              <option value="all">{t("filter.statusAll")}</option>
               {statusOptions.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
@@ -323,7 +323,7 @@ export function ServerPageClient({ rooms, servers, initialView = "list" }: Serve
               onChange={(e) => setFilterRoom(e.target.value)}
               className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-300 focus:border-blue-500 focus:outline-none"
             >
-              <option value="all">Room: 전체</option>
+              <option value="all">{t("filter.roomAll")}</option>
               {roomOptions.map((r) => (
                 <option key={r} value={r}>{r}</option>
               ))}
@@ -333,7 +333,7 @@ export function ServerPageClient({ rooms, servers, initialView = "list" }: Serve
               onChange={(e) => setFilterPower(e.target.value)}
               className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-300 focus:border-blue-500 focus:outline-none"
             >
-              <option value="all">Power: 전체</option>
+              <option value="all">{t("filter.powerAll")}</option>
               <option value="running">Running</option>
               <option value="idle">Idle</option>
               <option value="off">OFF</option>
@@ -343,7 +343,7 @@ export function ServerPageClient({ rooms, servers, initialView = "list" }: Serve
                 onClick={() => { setFilterModel("all"); setFilterStatus("all"); setFilterRoom("all"); setFilterPower("all"); setQuery(""); }}
                 className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-gray-400 hover:text-gray-200 hover:border-gray-600"
               >
-                초기화 ({activeFilterCount})
+                {t("filter.reset")} ({activeFilterCount})
               </button>
             )}
           </div>
@@ -1061,7 +1061,7 @@ function RackElevation({
                   <div className="h-0 flex-1" />
                 ) : (
                   <div className="flex h-6 flex-1 items-center rounded border border-gray-800 bg-gray-800/30 px-2 text-[10px] text-gray-600">
-                    empty
+                    {t("rack.emptySlot")}
                   </div>
                 )}
               </div>

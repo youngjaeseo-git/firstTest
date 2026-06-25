@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
 import { Minus, Plus, Maximize2, Pencil, Check, Thermometer, BarChart3, Wind, AlignHorizontalJustifyCenter, AlignVerticalJustifyCenter, Server, Cpu, ThermometerSun, HardDrive, ExternalLink } from "lucide-react";
 
 const g = (n: number) => `rgb(var(--gray-${n}))`;
@@ -138,6 +139,7 @@ const MID_Y = 340;
 const SPLIT_X = 680;
 
 export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorPlanProps) {
+  const { toast } = useToast();
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -200,7 +202,9 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
         if (!res.ok) return;
         const data = await res.json();
         if (!cancelled) setNodeTemps(data);
-      } catch { /* ignore */ }
+      } catch {
+        console.warn("[FloorPlan] Failed to fetch node temperatures");
+      }
     };
     fetchTemps();
     const timer = setInterval(fetchTemps, 30_000);
@@ -375,8 +379,10 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ positionX: Math.round(posX), positionY: Math.round(posY) }),
       });
-    } catch { /* optimistic update stays */ }
-  }, []);
+    } catch {
+      toast({ type: "error", title: "위치 저장 실패 (새로고침 시 원래 위치로 복원됩니다)" });
+    }
+  }, [toast]);
 
   /* ─── Align selected items ─── */
   const handleAlign = useCallback(async (axis: "x" | "y") => {
@@ -460,8 +466,10 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ metadata: newMeta }),
       });
-    } catch { /* optimistic */ }
-  }, [isEditMode]);
+    } catch {
+      toast({ type: "error", title: "방향 저장 실패" });
+    }
+  }, [isEditMode, toast]);
 
   /* ─── Toggle door orientation (edit mode right-click on DOOR) ─── */
   const handleToggleOrientation = useCallback(async (elemId: string, currentMeta: Record<string, unknown>) => {
@@ -476,8 +484,10 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ metadata: newMeta }),
       });
-    } catch { /* optimistic */ }
-  }, [isEditMode]);
+    } catch {
+      toast({ type: "error", title: "방향 저장 실패" });
+    }
+  }, [isEditMode, toast]);
 
   /* ─── Add / Delete elements ─── */
   const [addedElems, setAddedElems] = useState<RoomElementData[]>([]);
@@ -572,8 +582,10 @@ export function DataCenterFloorPlan({ rooms, onSelectRoom, t }: DataCenterFloorP
         const elem = await res.json();
         setAddedElems((prev) => [...prev, elem]);
       }
-    } catch { /* ignore */ }
-  }, []);
+    } catch {
+      toast({ type: "error", title: "요소 추가 실패" });
+    }
+  }, [toast]);
 
   const handleDeleteElement = useCallback(async (elemId: string) => {
     setRemovedIds((prev) => new Set(prev).add(elemId));

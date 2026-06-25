@@ -2,15 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser, canEdit } from "@/lib/rbac";
 import type { EquipmentType, EquipmentStatus } from "@prisma/client";
+import { EQUIPMENT_TYPES, EQUIPMENT_STATUSES } from "@/lib/schemas/equipment";
 
-const VALID_TYPES: EquipmentType[] = [
-  "SERVER", "SWITCH", "ROUTER", "FIREWALL", "STORAGE",
-  "PDU", "UPS", "PATCH_PANEL", "OTHER",
-];
-const VALID_STATUSES: EquipmentStatus[] = [
-  "PLANNED", "RECEIVING", "INSTALLED", "ACTIVE", "MAINTENANCE",
-  "REPAIR", "FAILED", "DECOMMISSIONED", "DISPOSED",
-];
+const VALID_TYPES: EquipmentType[] = [...EQUIPMENT_TYPES];
+const VALID_STATUSES: EquipmentStatus[] = [...EQUIPMENT_STATUSES];
 
 interface BulkRow {
   hostname?: string;

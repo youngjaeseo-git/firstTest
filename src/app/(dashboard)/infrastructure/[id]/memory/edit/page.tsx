@@ -136,7 +136,7 @@ export default function MemoryEditPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center text-gray-400">
-        Loading...
+        {t("common.loading")}
       </div>
     );
   }

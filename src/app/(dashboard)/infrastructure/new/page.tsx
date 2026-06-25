@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { Plus } from "lucide-react";
 import { inputClass, labelClass } from "@/lib/styles";
+import { EQUIPMENT_TYPES, MEMORY_TYPES, FORM_FACTORS } from "@/lib/schemas/equipment";
 
 interface RoomData {
   id: string;
@@ -47,32 +48,6 @@ interface MemoryEntry {
   eccEnabled: boolean;
   formFactor: string;
 }
-
-const EQUIPMENT_TYPES = [
-  "SERVER",
-  "SWITCH",
-  "ROUTER",
-  "FIREWALL",
-  "STORAGE",
-  "PDU",
-  "UPS",
-  "PATCH_PANEL",
-  "OTHER",
-];
-
-const MEMORY_TYPES = [
-  "DDR3",
-  "DDR4",
-  "DDR5",
-  "HBM",
-  "HBM2",
-  "HBM2E",
-  "HBM3",
-  "LPDDR4",
-  "LPDDR5",
-];
-
-const FORM_FACTORS = ["RDIMM", "LRDIMM", "UDIMM", "SO-DIMM"];
 
 function emptyCpu(socketIndex: number): CpuEntry {
   return {

@@ -4,12 +4,7 @@ import { useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useT } from "@/lib/i18n/i18n-context";
-
-const MEMORY_TYPES = [
-  "DDR3", "DDR4", "DDR5", "HBM", "HBM2", "HBM2E", "HBM3", "LPDDR4", "LPDDR5",
-];
-
-const FORM_FACTORS = ["RDIMM", "LRDIMM", "UDIMM", "SO-DIMM"];
+import { MEMORY_TYPES, FORM_FACTORS } from "@/lib/schemas/equipment";
 
 const SLOT_COUNTS = [8, 12, 16, 24, 32];
 
