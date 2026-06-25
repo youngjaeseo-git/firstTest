@@ -90,9 +90,6 @@ export const translations: Record<Language, Record<string, string>> = {
     "dashboard.prometheus.unavailable": "Prometheus Unavailable",
     "dashboard.prometheus.cannotFetch": "Cannot fetch live metrics",
     "dashboard.totalEquipment": "Total Equipment",
-    "dashboard.activeServers": "Active Servers",
-    "dashboard.maintenance": "Maintenance",
-    "dashboard.failed": "Failed",
 
     // ── Server Detail ──
     "server.range": "Range",
@@ -118,13 +115,10 @@ export const translations: Record<Language, Record<string, string>> = {
     "server.tcpConnections": "TCP Connections",
     "server.tcpRetransmits": "TCP Retransmits",
     "server.temperature": "Temperature (hwmon)",
-    "server.ipmiTemperature": "IPMI Temperatures",
     "server.powerConsumption": "Power Consumption",
     "server.fanSpeed": "Fan Speed",
-    "server.pcm": "PCM (Performance Counters)",
     "server.pcmIPC": "Instructions Per Cycle (IPC)",
     "server.pcmCacheHitRate": "Cache Hit Rate",
-    "server.pcmCacheOps": "Cache Operations",
     "server.pcmMemoryBandwidth": "Memory Bandwidth (DRAM)",
 
     // ── System Health ──
@@ -158,8 +152,6 @@ export const translations: Record<Language, Record<string, string>> = {
     "compare.title": "Server Compare",
     "compare.selectServers": "Select servers to compare",
     "compare.searchPlaceholder": "Search by hostname, IP, room, rack...",
-    "compare.selected": "selected",
-    "compare.max": "max",
     "compare.noServers": "No servers available for comparison",
     "compare.selectAtLeast": "Select at least 2 servers to compare metrics",
     "compare.cpuUsage": "CPU Usage",
