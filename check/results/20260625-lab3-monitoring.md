@@ -9,9 +9,11 @@
 
 ## B4: Lab-3 장비 DB ipAddress 확인
 
-- **결과**: `error no such container: dcim-db`
-- **원인**: 서버에 아직 소스 반영 안 됨 (컨테이너 이름 변경 `firsttest-db-1` → `dcim-db` 미적용)
-- **조치**: 다음 배포 시 자동 해결
+- **1차 실행**: `error no such container: dcim-db` (컨테이너 이름 감지 실패 → 수정 완료)
+- **2차 실행 (수정 후)**: `26|24`
+  - 총 26대 장비가 Lab-3 IP(`10.144.131.*`) 또는 hostname(`s222h*`)으로 등록됨
+  - 그 중 24대가 `ipAddress`에 `10.144.131.*` 값이 있음
+  - **2대는 ipAddress 미등록** (hostname만 있고 IP 없음)
 
 ## B5-1: Lab-3 PCM UP/DOWN
 
