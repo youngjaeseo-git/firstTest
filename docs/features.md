@@ -214,7 +214,7 @@
 | DB 컨테이너 이름 변경 | ✅ 완료 | docker-compose container_name: dcim-db / dcim-app 명시 |
 | systemd 서비스 등록 | ✅ 완료 | `scripts/setup-service.sh --install`로 서비스 등록. dev/prod 모드 전환, 부팅 시 자동 시작, `systemctl restart dcim`으로 코드 반영 |
 | 프로덕션 빌드 | ✅ 완료 | 멀티스테이지 Dockerfile (deps→builder→runner) + standalone 출력 + `node server.js` 프로덕션 실행 |
-| DRAM 인증 테스트 관리 | 📋 예정 | 파트넘 기반 테스트 계획/추적 |
+| DRAM 인증 테스트 관리 | 📋 보류 | 파트넘 기반 테스트 계획/추적. 구체적 요건 미확정 |
 | 워크로드 스텝 정보 | 📋 예정 | YAML 파싱 기반 실행 단계 표시 |
 | 로고 디자인 확정 | ✅ 완료 | SK hynix 브랜딩 로고 적용 (사이드바/로그인/회원가입). DRAM AE 워드마크 + 글로우 링 + 3x3 셀 그리드 |
 | 조직별 접근 제어 | ✅ 완료 | Organization/UserOrganization 모델, Equipment.organizationId FK. ADMIN은 전체 접근, 비ADMIN은 소속 조직 장비만 조회/조작. JWT에 orgIds 캐싱. Equipment CRUD + 13개 하위 API + 검색/디스커버리에 조직 필터 적용. Admin 조직 관리 페이지 (/settings/organizations) |
