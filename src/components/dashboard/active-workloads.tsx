@@ -30,12 +30,6 @@ interface NodeTemp {
   temp: number;
 }
 
-interface EvalInfo {
-  testTime: string | null;
-  workloads: string[];
-  phaseName: string | null;
-}
-
 interface WorkloadGroup {
   namespace: string;
   pods: WorkloadPod[];
@@ -43,7 +37,6 @@ interface WorkloadGroup {
   worstHealth: PodHealth;
   nodeTemps: NodeTemp[];
   workloadNames: string[];
-  evalInfo: EvalInfo | null;
 }
 
 async function fetchInstant(
@@ -76,24 +69,6 @@ function extractOwnerName(createdByKind: string, createdByName: string): string 
     return createdByName.replace(/-[a-z0-9]{8,10}$/, "");
   }
   return createdByName;
-}
-
-function parseTestTimeSec(time: string): number | null {
-  const m = time.match(/^(\d+(?:\.\d+)?)\s*(d|h|m|s)$/i);
-  if (!m) return null;
-  const n = parseFloat(m[1]);
-  const u = m[2].toLowerCase();
-  const mul: Record<string, number> = { d: 86400, h: 3600, m: 60, s: 1 };
-  return Math.round(n * (mul[u] || 0));
-}
-
-function formatRemaining(sec: number): string {
-  if (sec <= 0) return "done";
-  const d = Math.floor(sec / 86400);
-  const h = Math.floor((sec % 86400) / 3600);
-  if (d > 0) return `~${d}d ${h}h`;
-  if (h > 0) return `~${h}h`;
-  return `~${Math.floor(sec / 60)}m`;
 }
 
 function formatDate(ts: number): string {
@@ -195,32 +170,6 @@ export function ActiveWorkloads({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [lab3Failed, setLab3Failed] = useState(false);
-  const [evalMap, setEvalMap] = useState<Record<string, EvalInfo>>({});
-
-  useEffect(() => {
-    fetch("/api/evaluations?status=IN_PROGRESS")
-      .then((r) => r.ok ? r.json() : { items: [] })
-      .then((data) => {
-        const map: Record<string, EvalInfo> = {};
-        for (const proj of data.items || []) {
-          if (!proj.namespace) continue;
-          const activePhase = (proj.phases || []).find(
-            (p: { status: string; config: Record<string, unknown> | null }) => p.status === "IN_PROGRESS" && p.config,
-          ) || (proj.phases || []).find(
-            (p: { config: Record<string, unknown> | null }) => p.config,
-          );
-          if (!activePhase?.config) continue;
-          const cfg = activePhase.config as Record<string, unknown>;
-          map[proj.namespace] = {
-            testTime: (cfg.testTime as string) || null,
-            workloads: (cfg.workloads as string[]) || [],
-            phaseName: activePhase.name || null,
-          };
-        }
-        setEvalMap(map);
-      })
-      .catch(() => {});
-  }, []);
 
   const fetchWorkloads = useCallback(async () => {
     const now = Math.floor(Date.now() / 1000);
@@ -330,7 +279,7 @@ export function ActiveWorkloads({
       const ownerName = extractOwnerName(r.metric.created_by_kind || "", r.metric.created_by_name || "");
 
       if (!nsMap[ns]) {
-        nsMap[ns] = { namespace: ns, pods: [], nodes: [], worstHealth: "running", nodeTemps: [], workloadNames: [], evalInfo: null };
+        nsMap[ns] = { namespace: ns, pods: [], nodes: [], worstHealth: "running", nodeTemps: [], workloadNames: [] };
       }
       nsMap[ns].pods.push({ name: pod, node, ageSeconds: age, createdDate, phase, waitingReason, health, ownerName });
       if (node) allNodes.add(node);
@@ -354,7 +303,6 @@ export function ActiveWorkloads({
       const wlSet = new Set<string>();
       g.pods.forEach((p) => { if (p.ownerName) wlSet.add(p.ownerName); });
       g.workloadNames = Array.from(wlSet).sort();
-      g.evalInfo = evalMap[g.namespace] || null;
     });
 
     const filtered = groupList
@@ -396,7 +344,7 @@ export function ActiveWorkloads({
     setError(false);
     setLab3Failed(needLab3 && lab3DidFail);
     setLoading(false);
-  }, [cluster, hostnameIpMap, evalMap]);
+  }, [cluster, hostnameIpMap]);
 
   useEffect(() => {
     fetchWorkloads();
@@ -502,11 +450,6 @@ export function ActiveWorkloads({
                           {wl}
                         </span>
                       ))}
-                      {g.evalInfo?.phaseName && (
-                        <span className="rounded bg-blue-900/30 px-1.5 py-0.5 text-[10px] text-blue-300">
-                          {g.evalInfo.phaseName}
-                        </span>
-                      )}
                     </div>
                   )}
 
@@ -527,21 +470,6 @@ export function ActiveWorkloads({
                       <span className="text-gray-500">Duration</span>
                       {formatAge(oldestPod.ageSeconds)}
                     </span>
-                    {g.evalInfo?.testTime && (() => {
-                      const totalSec = parseTestTimeSec(g.evalInfo.testTime);
-                      if (!totalSec) return null;
-                      const remaining = totalSec - oldestPod.ageSeconds;
-                      return (
-                        <span className={cn(
-                          "flex items-center gap-1",
-                          remaining <= 0 ? "text-green-400" : remaining < 86400 ? "text-amber-400" : "text-gray-400",
-                        )}>
-                          <Clock className="h-3 w-3" />
-                          <span className="text-gray-500">ETA</span>
-                          {formatRemaining(remaining)}
-                        </span>
-                      );
-                    })()}
                   </div>
 
                   {g.nodeTemps.length > 0 && (
