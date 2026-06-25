@@ -21,6 +21,7 @@
 | PUE 위젯 | ✅ 완료 | PUE 게이지 아크 + 효율 등급 + 24h 추이 스파크라인 |
 | Prometheus 연결 상태 | ✅ 완료 | 연결 성공/실패 인디케이터 |
 | 에러 바운더리 | ✅ 완료 | Prometheus 장애 시 UI 깨지지 않음 |
+| 워크로드 카드 상세 | ✅ 완료 | Active Workloads 카드에 워크로드 이름(created_by_name) 자동 표시 + Duration 표시. K8s에서 자동 감지 가능한 정보만 표시 |
 
 ---
 
