@@ -12,7 +12,7 @@
   - ClusterIP: `http://10.100.175.248:8080` (클러스터 내부 — 앱 코드 + check 스크립트 모두 이 주소 사용)
   - NodePort: `8080:30003/TCP` (외부 접근용)
 - **DCIM 앱**: `http://10.144.38.100:3000` (Next.js + PostgreSQL)
-- **Docker 컨테이너**: `firsttest-db-1` (PostgreSQL), DB 직접 조회 시 `docker exec firsttest-db-1 psql -U dcim -d dcim`
+- **Docker 컨테이너**: `dcim-db` (PostgreSQL), DB 직접 조회 시 `docker exec $(docker compose ps -q db) psql -U dcim -d dcim`
 - **API 인증**: NextAuth.js — API 호출 시 로그인 필요, check 스크립트에서는 docker exec로 DB 직접 조회
 
 ### Cluster 2 — Lab-3 (10.144.131.100)
