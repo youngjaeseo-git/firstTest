@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MEMORY_TYPES } from "@/lib/schemas/equipment";
 
 /**
  * Shared zod schemas for the evaluation (memory eval) domain.
@@ -26,17 +27,6 @@ export const EVAL_PHASE_STATUSES = [
 export const EVAL_TASK_STATUSES = ["TODO", "IN_PROGRESS", "DONE", "BLOCKED"] as const;
 export const EVAL_TASK_PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
 export const EVAL_TEST_RESULTS = ["PASS", "FAIL", "WARNING", "RUNNING", "PENDING"] as const;
-export const MEMORY_TYPES = [
-  "DDR3",
-  "DDR4",
-  "DDR5",
-  "HBM",
-  "HBM2",
-  "HBM2E",
-  "HBM3",
-  "LPDDR4",
-  "LPDDR5",
-] as const;
 
 // ── Project (PATCH /api/evaluations/[id]) ──
 export const UpdateProjectSchema = z.object({

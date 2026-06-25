@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { HardDrive, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface FsWarning {
   instance: string;
@@ -29,6 +30,7 @@ export function FilesystemWarnings({
 }: {
   hostnameIpMap?: Record<string, string>;
 }) {
+  const t = useT();
   const [warnings, setWarnings] = useState<FsWarning[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -91,7 +93,7 @@ export function FilesystemWarnings({
           accent="amber"
           title={
             <>
-              Filesystem Warnings{" "}
+              {t("dashboard.filesystemWarnings")}{" "}
               <span className="font-normal normal-case text-gray-500">
                 ({">"}70%)
               </span>

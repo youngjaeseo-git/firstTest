@@ -321,6 +321,7 @@ function RackElevationInline({
     const eq = localEquipment.find((e) => e.id === eqId);
     if (!eq || eq.rackPosition === null) return;
     const newPos = direction === "up" ? eq.rackPosition + 1 : eq.rackPosition - 1;
+    if (newPos < 1 || newPos + eq.rackHeight - 1 > rack.totalUnits) return;
     moveEquipment(eqId, newPos);
   };
 

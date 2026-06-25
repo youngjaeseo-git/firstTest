@@ -196,7 +196,7 @@ export function FleetOverview({
           index={1}
           icon={<HardDrive className="h-4 w-4 text-green-400" />}
           iconBg="bg-green-500/15"
-          title="Fleet Top 5 — Memory"
+          title={t("dashboard.fleet.topMem")}
           items={topMem}
           noDataText={t("common.noData")}
           barColors={{ high: "bg-red-500", mid: "bg-amber-500", low: "bg-green-500" }}
@@ -261,14 +261,14 @@ export function FleetOverview({
                     <DoorOpen className="h-4 w-4 text-purple-400" />
                     <div>
                       <p className="text-lg font-bold text-gray-100">{totalRooms}</p>
-                      <p className="text-[10px] text-gray-500">Rooms</p>
+                      <p className="text-[10px] text-gray-500">{t("dashboard.roomsLabel")}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 rounded-lg bg-gray-800/30 px-3 py-2">
                     <Building2 className="h-4 w-4 text-blue-400" />
                     <div>
                       <p className="text-lg font-bold text-gray-100">{totalRacks}</p>
-                      <p className="text-[10px] text-gray-500">Racks</p>
+                      <p className="text-[10px] text-gray-500">{t("dashboard.racksLabel")}</p>
                     </div>
                   </div>
                 </div>
@@ -285,7 +285,7 @@ export function FleetOverview({
                 <Cpu className="h-4 w-4 text-violet-400" />
               </div>
               <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-                Platform Status
+                {t("dashboard.fleet.platformStatus")}
               </h3>
             </div>
             {platformStats.length === 0 ? (

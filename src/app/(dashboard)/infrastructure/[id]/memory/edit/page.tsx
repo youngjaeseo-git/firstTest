@@ -6,6 +6,7 @@ import Link from "next/link";
 import { MemoryEditor } from "@/components/memory/memory-editor";
 import { PageHeader } from "@/components/ui/page-header";
 import { Edit } from "lucide-react";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface MemorySlot {
   slotName: string;
@@ -44,6 +45,7 @@ export default function MemoryEditPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
+  const t = useT();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

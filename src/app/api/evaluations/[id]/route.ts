@@ -73,6 +73,14 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  await prisma.evalProject.delete({ where: { id } });
-  return NextResponse.json({ success: true });
+  try {
+    await prisma.evalProject.delete({ where: { id } });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Failed to delete evaluation project:", error);
+    return NextResponse.json(
+      { error: "Failed to delete evaluation project" },
+      { status: 500 },
+    );
+  }
 }

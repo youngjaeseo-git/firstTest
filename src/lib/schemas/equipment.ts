@@ -36,6 +36,8 @@ export const MEMORY_TYPES = [
   "LPDDR5",
 ] as const;
 
+export const FORM_FACTORS = ["RDIMM", "LRDIMM", "UDIMM", "SO-DIMM"] as const;
+
 export const CpuSchema = z.object({
   socketIndex: z.number().int().min(0).max(15).optional(),
   manufacturer: z.string().trim().max(100).nullable().optional(),

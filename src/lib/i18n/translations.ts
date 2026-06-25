@@ -94,6 +94,8 @@ export const translations: Record<Language, Record<string, string>> = {
     "dashboard.pue.average": "Average",
     "dashboard.pue.poor": "Inefficient",
     "dashboard.fleet.topCpu": "Fleet Top 5 — CPU",
+    "dashboard.fleet.topMem": "Fleet Top 5 — Memory",
+    "dashboard.fleet.platformStatus": "Platform Status",
     "dashboard.fleet.serverStatus": "Server Status",
     "dashboard.fleet.infraSummary": "Infra Summary",
     "dashboard.fleet.active": "Active",
@@ -431,6 +433,10 @@ export const translations: Record<Language, Record<string, string>> = {
     "dashboard.viewAllAlerts": "View all alerts",
     "dashboard.racksAcross": "Racks across",
     "dashboard.rooms": "rooms",
+    "dashboard.roomsLabel": "Rooms",
+    "dashboard.racksLabel": "Racks",
+    "dashboard.filesystemWarnings": "Filesystem Warnings",
+    "dashboard.lab3FetchError": "Cannot fetch Lab-3 Prometheus data",
 
     // ── Command Palette ──
     "cmd.quickLinks": "Quick Links",
@@ -620,6 +626,42 @@ export const translations: Record<Language, Record<string, string>> = {
     "org.joinedAt": "Joined At",
     "org.equipmentCount": "Equipment assigned",
 
+    // ── Infrastructure (additions) ──
+    "infra.noEquipment": "No equipment found",
+    "infra.tryClearFilters": "Try clearing filters",
+
+    // ── Filter labels ──
+    "filter.modelAll": "Model: All",
+    "filter.statusAll": "Status: All",
+    "filter.roomAll": "Room: All",
+    "filter.powerAll": "Power: All",
+    "filter.reset": "Reset",
+
+    // ── Rack (additions) ──
+    "rack.emptySlot": "empty",
+    "rack.noSpace": "No space at this position",
+    "rack.moveFail": "Move failed",
+    "rack.serverCommError": "Server communication error",
+    "rack.placeFail": "Place failed",
+    "rack.removeFail": "Remove failed",
+    "rack.unrackedLoadFail": "Failed to load unracked equipment",
+    "rack.dropHere": "Drop here",
+    "rack.saving": "Saving...",
+    "rack.addEquipment": "Add Equipment",
+    "rack.dragToMove": "Drag to reposition",
+    "rack.unrackedPanel": "Add Unracked Equipment",
+    "rack.noUnracked": "No unracked equipment available",
+    "rack.loadingUnracked": "Loading...",
+    "rack.dragToPlace": "Drag to rack slot to place",
+    "rack.unpositioned": "Unpositioned",
+    "rack.place": "Place",
+    "rack.uPosition": "U Position:",
+    "rack.tempLegend": "Temperature legend:",
+    "rack.tempOnExpand": "Expand rack to see per-device temperatures",
+
+    // ── Memory (additions) ──
+    "memory.node": "Node",
+
     // ── Status labels ──
     "status.active": "Active",
     "status.maintenance": "Maintenance",
@@ -710,6 +752,8 @@ export const translations: Record<Language, Record<string, string>> = {
     "dashboard.pue.average": "보통",
     "dashboard.pue.poor": "비효율적",
     "dashboard.fleet.topCpu": "Fleet Top 5 — CPU",
+    "dashboard.fleet.topMem": "Fleet Top 5 — Memory",
+    "dashboard.fleet.platformStatus": "플랫폼 상태",
     "dashboard.fleet.serverStatus": "서버 상태",
     "dashboard.fleet.infraSummary": "인프라 요약",
     "dashboard.fleet.active": "활성",
@@ -1047,6 +1091,10 @@ export const translations: Record<Language, Record<string, string>> = {
     "dashboard.viewAllAlerts": "모든 알림 보기",
     "dashboard.racksAcross": "개 랙,",
     "dashboard.rooms": "개 룸",
+    "dashboard.roomsLabel": "Rooms",
+    "dashboard.racksLabel": "Racks",
+    "dashboard.filesystemWarnings": "파일시스템 경고",
+    "dashboard.lab3FetchError": "Lab-3 Prometheus 데이터를 가져올 수 없습니다",
 
     // ── Command Palette ──
     "cmd.quickLinks": "빠른 링크",
@@ -1235,6 +1283,42 @@ export const translations: Record<Language, Record<string, string>> = {
     "org.orgRole": "조직 역할",
     "org.joinedAt": "가입일",
     "org.equipmentCount": "할당된 장비",
+
+    // ── Infrastructure (additions) ──
+    "infra.noEquipment": "장비를 찾을 수 없습니다",
+    "infra.tryClearFilters": "필터를 초기화해 보세요",
+
+    // ── Filter labels ──
+    "filter.modelAll": "모델: 전체",
+    "filter.statusAll": "상태: 전체",
+    "filter.roomAll": "Room: 전체",
+    "filter.powerAll": "전원: 전체",
+    "filter.reset": "초기화",
+
+    // ── Rack (additions) ──
+    "rack.emptySlot": "비어있음",
+    "rack.noSpace": "해당 위치에 공간이 부족합니다",
+    "rack.moveFail": "이동 실패",
+    "rack.serverCommError": "서버 통신 오류",
+    "rack.placeFail": "배치 실패",
+    "rack.removeFail": "제거 실패",
+    "rack.unrackedLoadFail": "미배치 장비 로드 실패",
+    "rack.dropHere": "여기에 놓기",
+    "rack.saving": "저장중...",
+    "rack.addEquipment": "장비 추가",
+    "rack.dragToMove": "드래그하여 위치 변경",
+    "rack.unrackedPanel": "미배치 장비 추가",
+    "rack.noUnracked": "미배치 장비가 없습니다",
+    "rack.loadingUnracked": "로딩중...",
+    "rack.dragToPlace": "드래그하여 랙 슬롯에 배치하세요",
+    "rack.unpositioned": "위치 미지정",
+    "rack.place": "배치",
+    "rack.uPosition": "U위치:",
+    "rack.tempLegend": "온도 범례:",
+    "rack.tempOnExpand": "랙을 펼치면 장비별 온도가 표시됩니다",
+
+    // ── Memory (additions) ──
+    "memory.node": "노드",
 
     // ── Status labels ──
     "status.active": "운영중",

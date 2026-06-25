@@ -88,8 +88,7 @@ export async function POST() {
         labels: t.labels,
       })),
     });
-  } catch (error) {
-    console.error("Discovery sync error:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch Prometheus targets" },
       { status: 502 },

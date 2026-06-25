@@ -18,8 +18,7 @@ export async function GET() {
   let targets: DiscoveredPrometheusTarget[];
   try {
     targets = await fetchTargets();
-  } catch (error) {
-    console.error("Discovery diagnostic: Prometheus unreachable", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch Prometheus targets" },
       { status: 502 },

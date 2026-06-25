@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getPlatform } from "@/lib/platform-mapper";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface EquipmentRow {
   id: string;
@@ -21,6 +22,7 @@ interface EquipmentRow {
 }
 
 export function EquipmentTable({ data }: { data: EquipmentRow[] }) {
+  const t = useT();
   const [platformFilter, setPlatformFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
@@ -171,9 +173,9 @@ export function EquipmentTable({ data }: { data: EquipmentRow[] }) {
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={10} className="px-4 py-16 text-center text-gray-500">
-                    <p className="font-medium">No equipment found</p>
+                    <p className="font-medium">{t("infra.noEquipment")}</p>
                     {(platformFilter || search) && (
-                      <p className="text-xs mt-1">Try clearing filters</p>
+                      <p className="text-xs mt-1">{t("infra.tryClearFilters")}</p>
                     )}
                   </td>
                 </tr>

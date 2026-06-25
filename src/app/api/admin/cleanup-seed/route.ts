@@ -37,6 +37,7 @@ export async function POST() {
   ).count;
 
   return NextResponse.json({
+    success: true,
     message: "Seed data cleaned up",
     deleted,
     preserved: ["users", "dataCenter", "rooms", "racks"],

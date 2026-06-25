@@ -64,7 +64,7 @@ export default async function ServersPage() {
       totalMemoryGB: eq.totalMemoryGB,
       rackPosition: eq.rackPosition,
       roomName: null,
-      rackName: "미배치",
+      rackName: null,
     })),
   ];
 

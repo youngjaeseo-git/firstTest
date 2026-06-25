@@ -522,7 +522,7 @@ function PodsTab({ pods, nodes }: { pods: PodInfo[]; nodes: string[] }) {
                       </td>
                       <td className="py-2.5 pr-3">
                         {p.cpuCores !== null ? (
-                          <span className={cn("font-mono", p.cpuCores > 100 ? "text-red-400" : p.cpuCores > 50 ? "text-amber-400" : "text-cyan-400")}>
+                          <span className={cn("font-mono", p.cpuCores > 8 ? "text-red-400" : p.cpuCores > 4 ? "text-amber-400" : "text-cyan-400")}>
                             {p.cpuCores.toFixed(1)}
                           </span>
                         ) : (

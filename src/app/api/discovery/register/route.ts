@@ -136,8 +136,8 @@ export async function POST(req: Request) {
         osImage = metric.os_image || null;
         kernelVersion = metric.kernel_version || null;
       }
-    } catch (err) {
-      console.warn("[discovery] kube_node_info enrichment failed", err);
+    } catch {
+      // kube_node_info enrichment failed — non-critical
     }
   }
 
@@ -148,8 +148,8 @@ export async function POST(req: Request) {
         parseFloat(memResult.data.result[0].value[1]) / (1024 * 1024 * 1024)
       );
     }
-  } catch (err) {
-    console.warn("[discovery] machine_memory_bytes enrichment failed", err);
+  } catch {
+    // machine_memory_bytes enrichment failed — non-critical
   }
 
   try {
@@ -157,8 +157,8 @@ export async function POST(req: Request) {
     if (cpuResult.data?.result?.[0]?.value?.[1]) {
       cpuCores = parseInt(cpuResult.data.result[0].value[1], 10);
     }
-  } catch (err) {
-    console.warn("[discovery] machine_cpu_cores enrichment failed", err);
+  } catch {
+    // machine_cpu_cores enrichment failed — non-critical
   }
 
   let isUp = target.health === "up";
@@ -170,8 +170,8 @@ export async function POST(req: Request) {
           (r: { value?: [number, string] }) => r.value?.[1] === "1",
         );
       }
-    } catch (err) {
-      console.warn("[discovery] up{} status query failed", err);
+    } catch {
+      // up{} status query failed — non-critical
     }
   }
 

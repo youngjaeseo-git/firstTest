@@ -9,6 +9,7 @@ import { EmptyState, MetricError } from "@/components/ui/states";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { FlaskConical, Clock, Server, Calendar, Thermometer, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/i18n-context";
 import { queries } from "@/lib/prometheus";
 import type { Cluster } from "@/lib/prometheus";
 
@@ -164,6 +165,7 @@ export function ActiveWorkloads({
   cluster?: Cluster;
   hostnameIpMap?: Record<string, string>;
 }) {
+  const t = useT();
   const [groups, setGroups] = useState<WorkloadGroup[]>([]);
   const [totalPods, setTotalPods] = useState(0);
   const [totalNodes, setTotalNodes] = useState(0);
@@ -378,7 +380,7 @@ export function ActiveWorkloads({
         {lab3Failed && !loading && (
           <div className="mb-2 flex items-center gap-2 rounded-md border border-yellow-600/40 bg-yellow-900/20 px-3 py-1.5 text-xs text-yellow-400">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-            Lab-3 Prometheus 데이터를 가져올 수 없습니다
+            {t("dashboard.lab3FetchError")}
           </div>
         )}
 
