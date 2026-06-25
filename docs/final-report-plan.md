@@ -10,7 +10,7 @@
 
 ### 1. Executive Summary (0.5p)
 
-3줄 요약: 누가(1인+AI), 왜(Grafana 한계), 뭘 만들었고(DCIM 웹앱), 핵심 성과는(38페이지, 68 API, 29 DB 모델).
+3줄 요약: 누가(1인+AI), 왜(Grafana 한계), 뭘 만들었고(DCIM 웹앱), 핵심 성과는(39페이지, 73 API, 29 DB 모델).
 
 ### 2. 배경: 왜 만들었나 (1p)
 
@@ -24,7 +24,7 @@
 
 | 항목 | Before (Grafana) | After (DC Express) |
 |------|------------------|--------------------|
-| 모니터링 | 분산된 대시보드 | 통합 38페이지 |
+| 모니터링 | 분산된 대시보드 | 통합 39페이지 |
 | 자산 관리 | 엑셀/수기 | DB 기반 CRUD + 라이프사이클 |
 | 물리 배치 | 기억 의존 | Digital Twin + 랙 다이어그램 |
 | 알림 | Grafana 알림 | 커스텀 규칙 + 이력 + 만료 추적 |
@@ -47,16 +47,16 @@ CSV 일괄 등록 → 랙 위치 배정 → Prometheus 자동 탐지로 모니�
 
 - 시스템 구성도 1장 (Next.js + Prometheus + PostgreSQL + BMC/Redfish + K8s)
 - 4종 데이터소스 연동 구조
-- 68개 API, 29개 DB 모델, SSE 실시간 스트림
+- 73개 API, 29개 DB 모델, SSE 실시간 스트림
 - node-exporter 우선 + cAdvisor 폴백 전략
 - 폐쇄망 BMC 프록시 구현
 - 참고: docs/technical-data-flow.md, docs/data-flow-diagram.html
 
 ### 6. 개발 과정: AI 협업(바이브 코딩) 경험 (1.5p)
 
-- 439커밋(AI 99.3%), 42,333줄, 1인 개발
+- 514커밋(AI 99%+), 43,974줄, 1인 개발
 - 7단계 타임라인 (스캐폴딩 1일 → 기능폭발 → 실데이터 고통 → 안정화)
-- fix가 feat의 2배인 현실 (110 vs 55): "빠르게 만들고 → 실데이터에서 깨지고 → 고치는" 사이클
+- fix가 전체의 23% (~120건): "빠르게 만들고 → 실데이터에서 깨지고 → 고치는" 사이클
 - CLAUDE.md 6개 규칙이 각각 어떤 실패에서 탄생했는지
 - 피벗 사례: Alpine→Debian, cAdvisor→node-exporter, hostname 분산→통합
 - 참고: docs/retrospective-prep.md
