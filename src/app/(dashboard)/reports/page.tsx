@@ -3,8 +3,8 @@ export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge, SeverityBadge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/ui/page-header";
 import { ReportActions } from "@/components/reports/report-actions";
+import { TranslatedPageHeader } from "@/components/ui/translated-page-header";
 import { FileText } from "lucide-react";
 
 export default async function ReportsPage() {
@@ -120,10 +120,11 @@ export default async function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <TranslatedPageHeader
         icon={FileText}
         title="Reports"
-        subtitle={`인프라 현황 및 알림 통계 리포트 · 생성시각 ${reportDate}`}
+        subtitleKey="reports.subtitle"
+        subtitleSuffix={` · ${reportDate}`}
         accent="amber"
         right={
           <ReportActions

@@ -7,6 +7,7 @@ import { useConfirm } from "@/components/ui/confirm";
 import { useToast } from "@/components/ui/toast";
 import { Bell, Send, Wrench, Mail, MessageSquare, Webhook, Plus } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
+import { inputClass, labelClass } from "@/lib/styles";
 
 type Tab = "channels" | "escalation" | "maintenance";
 
@@ -40,10 +41,6 @@ interface MWindow {
   targetValue: string | null;
   enabled: boolean;
 }
-
-const inputClass =
-  "w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
-const labelClass = "mb-1 block text-xs font-medium text-gray-400";
 
 const CHANNEL_ICON = {
   EMAIL: Mail,
@@ -174,7 +171,7 @@ function ChannelsTab({ isAdmin }: { isAdmin: boolean }) {
     const d = await res.json().catch(() => ({}));
     toast({
       type: d.ok ? "success" : "warning",
-      title: d.ok ? "Test sent" : "Test not delivered",
+      title: d.ok ? t("alertSettings.channels.testSent") : t("alertSettings.channels.testFailed"),
       message: d.message,
     });
   }
@@ -186,9 +183,9 @@ function ChannelsTab({ isAdmin }: { isAdmin: boolean }) {
     <Card>
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="font-medium text-gray-100">Notification Channels</p>
+          <p className="font-medium text-gray-100">{t("alertSettings.channels.title")}</p>
           <p className="text-xs text-gray-500">
-            Where alerts are delivered. Used by escalation policies.
+            {t("alertSettings.channels.desc")}
           </p>
         </div>
         {isAdmin && (
@@ -197,7 +194,7 @@ function ChannelsTab({ isAdmin }: { isAdmin: boolean }) {
             className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
           >
             <Plus className="h-4 w-4" />
-            {showForm ? "Close" : "Add Channel"}
+            {showForm ? t("alertSettings.channels.close") : t("alertSettings.channels.add")}
           </button>
         )}
       </div>
@@ -240,7 +237,7 @@ function ChannelsTab({ isAdmin }: { isAdmin: boolean }) {
       {loading ? (
         <p className="py-6 text-center text-sm text-gray-500">Loading…</p>
       ) : channels.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-500">No channels configured.</p>
+        <p className="py-8 text-center text-sm text-gray-500">{t("alertSettings.channels.noChannels")}</p>
       ) : (
         <div className="space-y-2">
           {channels.map((c) => {
@@ -284,6 +281,7 @@ function ChannelsTab({ isAdmin }: { isAdmin: boolean }) {
 /* ───────────────────────── Escalation Policies ───────────────────────── */
 
 function EscalationTab({ isAdmin }: { isAdmin: boolean }) {
+  const t = useT();
   const confirm = useConfirm();
   const { toast } = useToast();
   const [policies, setPolicies] = useState<Policy[]>([]);
@@ -329,7 +327,7 @@ function EscalationTab({ isAdmin }: { isAdmin: boolean }) {
       setSeverity("CRITICAL");
       setAfterMinutes(15);
       setChannelId("");
-      toast({ type: "success", title: "Policy created" });
+      toast({ type: "success", title: t("alertSettings.escalation.created") });
       load();
     } else {
       const d = await res.json().catch(() => ({}));
@@ -348,14 +346,14 @@ function EscalationTab({ isAdmin }: { isAdmin: boolean }) {
 
   async function remove(id: string) {
     const ok = await confirm({
-      title: "Delete policy",
-      message: "Remove this escalation policy?",
+      title: t("alertSettings.escalation.deleteTitle"),
+      message: t("alertSettings.escalation.deleteMsg"),
       variant: "danger",
-      confirmLabel: "Delete",
+      confirmLabel: t("common.delete"),
     });
     if (!ok) return;
     await fetch(`/api/escalation-policies/${id}`, { method: "DELETE" });
-    toast({ type: "success", title: "Policy deleted" });
+    toast({ type: "success", title: t("alertSettings.escalation.deleted") });
     load();
   }
 
@@ -363,9 +361,9 @@ function EscalationTab({ isAdmin }: { isAdmin: boolean }) {
     <Card>
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="font-medium text-gray-100">Escalation Policies</p>
+          <p className="font-medium text-gray-100">{t("alertSettings.escalation.title")}</p>
           <p className="text-xs text-gray-500">
-            Notify a channel when an alert of a given severity stays unacknowledged.
+            {t("alertSettings.escalation.desc")}
           </p>
         </div>
         {isAdmin && (
@@ -374,7 +372,7 @@ function EscalationTab({ isAdmin }: { isAdmin: boolean }) {
             className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
           >
             <Plus className="h-4 w-4" />
-            {showForm ? "Close" : "Add Policy"}
+            {showForm ? t("alertSettings.escalation.close") : t("alertSettings.escalation.add")}
           </button>
         )}
       </div>
@@ -419,7 +417,7 @@ function EscalationTab({ isAdmin }: { isAdmin: boolean }) {
       {loading ? (
         <p className="py-6 text-center text-sm text-gray-500">Loading…</p>
       ) : policies.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-500">No escalation policies.</p>
+        <p className="py-8 text-center text-sm text-gray-500">{t("alertSettings.escalation.noPolicies")}</p>
       ) : (
         <div className="space-y-2">
           {policies.map((p) => (
@@ -464,6 +462,7 @@ function fmtLocal(dt: string): string {
 }
 
 function MaintenanceTab({ canEdit }: { canEdit: boolean }) {
+  const t = useT();
   const confirm = useConfirm();
   const { toast } = useToast();
   const [windows, setWindows] = useState<MWindow[]>([]);
@@ -512,7 +511,7 @@ function MaintenanceTab({ canEdit }: { canEdit: boolean }) {
       setEndTime("");
       setTargetType("all");
       setTargetValue("");
-      toast({ type: "success", title: "Maintenance window created" });
+      toast({ type: "success", title: t("alertSettings.maintenance.created") });
       load();
     } else {
       const d = await res.json().catch(() => ({}));
@@ -531,14 +530,14 @@ function MaintenanceTab({ canEdit }: { canEdit: boolean }) {
 
   async function remove(id: string) {
     const ok = await confirm({
-      title: "Delete window",
-      message: "Remove this maintenance window?",
+      title: t("alertSettings.maintenance.deleteTitle"),
+      message: t("alertSettings.maintenance.deleteMsg"),
       variant: "danger",
-      confirmLabel: "Delete",
+      confirmLabel: t("common.delete"),
     });
     if (!ok) return;
     await fetch(`/api/maintenance-windows/${id}`, { method: "DELETE" });
-    toast({ type: "success", title: "Window deleted" });
+    toast({ type: "success", title: t("alertSettings.maintenance.deleted") });
     load();
   }
 
@@ -548,9 +547,9 @@ function MaintenanceTab({ canEdit }: { canEdit: boolean }) {
     <Card>
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="font-medium text-gray-100">Maintenance Windows</p>
+          <p className="font-medium text-gray-100">{t("alertSettings.maintenance.title")}</p>
           <p className="text-xs text-gray-500">
-            Suppress alerts during planned maintenance. Active windows mute matching alerts.
+            {t("alertSettings.maintenance.desc")}
           </p>
         </div>
         {canEdit && (
@@ -559,7 +558,7 @@ function MaintenanceTab({ canEdit }: { canEdit: boolean }) {
             className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
           >
             <Plus className="h-4 w-4" />
-            {showForm ? "Close" : "Add Window"}
+            {showForm ? t("alertSettings.maintenance.close") : t("alertSettings.maintenance.add")}
           </button>
         )}
       </div>
@@ -611,7 +610,7 @@ function MaintenanceTab({ canEdit }: { canEdit: boolean }) {
       {loading ? (
         <p className="py-6 text-center text-sm text-gray-500">Loading…</p>
       ) : windows.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-500">No maintenance windows.</p>
+        <p className="py-8 text-center text-sm text-gray-500">{t("alertSettings.maintenance.noWindows")}</p>
       ) : (
         <div className="space-y-2">
           {windows.map((w) => {

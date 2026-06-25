@@ -203,13 +203,13 @@ function RackElevationInline({
         setSaving(false);
       }
     },
-    [localEquipment, rack.totalUnits, toast, onEquipmentMoved],
+    [localEquipment, rack.totalUnits, toast, onEquipmentMoved, t],
   );
 
   const addEquipmentToRack = useCallback(
     async (equipmentId: string, position: number, height: number) => {
       if (!canPlace(localEquipment, position, height, rack.totalUnits)) {
-        toast({ type: "error", title: "해당 위치에 공간이 부족합니다" });
+        toast({ type: "error", title: t("rack.noSpace") });
         return;
       }
 
@@ -222,14 +222,14 @@ function RackElevationInline({
         });
         if (!res.ok) {
           const data = await res.json();
-          toast({ type: "error", title: data.error || "배치 실패" });
+          toast({ type: "error", title: data.error || t("rack.placeFail") });
         } else {
           const added = unrackedEquipment.find((e) => e.id === equipmentId);
           if (added) {
             setLocalEquipment((prev) => [...prev, { ...added, rackPosition: position }]);
             setUnrackedEquipment((prev) => prev.filter((e) => e.id !== equipmentId));
           }
-          toast({ type: "success", title: `U${position}에 배치 완료` });
+          toast({ type: "success", title: `U${position} ${t("common.success")}` });
           onEquipmentMoved?.();
         }
       } catch {
@@ -238,7 +238,7 @@ function RackElevationInline({
         setSaving(false);
       }
     },
-    [localEquipment, rack.id, rack.totalUnits, toast, unrackedEquipment, onEquipmentMoved],
+    [localEquipment, rack.id, rack.totalUnits, toast, unrackedEquipment, onEquipmentMoved, t],
   );
 
   const removeFromRack = useCallback(
@@ -252,10 +252,10 @@ function RackElevationInline({
           body: JSON.stringify({ rackId: null, rackPosition: null }),
         });
         if (!res.ok) {
-          toast({ type: "error", title: "제거 실패" });
+          toast({ type: "error", title: t("rack.removeFail") });
         } else {
           setLocalEquipment((prev) => prev.filter((e) => e.id !== equipmentId));
-          toast({ type: "success", title: `${eq?.hostname || "장비"} 배치 해제` });
+          toast({ type: "success", title: `${eq?.hostname || t("common.unnamed")} ${t("rack.unracked")}` });
           onEquipmentMoved?.();
         }
       } catch {
@@ -264,7 +264,7 @@ function RackElevationInline({
         setSaving(false);
       }
     },
-    [localEquipment, toast, onEquipmentMoved],
+    [localEquipment, toast, onEquipmentMoved, t],
   );
 
   const loadUnrackedEquipment = useCallback(async () => {
@@ -289,11 +289,11 @@ function RackElevationInline({
         setUnrackedEquipment(items);
       }
     } catch {
-      toast({ type: "error", title: "미배치 장비 로드 실패" });
+      toast({ type: "error", title: t("rack.unrackedLoadFail") });
     } finally {
       setLoadingUnracked(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   const handleDragStart = (eqId: string) => {
     setDraggingId(eqId);
@@ -338,7 +338,7 @@ function RackElevationInline({
               </div>
               <span className="font-mono text-[10px] text-gray-500">
                 {rack.name} - {rack.totalUnits}U
-                {saving && <span className="ml-2 text-blue-400">저장중...</span>}
+                {saving && <span className="ml-2 text-blue-400">{t("rack.saving")}</span>}
               </span>
             </div>
             <div className="space-y-px">
@@ -385,7 +385,7 @@ function RackElevationInline({
                       )}
                       <div className="pointer-events-none absolute left-full top-0 z-50 ml-2 hidden w-56 rounded-lg border border-gray-700 bg-gray-900 p-3 text-left text-xs shadow-xl group-hover/eq:block">
                         <p className="font-semibold text-gray-100">
-                          {equipment.hostname || "(unnamed)"}
+                          {equipment.hostname || t("common.unnamed")}
                         </p>
                         <div className="mt-1 space-y-0.5 text-gray-400">
                           <p>
@@ -407,7 +407,7 @@ function RackElevationInline({
                             </p>
                           )}
                         </div>
-                        <p className="mt-2 text-[10px] text-gray-500">드래그하여 위치 변경</p>
+                        <p className="mt-2 text-[10px] text-gray-500">{t("rack.dragToMove")}</p>
                       </div>
                     </div>
                   ) : equipment ? (
@@ -421,7 +421,7 @@ function RackElevationInline({
                           : "border-gray-800 bg-gray-800/30 text-gray-600",
                       )}
                     >
-                      {dropTarget === position ? "여기에 놓기" : "empty"}
+                      {dropTarget === position ? t("rack.dropHere") : t("rack.emptySlot")}
                     </div>
                   )}
                 </div>
@@ -456,7 +456,7 @@ function RackElevationInline({
               }}
             >
               <Plus className="mr-1 h-3 w-3" />
-              장비 추가
+              {t("rack.addEquipment")}
             </Button>
           </div>
         </div>
@@ -572,7 +572,7 @@ function RackElevationInline({
           {unpositioned.length > 0 && (
             <div className="mt-4">
               <p className="mb-2 text-xs font-medium text-amber-400">
-                위치 미지정 ({unpositioned.length})
+                {t("rack.unpositioned")} ({unpositioned.length})
               </p>
               <div className="flex flex-wrap gap-2">
                 {unpositioned.map((eq) => (
@@ -589,7 +589,7 @@ function RackElevationInline({
                 ))}
               </div>
               <p className="mt-1 text-[10px] text-gray-500">
-                드래그하여 랙 슬롯에 배치하세요
+                {t("rack.dragToPlace")}
               </p>
             </div>
           )}
@@ -631,6 +631,7 @@ function AddEquipmentPanel({
   onClose: () => void;
   saving: boolean;
 }) {
+  const t = useT();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [targetPosition, setTargetPosition] = useState<string>("");
 
@@ -654,16 +655,16 @@ function AddEquipmentPanel({
   return (
     <div className="mt-4 rounded-lg border border-blue-800/50 bg-blue-900/10 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h5 className="text-sm font-semibold text-blue-300">미배치 장비 추가</h5>
+        <h5 className="text-sm font-semibold text-blue-300">{t("rack.unrackedPanel")}</h5>
         <button onClick={onClose} className="text-gray-500 hover:text-gray-300">
           <X className="h-4 w-4" />
         </button>
       </div>
 
       {loading ? (
-        <p className="text-xs text-gray-500">로딩중...</p>
+        <p className="text-xs text-gray-500">{t("rack.loadingUnracked")}</p>
       ) : unrackedEquipment.length === 0 ? (
-        <p className="text-xs text-gray-500">미배치 장비가 없습니다</p>
+        <p className="text-xs text-gray-500">{t("rack.noUnracked")}</p>
       ) : (
         <>
           <div className="mb-3 max-h-48 space-y-1 overflow-y-auto">
@@ -695,7 +696,7 @@ function AddEquipmentPanel({
                 {selected?.hostname || selected?.type}
               </span>
               <div className="flex items-center gap-1">
-                <label className="text-xs text-gray-500">U위치:</label>
+                <label className="text-xs text-gray-500">{t("rack.uPosition")}</label>
                 <input
                   type="number"
                   className="w-16 rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200"
@@ -713,7 +714,7 @@ function AddEquipmentPanel({
                 disabled={saving}
               >
                 <Plus className="mr-1 h-3 w-3" />
-                배치
+                {t("rack.place")}
               </Button>
             </div>
           )}
@@ -809,7 +810,7 @@ export function RacksPageClient({
 
       {heatmap && (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-800 bg-gray-900/40 px-4 py-2 text-xs">
-          <span className="font-medium text-gray-400">온도 범례:</span>
+          <span className="font-medium text-gray-400">{t("rack.tempLegend")}</span>
           {[
             ["<35°", "bg-sky-600/60"],
             ["35-45°", "bg-green-600/60"],
@@ -823,7 +824,7 @@ export function RacksPageClient({
               <span className="text-gray-500">{label}</span>
             </div>
           ))}
-          <span className="text-gray-600">· 랙을 펼치면 장비별 온도가 표시됩니다</span>
+          <span className="text-gray-600">· {t("rack.tempOnExpand")}</span>
         </div>
       )}
 

@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { queries, type Cluster } from "@/lib/prometheus";
+import { useT } from "@/lib/i18n/i18n-context";
 
 /* ─── Types ─── */
 type PodHealth = "running" | "pending" | "warning" | "error" | "succeeded";
@@ -164,6 +165,7 @@ type TabKey = "active" | "history";
 
 /* ─── Main Page ─── */
 export default function WorkloadsPage() {
+  const t = useT();
   const [tab, setTab] = useState<TabKey>("active");
   const [cluster, setCluster] = useState<Cluster>("all");
   const [groups, setGroups] = useState<WorkloadGroup[]>([]);
@@ -283,7 +285,7 @@ export default function WorkloadsPage() {
         <PageHeader
           icon={Boxes}
           title="Workloads"
-          subtitle="평가 워크로드 현황 및 이력 관리"
+          subtitle={t("workloads.subtitle")}
           accent="violet"
           right={
             <div className="flex gap-1 rounded-lg bg-gray-800/60 p-1">

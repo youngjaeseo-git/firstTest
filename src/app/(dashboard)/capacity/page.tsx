@@ -4,9 +4,9 @@ import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/states";
-import { PageHeader } from "@/components/ui/page-header";
 import { LiveCapacityMetrics } from "@/components/capacity/live-capacity-metrics";
 import { CapacityForecast } from "@/components/capacity/capacity-forecast";
+import { TranslatedPageHeader } from "@/components/ui/translated-page-header";
 import { BarChart3 } from "lucide-react";
 
 export default async function CapacityPage() {
@@ -126,10 +126,10 @@ export default async function CapacityPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <TranslatedPageHeader
         icon={BarChart3}
         title="Capacity Planning"
-        subtitle="전력 / 공간 / 냉각 / 컴퓨팅 용량 현황"
+        subtitleKey="capacity.subtitle"
         accent="amber"
       />
 

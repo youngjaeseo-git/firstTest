@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface MemorySlot {
   slotName: string;
@@ -16,6 +17,7 @@ export function MemorySlotDiagram({
   memories: MemorySlot[];
   cpuCount?: number;
 }) {
+  const t = useT();
   const slotsPerRow = 16;
   const numCpus = cpuCount || Math.max(1, Math.ceil(memories.length / 16));
   const slotsPerCpu = Math.ceil(memories.length / numCpus);
@@ -30,7 +32,7 @@ export function MemorySlotDiagram({
         <div key={gi}>
           {numCpus > 1 && (
             <p className="mb-2 text-xs font-medium text-gray-400">
-              Node {gi} ({slots.filter((s) => s.populated).length}/{slots.length} populated)
+              {t("memory.node")} {gi} ({slots.filter((s) => s.populated).length}/{slots.length} {t("memory.populated").toLowerCase()})
             </p>
           )}
           <div className="space-y-2">

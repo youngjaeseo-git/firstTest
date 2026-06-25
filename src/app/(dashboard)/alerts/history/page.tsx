@@ -7,6 +7,7 @@ import { Badge, SeverityBadge } from "@/components/ui/badge";
 import { PageTransition } from "@/components/ui/page-transition";
 import { PageHeader } from "@/components/ui/page-header";
 import { History } from "lucide-react";
+import { useT } from "@/lib/i18n/i18n-context";
 
 interface AlertRow {
   id: string;
@@ -76,6 +77,7 @@ function getDateRangeFilter(range: string): Date | null {
 }
 
 export default function AlertHistoryPage() {
+  const t = useT();
   const [alerts, setAlerts] = useState<AlertRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -163,10 +165,10 @@ export default function AlertHistoryPage() {
         {/* Breadcrumb & Header */}
         <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
           <Link href="/alerts" className="hover:text-gray-200">
-            Alerts
+            {t("alertHistory.breadcrumb.alerts")}
           </Link>
           <span>/</span>
-          <span>History</span>
+          <span>{t("alertHistory.breadcrumb.history")}</span>
         </div>
         <PageHeader
           icon={History}
