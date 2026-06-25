@@ -169,7 +169,7 @@ function RackElevationInline({
       if (!eq) return;
 
       if (!canPlace(localEquipment, newPosition, eq.rackHeight, rack.totalUnits, eq.id)) {
-        toast({ type: "error", title: "해당 위치에 공간이 부족합니다" });
+        toast({ type: "error", title: t("rack.noSpace") });
         return;
       }
 
@@ -186,16 +186,16 @@ function RackElevationInline({
         });
         if (!res.ok) {
           const data = await res.json();
-          toast({ type: "error", title: data.error || "이동 실패" });
+          toast({ type: "error", title: data.error || t("rack.moveFail") });
           setLocalEquipment((prev) =>
             prev.map((e) => (e.id === equipmentId ? { ...e, rackPosition: eq.rackPosition } : e)),
           );
         } else {
-          toast({ type: "success", title: `U${newPosition}으로 이동 완료` });
+          toast({ type: "success", title: `U${newPosition} ${t("common.success")}` });
           onEquipmentMoved?.();
         }
       } catch {
-        toast({ type: "error", title: "서버 통신 오류" });
+        toast({ type: "error", title: t("rack.serverCommError") });
         setLocalEquipment((prev) =>
           prev.map((e) => (e.id === equipmentId ? { ...e, rackPosition: eq.rackPosition } : e)),
         );
@@ -233,7 +233,7 @@ function RackElevationInline({
           onEquipmentMoved?.();
         }
       } catch {
-        toast({ type: "error", title: "서버 통신 오류" });
+        toast({ type: "error", title: t("rack.serverCommError") });
       } finally {
         setSaving(false);
       }
@@ -259,7 +259,7 @@ function RackElevationInline({
           onEquipmentMoved?.();
         }
       } catch {
-        toast({ type: "error", title: "서버 통신 오류" });
+        toast({ type: "error", title: t("rack.serverCommError") });
       } finally {
         setSaving(false);
       }

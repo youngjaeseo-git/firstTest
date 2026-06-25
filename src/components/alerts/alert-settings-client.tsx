@@ -6,6 +6,7 @@ import { Badge, SeverityBadge } from "@/components/ui/badge";
 import { useConfirm } from "@/components/ui/confirm";
 import { useToast } from "@/components/ui/toast";
 import { Bell, Send, Wrench, Mail, MessageSquare, Webhook, Plus } from "lucide-react";
+import { useT } from "@/lib/i18n/i18n-context";
 
 type Tab = "channels" | "escalation" | "maintenance";
 
@@ -60,10 +61,11 @@ export function AlertSettingsClient({
 }) {
   const [tab, setTab] = useState<Tab>("channels");
 
+  const t = useT();
   const TABS: { key: Tab; label: string; icon: typeof Bell }[] = [
-    { key: "channels", label: "Notification Channels", icon: Bell },
-    { key: "escalation", label: "Escalation Policies", icon: Send },
-    { key: "maintenance", label: "Maintenance Windows", icon: Wrench },
+    { key: "channels", label: t("alertSettings.tabs.channels"), icon: Bell },
+    { key: "escalation", label: t("alertSettings.tabs.escalation"), icon: Send },
+    { key: "maintenance", label: t("alertSettings.tabs.maintenance"), icon: Wrench },
   ];
 
   return (
@@ -95,6 +97,7 @@ export function AlertSettingsClient({
 /* ───────────────────────── Notification Channels ───────────────────────── */
 
 function ChannelsTab({ isAdmin }: { isAdmin: boolean }) {
+  const t = useT();
   const confirm = useConfirm();
   const { toast } = useToast();
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -135,7 +138,7 @@ function ChannelsTab({ isAdmin }: { isAdmin: boolean }) {
       setTarget("");
       setType("SLACK");
       setMinSeverity("WARNING");
-      toast({ type: "success", title: "Channel created" });
+      toast({ type: "success", title: t("alertSettings.channels.created") });
       load();
     } else {
       const d = await res.json().catch(() => ({}));
@@ -154,19 +157,19 @@ function ChannelsTab({ isAdmin }: { isAdmin: boolean }) {
 
   async function remove(id: string) {
     const ok = await confirm({
-      title: "Delete channel",
-      message: "Remove this notification channel?",
+      title: t("alertSettings.channels.deleteTitle"),
+      message: t("alertSettings.channels.deleteMsg"),
       variant: "danger",
-      confirmLabel: "Delete",
+      confirmLabel: t("common.delete"),
     });
     if (!ok) return;
     await fetch(`/api/notification-channels/${id}`, { method: "DELETE" });
-    toast({ type: "success", title: "Channel deleted" });
+    toast({ type: "success", title: t("alertSettings.channels.deleted") });
     load();
   }
 
   async function testSend(id: string) {
-    toast({ type: "info", title: "Sending test…" });
+    toast({ type: "info", title: t("alertSettings.channels.testSending") });
     const res = await fetch(`/api/notification-channels/${id}/test`, { method: "POST" });
     const d = await res.json().catch(() => ({}));
     toast({
