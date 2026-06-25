@@ -29,6 +29,7 @@ const EMPTY_METRICS: DashboardMetrics = {
 
 export async function fetchDashboardMetrics(
   cluster: Cluster = "all",
+  registeredIps?: Set<string>,
 ): Promise<DashboardMetrics> {
   try {
     const [
@@ -62,11 +63,15 @@ export async function fetchDashboardMetrics(
     let nodesDown = 0;
     if (upResult.status === "fulfilled" && upResult.value.data?.result) {
       for (const r of upResult.value.data.result) {
-        if (r.value) {
-          const val = parseFloat(r.value[1]);
-          if (val === 1) nodesUp++;
-          else nodesDown++;
+        if (!r.value) continue;
+        if (registeredIps && registeredIps.size > 0) {
+          const inst = r.metric?.instance || "";
+          const ip = inst.replace(/:\d+$/, "");
+          if (!registeredIps.has(ip)) continue;
         }
+        const val = parseFloat(r.value[1]);
+        if (val === 1) nodesUp++;
+        else nodesDown++;
       }
     }
 

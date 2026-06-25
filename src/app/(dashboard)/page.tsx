@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { DashboardClusterView } from "@/components/dashboard/dashboard-cluster-view";
+import { FilesystemWarnings } from "@/components/dashboard/filesystem-warnings";
 import { PageTransition } from "@/components/ui/page-transition";
 import { PageHeader } from "@/components/ui/page-header";
 import {
@@ -243,6 +244,9 @@ export default async function DashboardPage() {
             totalRacks={totalRacks}
             totalRooms={totalRooms}
           />
+
+          {/* Filesystem Capacity Warnings (>70%) */}
+          <FilesystemWarnings hostnameIpMap={hostnameIpMap} />
 
           {/* Active Alerts */}
           <div>

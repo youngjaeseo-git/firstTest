@@ -287,7 +287,6 @@ function ConfirmModal({
         }),
       });
       const json = await res.json();
-      console.log("[BMC Power Response]", JSON.stringify(json, null, 2));
       if (!res.ok) {
         onError(json.error || "Request failed");
         return;

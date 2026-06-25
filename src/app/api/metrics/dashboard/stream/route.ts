@@ -1,4 +1,5 @@
 import { fetchDashboardMetrics } from "../fetch-metrics";
+import { prisma } from "@/lib/db";
 import type { Cluster } from "@/lib/prometheus";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,14 @@ export async function GET(request: Request) {
   const cluster = (url.searchParams.get("cluster") || "all") as Cluster;
   const encoder = new TextEncoder();
 
+  const equipment = await prisma.equipment.findMany({
+    where: { ipAddress: { not: null } },
+    select: { ipAddress: true },
+  });
+  const registeredIps = new Set(
+    equipment.map((e) => e.ipAddress!).filter(Boolean),
+  );
+
   const stream = new ReadableStream({
     async start(controller) {
       let closed = false;
@@ -18,7 +27,7 @@ export async function GET(request: Request) {
       const send = async () => {
         if (closed) return;
         try {
-          const metrics = await fetchDashboardMetrics(cluster);
+          const metrics = await fetchDashboardMetrics(cluster, registeredIps);
           const payload = `data: ${JSON.stringify(metrics)}\n\n`;
           controller.enqueue(encoder.encode(payload));
         } catch {

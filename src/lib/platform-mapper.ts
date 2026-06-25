@@ -1,7 +1,7 @@
 const PLATFORM_RULES: Array<{ platform: string; patterns: string[] }> = [
   { platform: "Sapphire Rapids (SPR)", patterns: ["SYS-121H", "SPR"] },
-  { platform: "Granite Rapids AP (GNR-AP)", patterns: ["GNR-AP", "SYS-222H"] },
-  { platform: "Granite Rapids SP (GNR-SP)", patterns: ["GNR-SP"] },
+  { platform: "Granite Rapids AP (GNR-AP)", patterns: ["GNR-AP", "SYS-222HA"] },
+  { platform: "Granite Rapids SP (GNR-SP)", patterns: ["GNR-SP", "SYS-222H-TN"] },
   { platform: "Sierra Forest (SRF)", patterns: ["SRF"] },
 ];
 

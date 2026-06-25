@@ -41,7 +41,7 @@ interface PodInfo {
   health: PodHealth;
   ageSeconds: number;
   createdDate: string;
-  cpuPercent: number | null;
+  cpuCores: number | null;
   memBytes: number | null;
 }
 
@@ -223,7 +223,7 @@ export default function WorkloadDetailPage() {
           fetchInstant(`kube_pod_created{${nsFilter}}`),
           fetchInstant(`kube_pod_status_phase{${nsFilter}}==1`),
           fetchInstant(`kube_pod_container_status_waiting_reason{${nsFilter}}==1`),
-          fetchInstant(`sum by(pod, namespace)(rate(container_cpu_usage_seconds_total{${nsFilter},container!=""}[5m])) * 100`),
+          fetchInstant(`sum by(pod, namespace)(rate(container_cpu_usage_seconds_total{${nsFilter},container!=""}[5m]))`),
           fetchInstant(`sum by(pod, namespace)(container_memory_working_set_bytes{${nsFilter},container!=""})`),
         ])
       : [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY];
@@ -234,7 +234,7 @@ export default function WorkloadDetailPage() {
           fetchInstant(`kube_pod_created{${nsFilter}}`, "lab3"),
           fetchInstant(`kube_pod_status_phase{${nsFilter}}==1`, "lab3"),
           fetchInstant(`kube_pod_container_status_waiting_reason{${nsFilter}}==1`, "lab3"),
-          fetchInstant(`sum by(pod, namespace)(rate(container_cpu_usage_seconds_total{${nsFilter},container!=""}[5m])) * 100`, "lab3"),
+          fetchInstant(`sum by(pod, namespace)(rate(container_cpu_usage_seconds_total{${nsFilter},container!=""}[5m]))`, "lab3"),
           fetchInstant(`sum by(pod, namespace)(container_memory_working_set_bytes{${nsFilter},container!=""})`,"lab3"),
         ])
       : [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY];
@@ -286,7 +286,7 @@ export default function WorkloadDetailPage() {
         health: podHealthFromPhase(phase, reason),
         ageSeconds: created ? now - created : 0,
         createdDate: created ? formatDateTs(created) : "",
-        cpuPercent: cpuMap[pod] ?? null,
+        cpuCores: cpuMap[pod] ?? null,
         memBytes: memMap[pod] ?? null,
       });
     }
@@ -496,7 +496,7 @@ function PodsTab({ pods, nodes }: { pods: PodInfo[]; nodes: string[] }) {
                   <th className="pb-2 pr-3">Status</th>
                   <th className="pb-2 pr-3">Pod</th>
                   <th className="pb-2 pr-3">Node</th>
-                  <th className="pb-2 pr-3">CPU</th>
+                  <th className="pb-2 pr-3">CPU (cores)</th>
                   <th className="pb-2 pr-3">Memory</th>
                   <th className="pb-2 pr-3">Started</th>
                   <th className="pb-2 pr-3">Age</th>
@@ -521,9 +521,9 @@ function PodsTab({ pods, nodes }: { pods: PodInfo[]; nodes: string[] }) {
                         {p.node || <span className="text-yellow-500">Pending</span>}
                       </td>
                       <td className="py-2.5 pr-3">
-                        {p.cpuPercent !== null ? (
-                          <span className={cn("font-mono", p.cpuPercent > 80 ? "text-red-400" : p.cpuPercent > 50 ? "text-amber-400" : "text-cyan-400")}>
-                            {p.cpuPercent.toFixed(1)}%
+                        {p.cpuCores !== null ? (
+                          <span className={cn("font-mono", p.cpuCores > 100 ? "text-red-400" : p.cpuCores > 50 ? "text-amber-400" : "text-cyan-400")}>
+                            {p.cpuCores.toFixed(1)}
                           </span>
                         ) : (
                           <span className="text-gray-600">-</span>

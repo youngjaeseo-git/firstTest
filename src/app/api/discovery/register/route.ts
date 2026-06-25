@@ -184,7 +184,7 @@ export async function POST(req: Request) {
   const manufacturer = hw?.manufacturer || null;
   const model = hw?.model || null;
   const serialNumber = hw?.serialNumber || null;
-  const biosVersion = hw?.biosVersion || (kernelVersion ? `kernel ${kernelVersion}` : null);
+  const biosVersion = hw?.biosVersion || null;
 
   if (hw?.totalMemoryGiB && !totalMemoryGB) {
     totalMemoryGB = hw.totalMemoryGiB;

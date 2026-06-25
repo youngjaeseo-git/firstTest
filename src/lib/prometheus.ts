@@ -524,7 +524,7 @@ export const queries = {
   fleetAvgTemp: () =>
     `avg(node_hwmon_temp_celsius)`,
   fleetTotalPower: () =>
-    `sum(node_hmon_power_average_watt) or sum(rate(Package_Joules_Consumed[5m]))`,
+    `sum(node_hwmon_power_average_watt) or sum(rate(Package_Joules_Consumed[5m]))`,
   fleetAvgMemory: (cluster: Cluster = "all") =>
     `(1 - sum(node_memory_MemAvailable_bytes{${neC(cluster)}}) / sum(node_memory_MemTotal_bytes{${neC(cluster)}})) * 100` +
     ` or ` +
@@ -570,7 +570,7 @@ export const queries = {
     `up{${CLUSTER_UP[cluster]}}`,
 
   fleetPue: () =>
-    `dcim_pue or (sum(node_hmon_power_average_watt or rate(Package_Joules_Consumed[5m])) * 1.35) / sum(node_hmon_power_average_watt or rate(Package_Joules_Consumed[5m]))`,
+    `dcim_pue or (sum(node_hwmon_power_average_watt or rate(Package_Joules_Consumed[5m])) * 1.35) / sum(node_hwmon_power_average_watt or rate(Package_Joules_Consumed[5m]))`,
 
   fleetCpuPerInstance: () =>
     `(1 - avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m]))) * 100` +
