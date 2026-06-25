@@ -16,9 +16,15 @@ import { PageHeader } from "@/components/ui/page-header";
 
 /* ─── Types ─── */
 interface Equipment { id: string; hostname: string | null; ipAddress: string | null }
+interface StepConfig {
+  testMode?: string; pagePolicy?: string; rasMode?: string;
+  keepTm?: boolean; reboot?: boolean; workloads?: string[];
+  label?: string; testTime?: string; loopCount?: number;
+}
 interface Phase {
   id: string; name: string; sortOrder: number; status: string;
   description: string | null; startDate: string | null; endDate: string | null;
+  config: StepConfig | null;
   results: Result[]; tasks: Task[];
 }
 interface Result {
@@ -61,6 +67,30 @@ const PHASE_COLORS: Record<string, string> = {
   FAILED: "border-red-600/40 bg-red-900/20",
   SKIPPED: "border-gray-700 bg-gray-800/30",
 };
+
+function StepConfigBadges({ config }: { config: StepConfig }) {
+  const items: { label: string; value: string }[] = [];
+  if (config.testMode) items.push({ label: "Mode", value: config.testMode });
+  if (config.pagePolicy) items.push({ label: "Page", value: config.pagePolicy });
+  if (config.rasMode) items.push({ label: "RAS", value: config.rasMode });
+  if (config.workloads?.length) items.push({ label: "Workload", value: config.workloads.join(", ") });
+  if (config.label) items.push({ label: "Label", value: config.label });
+  if (config.testTime) items.push({ label: "Time", value: config.testTime });
+  if (config.loopCount && config.loopCount > 0) items.push({ label: "Loop", value: `${config.loopCount}x` });
+  if (config.reboot) items.push({ label: "", value: "Reboot" });
+  if (config.keepTm) items.push({ label: "", value: "Keep TM" });
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {items.map((it, i) => (
+        <span key={i} className="inline-flex items-center gap-1 rounded bg-gray-900/60 px-2 py-0.5 text-[10px]">
+          {it.label && <span className="text-gray-500">{it.label}:</span>}
+          <span className="text-gray-300 font-mono">{it.value}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
 
 const TASK_STATUS_NEXT: Record<string, string> = {
   TODO: "IN_PROGRESS",
@@ -279,6 +309,7 @@ function OverviewTab({ project, onUpdate }: { project: Project; onUpdate: () => 
                       </select>
                     </div>
                   </div>
+                  {phase.config && <StepConfigBadges config={phase.config} />}
                 </div>
               );
             })}
@@ -405,29 +436,91 @@ function OverviewTab({ project, onUpdate }: { project: Project; onUpdate: () => 
 /* ─── Add Phase Form ─── */
 function AddPhaseForm({ projectId, onDone, onCancel }: { projectId: string; onDone: () => void; onCancel: () => void }) {
   const [name, setName] = useState("");
+  const [showConfig, setShowConfig] = useState(false);
+  const [config, setConfig] = useState<StepConfig>({});
+  const setC = (k: keyof StepConfig, v: string | boolean | number | string[]) => setConfig((p) => ({ ...p, [k]: v }));
 
   const submit = async () => {
     if (!name.trim()) return;
+    const hasConfig = Object.values(config).some((v) =>
+      v !== undefined && v !== "" && v !== false && !(Array.isArray(v) && v.length === 0),
+    );
     await fetch(`/api/evaluations/${projectId}/phases`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim() }),
+      body: JSON.stringify({ name: name.trim(), config: hasConfig ? config : null }),
     });
     onDone();
   };
 
   return (
-    <div className="mt-2 flex gap-2">
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Phase name (e.g. Compatibility Test)"
-        className="flex-1 rounded border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm text-gray-200"
-        onKeyDown={(e) => e.key === "Enter" && submit()}
-        autoFocus
-      />
-      <Button size="sm" onClick={submit} disabled={!name.trim()}>Add</Button>
-      <Button size="sm" variant="outline" onClick={onCancel}>Cancel</Button>
+    <div className="mt-2 space-y-2">
+      <div className="flex gap-2">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Step name (e.g. ECC_OFF)"
+          className="flex-1 rounded border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm text-gray-200"
+          onKeyDown={(e) => e.key === "Enter" && !showConfig && submit()}
+          autoFocus
+        />
+        <Button size="sm" variant="ghost" onClick={() => setShowConfig(!showConfig)} title="Step Config">
+          {showConfig ? "▾" : "▸"} Config
+        </Button>
+        <Button size="sm" onClick={submit} disabled={!name.trim()}>Add</Button>
+        <Button size="sm" variant="outline" onClick={onCancel}>Cancel</Button>
+      </div>
+      {showConfig && (
+        <div className="grid grid-cols-3 gap-2 rounded border border-gray-700/50 bg-gray-900/30 p-3">
+          <div>
+            <label className="block text-[10px] text-gray-500 mb-0.5">Test Mode</label>
+            <input value={config.testMode || ""} onChange={(e) => setC("testMode", e.target.value)} placeholder="ECC_OFF"
+              className="w-full rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200" />
+          </div>
+          <div>
+            <label className="block text-[10px] text-gray-500 mb-0.5">Page Policy</label>
+            <input value={config.pagePolicy || ""} onChange={(e) => setC("pagePolicy", e.target.value)} placeholder="close"
+              className="w-full rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200" />
+          </div>
+          <div>
+            <label className="block text-[10px] text-gray-500 mb-0.5">RAS Mode</label>
+            <input value={config.rasMode || ""} onChange={(e) => setC("rasMode", e.target.value)} placeholder="Indep"
+              className="w-full rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200" />
+          </div>
+          <div>
+            <label className="block text-[10px] text-gray-500 mb-0.5">Workloads</label>
+            <input value={(config.workloads || []).join(", ")} placeholder="sat.yaml, prime.yaml"
+              onChange={(e) => setC("workloads", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
+              className="w-full rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200" />
+          </div>
+          <div>
+            <label className="block text-[10px] text-gray-500 mb-0.5">Label</label>
+            <input value={config.label || ""} onChange={(e) => setC("label", e.target.value)} placeholder="stress(0)"
+              className="w-full rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200" />
+          </div>
+          <div>
+            <label className="block text-[10px] text-gray-500 mb-0.5">Test Time</label>
+            <input value={config.testTime || ""} onChange={(e) => setC("testTime", e.target.value)} placeholder="12d"
+              className="w-full rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200" />
+          </div>
+          <div>
+            <label className="block text-[10px] text-gray-500 mb-0.5">Loop Count</label>
+            <input type="number" value={config.loopCount ?? ""} min={0} placeholder="1"
+              onChange={(e) => setC("loopCount", e.target.value ? Number(e.target.value) : 0)}
+              className="w-full rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-200" />
+          </div>
+          <div className="flex items-end gap-4">
+            <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer">
+              <input type="checkbox" checked={!!config.reboot} onChange={(e) => setC("reboot", e.target.checked)}
+                className="rounded border-gray-600 bg-gray-800 text-blue-500" /> Reboot
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer">
+              <input type="checkbox" checked={!!config.keepTm} onChange={(e) => setC("keepTm", e.target.checked)}
+                className="rounded border-gray-600 bg-gray-800 text-blue-500" /> Keep TM
+            </label>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

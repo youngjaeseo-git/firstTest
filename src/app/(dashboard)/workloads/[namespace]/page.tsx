@@ -46,9 +46,15 @@ interface PodInfo {
 }
 
 interface Equipment { id: string; hostname: string | null; ipAddress: string | null }
+interface StepConfig {
+  testMode?: string; pagePolicy?: string; rasMode?: string;
+  keepTm?: boolean; reboot?: boolean; workloads?: string[];
+  label?: string; testTime?: string; loopCount?: number;
+}
 interface Phase {
   id: string; name: string; sortOrder: number; status: string;
   description: string | null; startDate: string | null; endDate: string | null;
+  config: StepConfig | null;
   results: Result[]; tasks: Task[];
 }
 interface Result {
@@ -107,6 +113,30 @@ const RESULT_ICON: Record<string, { icon: typeof CheckCircle2; color: string }> 
   RUNNING: { icon: PlayCircle, color: "text-blue-400" },
   PENDING: { icon: Circle, color: "text-gray-500" },
 };
+
+function StepConfigBadges({ config }: { config: StepConfig }) {
+  const items: { label: string; value: string }[] = [];
+  if (config.testMode) items.push({ label: "Mode", value: config.testMode });
+  if (config.pagePolicy) items.push({ label: "Page", value: config.pagePolicy });
+  if (config.rasMode) items.push({ label: "RAS", value: config.rasMode });
+  if (config.workloads?.length) items.push({ label: "Workload", value: config.workloads.join(", ") });
+  if (config.label) items.push({ label: "Label", value: config.label });
+  if (config.testTime) items.push({ label: "Time", value: config.testTime });
+  if (config.loopCount && config.loopCount > 0) items.push({ label: "Loop", value: `${config.loopCount}x` });
+  if (config.reboot) items.push({ label: "", value: "Reboot" });
+  if (config.keepTm) items.push({ label: "", value: "Keep TM" });
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {items.map((it, i) => (
+        <span key={i} className="inline-flex items-center gap-1 rounded bg-gray-900/60 px-2 py-0.5 text-[10px]">
+          {it.label && <span className="text-gray-500">{it.label}:</span>}
+          <span className="text-gray-300 font-mono">{it.value}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
 
 const PROJECT_STATUS_COLORS: Record<string, string> = {
   PLANNED: "bg-gray-700 text-gray-300",
@@ -650,6 +680,7 @@ function EvaluationTab({
                       {phase.status}
                     </span>
                   </div>
+                  {phase.config && <StepConfigBadges config={phase.config} />}
                 </div>
               );
             })}

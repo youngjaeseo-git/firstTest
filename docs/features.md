@@ -215,7 +215,7 @@
 | systemd 서비스 등록 | ✅ 완료 | `scripts/setup-service.sh --install`로 서비스 등록. dev/prod 모드 전환, 부팅 시 자동 시작, `systemctl restart dcim`으로 코드 반영 |
 | 프로덕션 빌드 | ✅ 완료 | 멀티스테이지 Dockerfile (deps→builder→runner) + standalone 출력 + `node server.js` 프로덕션 실행 |
 | DRAM 인증 테스트 관리 | 📋 보류 | 파트넘 기반 테스트 계획/추적. 구체적 요건 미확정 |
-| 워크로드 스텝 정보 | 📋 예정 | YAML 파싱 기반 실행 단계 표시 |
+| 워크로드 스텝 정보 | ✅ 완료 | EvalPhase.config(JSON) 기반 Step 표시. .f 파일 구조 매핑: testMode/pagePolicy/rasMode/reboot/workloads/label/testTime/loopCount. 프로젝트 생성/Phase 추가 시 Step Config 입력 가능. Evaluation 상세 + Workload 상세에서 배지 형태로 표시. DB: prisma db push 필요 |
 | 로고 디자인 확정 | ✅ 완료 | SK hynix 브랜딩 로고 적용 (사이드바/로그인/회원가입). DRAM AE 워드마크 + 글로우 링 + 3x3 셀 그리드 |
 | 조직별 접근 제어 | ✅ 완료 | Organization/UserOrganization 모델, Equipment.organizationId FK. ADMIN은 전체 접근, 비ADMIN은 소속 조직 장비만 조회/조작. JWT에 orgIds 캐싱. Equipment CRUD + 13개 하위 API + 검색/디스커버리에 조직 필터 적용. Admin 조직 관리 페이지 (/settings/organizations) |
 | 프로젝트 회고 준비 | ✅ 완료 | 바이브 코딩 경험 공유를 위한 회고 준비 자료 (docs/retrospective-prep.md). 4주간 읽어볼 파일 목록, 타임라인, 교훈 정리 |

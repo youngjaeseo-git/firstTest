@@ -1062,7 +1062,7 @@ interface PopupDetail {
     equipment: { hostname: string | null; ipAddress: string | null } | null;
   }[];
   notes: { id: string; content: string; createdAt: string }[];
-  phases: { id: string; name: string; status: string }[];
+  phases: { id: string; name: string; status: string; config: Record<string, unknown> | null }[];
 }
 
 interface PopupPod {

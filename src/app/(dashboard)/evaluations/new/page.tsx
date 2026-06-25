@@ -5,12 +5,26 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Trash2, FlaskConical, Zap } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, FlaskConical, Zap, ChevronDown, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+
+interface StepConfig {
+  testMode?: string;
+  pagePolicy?: string;
+  rasMode?: string;
+  keepTm?: boolean;
+  reboot?: boolean;
+  workloads?: string[];
+  label?: string;
+  testTime?: string;
+  loopCount?: number;
+}
 
 interface PhaseInput {
   name: string;
   description: string;
+  config: StepConfig;
+  expanded: boolean;
 }
 
 export default function NewEvaluationPage() {
@@ -30,14 +44,24 @@ export default function NewEvaluationPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [phases, setPhases] = useState<PhaseInput[]>([
-    { name: "", description: "" },
+    { name: "", description: "", config: {}, expanded: false },
   ]);
 
-  const addPhase = () => setPhases([...phases, { name: "", description: "" }]);
+  const addPhase = () => setPhases([...phases, { name: "", description: "", config: {}, expanded: false }]);
   const removePhase = (idx: number) => setPhases(phases.filter((_, i) => i !== idx));
-  const updatePhase = (idx: number, field: keyof PhaseInput, value: string) => {
+  const updatePhase = (idx: number, field: "name" | "description", value: string) => {
     const updated = [...phases];
     updated[idx] = { ...updated[idx], [field]: value };
+    setPhases(updated);
+  };
+  const updatePhaseConfig = (idx: number, key: keyof StepConfig, value: string | boolean | number | string[]) => {
+    const updated = [...phases];
+    updated[idx] = { ...updated[idx], config: { ...updated[idx].config, [key]: value } };
+    setPhases(updated);
+  };
+  const togglePhaseExpanded = (idx: number) => {
+    const updated = [...phases];
+    updated[idx] = { ...updated[idx], expanded: !updated[idx].expanded };
     setPhases(updated);
   };
 
@@ -51,7 +75,18 @@ export default function NewEvaluationPage() {
     setError("");
 
     try {
-      const validPhases = phases.filter((p) => p.name.trim());
+      const validPhases = phases
+        .filter((p) => p.name.trim())
+        .map((p) => {
+          const hasConfig = Object.values(p.config).some((v) =>
+            v !== undefined && v !== "" && v !== false && !(Array.isArray(v) && v.length === 0),
+          );
+          return {
+            name: p.name.trim(),
+            description: p.description.trim() || null,
+            config: hasConfig ? p.config : null,
+          };
+        });
       const res = await fetch("/api/evaluations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -266,52 +301,158 @@ export default function NewEvaluationPage() {
           </div>
         </Card>
 
-        {/* Phases */}
+        {/* Phases / Steps */}
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-300">평가 단계 (Phases)</h2>
+            <h2 className="text-sm font-semibold text-gray-300">실행 단계 (Steps)</h2>
             <Button type="button" variant="outline" size="sm" onClick={addPhase}>
-              <Plus className="mr-1 h-3 w-3" /> Add Phase
+              <Plus className="mr-1 h-3 w-3" /> Add Step
             </Button>
           </div>
 
           <div className="space-y-3">
             {phases.map((phase, idx) => (
-              <div key={idx} className="flex items-start gap-3">
-                <span className="mt-2 text-xs font-mono text-gray-600 w-6 text-right">
-                  {idx + 1}.
-                </span>
-                <div className="flex-1 grid grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    value={phase.name}
-                    onChange={(e) => updatePhase(idx, "name", e.target.value)}
-                    placeholder="Phase name (e.g. Incoming QC)"
-                    className="rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
-                  />
-                  <input
-                    type="text"
-                    value={phase.description}
-                    onChange={(e) => updatePhase(idx, "description", e.target.value)}
-                    placeholder="Description (optional)"
-                    className="rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-                {phases.length > 1 && (
+              <div key={idx} className="rounded-lg border border-gray-700 bg-gray-800/50 p-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-mono text-gray-600 w-6 text-right shrink-0">
+                    {idx + 1}.
+                  </span>
+                  <div className="flex-1 grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={phase.name}
+                      onChange={(e) => updatePhase(idx, "name", e.target.value)}
+                      placeholder="Step name (e.g. ECC_OFF)"
+                      className="rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                    />
+                    <input
+                      type="text"
+                      value={phase.description}
+                      onChange={(e) => updatePhase(idx, "description", e.target.value)}
+                      placeholder="Description (optional)"
+                      className="rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
                   <button
                     type="button"
-                    onClick={() => removePhase(idx)}
-                    className="mt-2 text-gray-600 hover:text-red-400 transition-colors"
+                    onClick={() => togglePhaseExpanded(idx)}
+                    className="text-gray-500 hover:text-gray-300 transition-colors shrink-0"
+                    title="Step Config"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    {phase.expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                   </button>
+                  {phases.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removePhase(idx)}
+                      className="text-gray-600 hover:text-red-400 transition-colors shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                {phase.expanded && (
+                  <div className="mt-3 ml-9 grid grid-cols-3 gap-2 border-t border-gray-700/50 pt-3">
+                    <div>
+                      <label className="block text-[10px] text-gray-500 mb-0.5">Test Mode</label>
+                      <input
+                        type="text"
+                        value={phase.config.testMode || ""}
+                        onChange={(e) => updatePhaseConfig(idx, "testMode", e.target.value)}
+                        placeholder="ECC_OFF, VBBW_1DN..."
+                        className="w-full rounded border border-gray-700 bg-gray-900 px-2 py-1.5 text-xs text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-gray-500 mb-0.5">Page Policy</label>
+                      <input
+                        type="text"
+                        value={phase.config.pagePolicy || ""}
+                        onChange={(e) => updatePhaseConfig(idx, "pagePolicy", e.target.value)}
+                        placeholder="close, open..."
+                        className="w-full rounded border border-gray-700 bg-gray-900 px-2 py-1.5 text-xs text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-gray-500 mb-0.5">RAS Mode</label>
+                      <input
+                        type="text"
+                        value={phase.config.rasMode || ""}
+                        onChange={(e) => updatePhaseConfig(idx, "rasMode", e.target.value)}
+                        placeholder="Indep, Mirror..."
+                        className="w-full rounded border border-gray-700 bg-gray-900 px-2 py-1.5 text-xs text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-gray-500 mb-0.5">Workloads (YAML)</label>
+                      <input
+                        type="text"
+                        value={(phase.config.workloads || []).join(", ")}
+                        onChange={(e) => updatePhaseConfig(idx, "workloads", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
+                        placeholder="sat.yaml, prime.yaml"
+                        className="w-full rounded border border-gray-700 bg-gray-900 px-2 py-1.5 text-xs text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-gray-500 mb-0.5">Label</label>
+                      <input
+                        type="text"
+                        value={phase.config.label || ""}
+                        onChange={(e) => updatePhaseConfig(idx, "label", e.target.value)}
+                        placeholder="stress(0), stress(0-2)"
+                        className="w-full rounded border border-gray-700 bg-gray-900 px-2 py-1.5 text-xs text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-gray-500 mb-0.5">Test Time</label>
+                      <input
+                        type="text"
+                        value={phase.config.testTime || ""}
+                        onChange={(e) => updatePhaseConfig(idx, "testTime", e.target.value)}
+                        placeholder="12d, 24h..."
+                        className="w-full rounded border border-gray-700 bg-gray-900 px-2 py-1.5 text-xs text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-gray-500 mb-0.5">Loop Count</label>
+                      <input
+                        type="number"
+                        value={phase.config.loopCount ?? ""}
+                        onChange={(e) => updatePhaseConfig(idx, "loopCount", e.target.value ? Number(e.target.value) : 0)}
+                        placeholder="1"
+                        min={0}
+                        className="w-full rounded border border-gray-700 bg-gray-900 px-2 py-1.5 text-xs text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div className="flex items-end gap-4">
+                      <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!!phase.config.reboot}
+                          onChange={(e) => updatePhaseConfig(idx, "reboot", e.target.checked)}
+                          className="rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500"
+                        />
+                        Reboot
+                      </label>
+                      <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!!phase.config.keepTm}
+                          onChange={(e) => updatePhaseConfig(idx, "keepTm", e.target.checked)}
+                          className="rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500"
+                        />
+                        Keep TM
+                      </label>
+                    </div>
+                  </div>
                 )}
               </div>
             ))}
           </div>
 
           <p className="mt-3 text-[10px] text-gray-600">
-            비워두면 단계 없이 생성됩니다. 프로젝트 생성 후에도 추가할 수 있습니다.
+            비워두면 단계 없이 생성됩니다. 화살표를 클릭하면 스텝 상세 설정을 입력할 수 있습니다.
           </p>
         </Card>
 

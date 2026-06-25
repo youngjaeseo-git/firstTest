@@ -11,6 +11,7 @@ interface Phase {
   id: string;
   name: string;
   status: string;
+  config: Record<string, unknown> | null;
 }
 
 interface EvalProject {

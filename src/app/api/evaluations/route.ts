@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/rbac";
 import { parseBody } from "@/lib/api-validation";
+import { StepConfigSchema } from "@/lib/schemas/evaluation";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,7 @@ const CreateEvalSchema = z.object({
       z.object({
         name: z.string().trim().min(1).max(200),
         description: z.string().trim().max(2000).optional().nullable(),
+        config: StepConfigSchema,
       }),
     )
     .max(50)
@@ -91,6 +94,7 @@ export async function POST(req: NextRequest) {
                 name: p.name,
                 description: p.description || null,
                 sortOrder: i,
+                config: p.config ? (p.config as Prisma.InputJsonValue) : undefined,
               })),
             },
           }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/rbac";
 import { parseBody } from "@/lib/api-validation";
@@ -16,12 +17,14 @@ export async function POST(
 
   const parsed = await parseBody(req, CreatePhaseSchema);
   if (parsed.response) return parsed.response;
-  const { name, description, startDate, endDate } = parsed.data;
+  const { name, description, startDate, endDate, config } = parsed.data;
 
   const maxOrder = await prisma.evalPhase.aggregate({
     where: { projectId: id },
     _max: { sortOrder: true },
   });
+
+  const configValue = config === null ? Prisma.JsonNull : config === undefined ? undefined : (config as Prisma.InputJsonValue);
 
   const phase = await prisma.evalPhase.create({
     data: {
@@ -31,6 +34,7 @@ export async function POST(
       sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
       startDate: startDate ?? null,
       endDate: endDate ?? null,
+      config: configValue,
     },
   });
 
@@ -47,7 +51,12 @@ export async function PATCH(
 
   const parsed = await parseBody(req, UpdatePhaseSchema);
   if (parsed.response) return parsed.response;
-  const { phaseId, ...data } = parsed.data;
+  const { phaseId, config: patchConfig, ...rest } = parsed.data;
+
+  const data: Record<string, unknown> = { ...rest };
+  if (patchConfig !== undefined) {
+    data.config = patchConfig === null ? Prisma.JsonNull : (patchConfig as Prisma.InputJsonValue);
+  }
 
   const phase = await prisma.evalPhase.update({
     where: { id: phaseId },

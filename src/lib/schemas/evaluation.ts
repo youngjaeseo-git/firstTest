@@ -55,12 +55,29 @@ export const UpdateProjectSchema = z.object({
   assigneeId: z.string().trim().max(50).nullable().optional(),
 });
 
+// ── Step Config (stored in EvalPhase.config as JSON) ──
+export const StepConfigSchema = z
+  .object({
+    testMode: z.string().max(100).optional(),
+    pagePolicy: z.string().max(100).optional(),
+    rasMode: z.string().max(100).optional(),
+    keepTm: z.boolean().optional(),
+    reboot: z.boolean().optional(),
+    workloads: z.array(z.string().max(100)).max(20).optional(),
+    label: z.string().max(200).optional(),
+    testTime: z.string().max(50).optional(),
+    loopCount: z.number().int().min(0).max(10000).optional(),
+  })
+  .nullable()
+  .optional();
+
 // ── Phase ──
 export const CreatePhaseSchema = z.object({
   name: z.string().trim().min(1).max(200),
   description: z.string().trim().max(2000).nullable().optional(),
   startDate: z.coerce.date().nullable().optional(),
   endDate: z.coerce.date().nullable().optional(),
+  config: StepConfigSchema,
 });
 export const UpdatePhaseSchema = z.object({
   phaseId: z.string().min(1),
@@ -69,6 +86,7 @@ export const UpdatePhaseSchema = z.object({
   status: z.enum(EVAL_PHASE_STATUSES).optional(),
   startDate: z.coerce.date().nullable().optional(),
   endDate: z.coerce.date().nullable().optional(),
+  config: StepConfigSchema,
 });
 
 // ── Result ──
