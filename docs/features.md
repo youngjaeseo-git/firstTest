@@ -147,7 +147,8 @@
 | 알림 규칙 관리 | ✅ 완료 | 규칙 생성/수정/삭제 + zod 검증 |
 | 알림 확인 (Acknowledge) | ✅ 완료 | 담당자 확인 처리 |
 | 알림 수신 채널 | ✅ 완료 | /alerts/settings — Email/Slack/Teams/Webhook 채널 CRUD + 테스트 발송 (관리자) |
-| 알림 에스컬레이션 정책 | ✅ 완료 | 심각도별 N분 미확인 시 채널 통지 정책 CRUD (관리자). 평가 엔진은 향후 연동 |
+| 알림 에스컬레이션 정책 | ✅ 완료 | 심각도별 N분 미확인 시 채널 통지 정책 CRUD (관리자) |
+| 알림 규칙 평가 엔진 | ✅ 완료 | `/api/cron/alert-check` — 활성 AlertRule의 PromQL을 Prometheus에 주기 평가, 조건 충족 시 Alert 생성, 해소 시 자동 RESOLVED. CRON_SECRET 인증, 규칙별 독립 에러 처리 |
 | 유지보수 창 (알림 억제) | ✅ 완료 | 기간/범위(전체·source·category)별 알림 음소거. 활성 창은 알림 목록 음소거 배지 + 헤더 벨 카운트에서 제외 |
 
 ---

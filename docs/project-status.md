@@ -29,11 +29,11 @@
 | 항목 | 상태 | 설명 | 우선순위 |
 |------|------|------|----------|
 | Multi-Prometheus | ⚠️ 부분 완료 | **node-exporter는 2026-06-15에 연동 완료** (`20260615-lab3-ne-complete.md`: Lab-3 17/22 UP). Lab-1 Prometheus가 Lab-3 `131.x:9100`을 직접 수집 → 웹 코드 `lab3` 필터(`instance=~"10.144.131..*"`)가 무변경으로 동작. **남은 것**: ① 06-15 작업이 재시작 후에도 유지되는지 사무실 확인(`20260622-2.sh`) ② Lab-3 cAdvisor/K8s 컨테이너 메트릭(Lab-3 자체 Prometheus 비기능 → 인프라팀 ConfigMap 수리 필요). **별도 Prometheus URL 동시 쿼리(코드 방식)는 불필요** — 통합 수집이 우월 | 중간 |
-| 조직별 접근 제어 | 📋 미착수 | 팀별 장비 가시성/조작 권한 분리 | 중간 |
-| DRAM 인증 테스트 관리 | 📋 미착수 | 파트넘 기반 테스트 계획/추적 | 중간 |
+| 조직별 접근 제어 | ✅ 완료 | DB(Organization/UserOrganization) + API(CRUD+필터) + UI(설정 페이지) + RBAC(orgIds 기반) 모두 구현 | — |
+| DRAM 인증 테스트 관리 | 📋 보류 | 파트넘 기반 테스트 계획/추적. 요건 미확정 | 보류 |
 | 워크로드 스텝 정보 | 📋 미착수 | YAML 파싱 기반 실행 단계 표시 | 낮음 |
 | 온도 외부 DB 연동 | 📋 보류 | Grafana의 ddr4_temp CSV + PostgreSQL. 요건 미확인 | 보류 |
-| 알림 규칙 평가 엔진 | 📋 미착수 | 규칙은 DB에 저장되지만, Prometheus에 주기적 평가하는 cron/loop 없음. 현재 만료 추적만 자동 알림 생성 | 중간 |
+| 알림 규칙 평가 엔진 | ✅ 완료 | `/api/cron/alert-check` — 활성 AlertRule의 PromQL을 Prometheus에 쿼리, 조건 충족 시 Alert 생성, 해소 시 자동 RESOLVED. CRON_SECRET 인증, 규칙별 독립 에러 처리 | — |
 | 파일시스템 표시 누락 서버 | 📋 확인 대기 | 일부 서버에서 파일시스템(디스크 마운트) 현황이 안 보임. 원인: `FilesystemBreakdown`이 node-exporter 전용 쿼리만 쓰고 cAdvisor 폴백 없음. **확인 스크립트**: `check/targetExecCmd/20260622.sh` (사무실에서 실행 → 어떤 서버에 filesystem 메트릭 없는지 확인 후 코드 수정) | 중간 |
 
 ## 미완료 — 운영/인프라
@@ -73,7 +73,7 @@
 | Firmware 단독 메뉴 | 별도 메뉴 유지? 장비 상세에 통합? | 사용 빈도 낮을 가능성 |
 | Lab-3 cAdvisor 메트릭 | Lab-3 컨테이너 메트릭을 보려면 인프라팀에 ConfigMap 수리를 요청할 것인가? | **node-exporter(CPU/Mem/Disk/Net)는 06-15에 통합 완료**. 남은 cAdvisor/K8s 메트릭은 Lab-3 자체 Prometheus 복구 필요(인프라팀 권한). 4-에이전트 분석 결과 코드 우회(별도 URL)는 불필요·비권장 |
 | 온도 외부 DB | Grafana의 ddr4_temp 데이터를 연동할 것인가? | 구체적 요건 미확인 상태 |
-| 알림 규칙 평가 엔진 | 규칙을 실제로 Prometheus에서 평가할 것인가? | 현재 규칙 저장만 되고 평가 안 됨. 만료 추적만 자동 |
+| 알림 규칙 평가 엔진 | ✅ 구현 완료 | `/api/cron/alert-check` 엔드포인트 구현. crontab에 5분 간격 등록 필요 |
 
 ---
 
