@@ -2,9 +2,9 @@
 # 전체 서버 Bulk HW Refresh (웹앱 API 경유, BMC 프록시 사용)
 # 실행: bash check/targetExecCmd/20260625-bulk-refresh.sh
 # 소요시간: 서버당 5~15초, 30대 기준 3~8분
+# 사전 필수: bash check/targetExecCmd/20260626.sh 로 환경 진단 먼저 실행
 cd /home/dcim/firstTest 2>/dev/null || cd "$(dirname "$0")/../.." || exit 1
 
-APP_URL="http://localhost:3000"
 COOKIE="/tmp/dcim-bulk-cookie.txt"
 rm -f "$COOKIE"
 
@@ -18,11 +18,54 @@ json_val() {
   fi
 }
 
-# 0. Rack→Room 체인 확인 (bmcProxyUrl 누락 장비 검출)
-DB_CONTAINER=$(docker compose ps -q db 2>/dev/null)
-if [ -z "$DB_CONTAINER" ]; then echo "ERR: DB 컨테이너 없음"; exit 1; fi
-P="docker exec $DB_CONTAINER psql -U dcim -d dcim -t -A"
+# === DB 접근 자동 탐지 ===
+P=""
+# 방법1: docker-compose
+DC=$(docker compose ps -q db 2>/dev/null)
+if [ -n "$DC" ]; then
+  P="docker exec $DC psql -U dcim -d dcim -t -A"
+fi
+# 방법2: K8s pod
+if [ -z "$P" ]; then
+  KP=$(kubectl get pods -A 2>/dev/null | grep -i -E 'postgres|dcim.*db' | head -1)
+  if [ -n "$KP" ]; then
+    KNS=$(echo "$KP" | awk '{print $1}')
+    KPOD=$(echo "$KP" | awk '{print $2}')
+    P="kubectl exec -n $KNS $KPOD -- psql -U dcim -d dcim -t -A"
+  fi
+fi
+# 방법3: 로컬 psql
+if [ -z "$P" ]; then
+  if command -v psql &>/dev/null; then
+    TEST=$(psql -U dcim -d dcim -t -A -c "SELECT 1;" 2>/dev/null)
+    if [ "$TEST" = "1" ]; then
+      P="psql -U dcim -d dcim -t -A"
+    fi
+  fi
+fi
+if [ -z "$P" ]; then
+  echo "ERR: DB 접근 불가 (docker/k8s/psql 모두 실패)"
+  echo "먼저 bash check/targetExecCmd/20260626.sh 로 환경 진단"
+  exit 1
+fi
+echo "DB=OK"
 
+# === 앱 URL 자동 탐지 ===
+APP_URL=""
+for URL in "http://localhost:3000" "http://10.144.38.100:3000"; do
+  CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 "$URL" 2>/dev/null)
+  if [ "$CODE" = "200" ] || [ "$CODE" = "302" ]; then
+    APP_URL="$URL"
+    break
+  fi
+done
+if [ -z "$APP_URL" ]; then
+  echo "ERR: 앱 접근 불가 (localhost:3000, 38.100:3000 둘 다 실패)"
+  exit 1
+fi
+echo "APP=$APP_URL"
+
+# 0. Rack→Room 체인 확인 (bmcProxyUrl 누락 장비 검출)
 NO_PROXY=$($P -c "SELECT COUNT(*) FROM \"Equipment\" e WHERE e.type='SERVER' AND e.\"bmcIpAddress\" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM \"Rack\" r JOIN \"Room\" rm ON r.\"roomId\"=rm.id WHERE r.id=e.\"rackId\" AND rm.\"bmcProxyUrl\" IS NOT NULL);")
 TOTAL=$($P -c "SELECT COUNT(*) FROM \"Equipment\" WHERE type='SERVER' AND \"bmcIpAddress\" IS NOT NULL;")
 echo "CHAIN: TOTAL=$TOTAL NO_PROXY=$NO_PROXY"
@@ -35,7 +78,7 @@ fi
 # 1. CSRF 토큰 획득
 CSRF=$(curl -s -c "$COOKIE" "$APP_URL/api/auth/csrf" 2>/dev/null | json_val csrfToken)
 if [ -z "$CSRF" ]; then
-  echo "ERR: CSRF 토큰 획득 실패. 앱이 실행 중인지 확인"
+  echo "ERR: CSRF 토큰 획득 실패"
   rm -f "$COOKIE"
   exit 1
 fi
@@ -61,7 +104,7 @@ echo "SESSION=$SESSION_USER"
 # 3. 서버 ID 목록 추출
 IDS=$($P -c "SELECT string_agg('\"' || id || '\"', ',') FROM \"Equipment\" WHERE type='SERVER' AND \"bmcIpAddress\" IS NOT NULL;")
 if [ -z "$IDS" ]; then
-  echo "ERR: 서버 없음"
+  echo "ERR: BMC IP가 있는 서버 없음"
   rm -f "$COOKIE"
   exit 1
 fi
