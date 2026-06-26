@@ -40,8 +40,8 @@
 
 | 항목 | 상태 | 설명 | 우선순위 |
 |------|------|------|----------|
-| Bulk HW Refresh 실패 서버 | ⚠️ 7대 실패 | OK=23/FAIL=7. HTTP 502(4대), EHOSTUNREACH(2대), Timeout(1대). BMC 펌웨어 또는 네트워크 문제 → 개별 확인 필요 | 중간 |
-| 프로덕션 빌드 전환 | 📋 미착수 | 현재 dev 모드(npm run dev)로 운영 중. build + start 전환 필요 | 높음 |
+| Bulk HW Refresh 실패 서버 | ⚠️ 7대 실패 | OK=23/FAIL=7. HTTP 502(4대), EHOSTUNREACH(2대), Timeout(1대). BMC 펌웨어 또는 네트워크 문제 → 사무실에서 물리 점검 예정 | 중간 |
+| 프로덕션 빌드 전환 | ✅ 완료 | systemd 서비스(dcim.service) + 모드 전환(switch-prod.sh) + 재빌드(rebuild-prod.sh) 완비. Dockerfile 3-stage 프로덕션 빌드 | — |
 | DB 컨테이너 이름 변경 | 📋 미착수 | firsttest-db-1 → dcim-db | 낮음 |
 | 로고 디자인 확정 | 📋 미착수 | 사이드바 로고 시안 검토 중 | 낮음 |
 | UI/디자인 통일 | 📋 미착수 | 전체 페이지 디자인 토큰 정리 | 낮음 |
