@@ -470,12 +470,16 @@ export const queries = {
   cadvisorUp: (instance: string) =>
     `up{job="kubernetes-cadvisor",${m(instance)}}`,
 
-  // ── Filesystem breakdown (node-exporter only) ──
+  // ── Filesystem breakdown ──
   filesystemSize: (instance: string, hostIp?: string) =>
-    `node_filesystem_size_bytes{${ne(instance, hostIp)},${FS_REAL}}`,
+    `node_filesystem_size_bytes{${ne(instance, hostIp)},${FS_REAL}}` +
+    ` or ` +
+    `container_fs_limit_bytes{${m(instance)},${DISK_REAL}}`,
 
   filesystemAvail: (instance: string, hostIp?: string) =>
-    `node_filesystem_avail_bytes{${ne(instance, hostIp)},${FS_REAL}}`,
+    `node_filesystem_avail_bytes{${ne(instance, hostIp)},${FS_REAL}}` +
+    ` or ` +
+    `container_fs_limit_bytes{${m(instance)},${DISK_REAL}} - container_fs_usage_bytes{${m(instance)},${DISK_REAL}}`,
 
   // ── Network interface inventory (node-exporter only) ──
   networkInterfaceUp: (instance: string, hostIp?: string) =>
