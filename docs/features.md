@@ -42,7 +42,7 @@
 | 메모리 사용률 차트 | ✅ 완료 | 사용률 % + 절대값 (Used/Cache) |
 | 메모리 요약 섹션 | ✅ 완료 | 슬롯 다이어그램 + 용량/타입/제조사 카드 |
 | 디스크 I/O | ✅ 완료 | 읽기/쓰기 처리량, IOPS, 지연시간 |
-| 디스크 사용률 | ✅ 완료 | 호스트 디스크 (/dev/mapper) 사용 %. node-exporter 우선 + cAdvisor 폴백 (container_fs_*) |
+| 디스크 사용률 | ✅ 완료 | 호스트 디스크 (/dev/mapper) 사용 %. 디스크 차트는 cAdvisor 폴백, 파일시스템 테이블은 node-exporter 전용 (cAdvisor는 mountpoint 라벨 없음). /etc/* bind-mount 필터링 |
 | 네트워크 대역폭/에러 | ✅ 완료 | RX/TX, 에러/드롭, TCP 연결 |
 | 전력 소비 차트 | ✅ 완료 | Intel PCM + PP0 (프로세서 패키지) |
 | PCM 고급 메트릭 | ✅ 완료 | IPC, 캐시 적중률, DRAM 대역폭 |

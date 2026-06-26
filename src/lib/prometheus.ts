@@ -180,7 +180,7 @@ function ne(instance: string, hostIp?: string): string {
 
 const NE_JOB = `job="node-exporter"`;
 const VNIC = `device!~"lo|veth.*|cni.*|docker.*|br-.*|flannel.*|cali.*|tun.*|virbr.*"`;
-const FS_REAL = `fstype!~"tmpfs|devtmpfs|overlay|squashfs|proc|sysfs|autofs|rootfs",mountpoint!~"/dev.*|/sys.*|/proc.*|/run.*|/host/dev.*|/host/sys.*|/host/proc.*|/host/run.*"`;
+const FS_REAL = `fstype!~"tmpfs|devtmpfs|overlay|squashfs|proc|sysfs|autofs|rootfs",mountpoint!~"/dev.*|/sys.*|/proc.*|/run.*|/host/dev.*|/host/sys.*|/host/proc.*|/host/run.*|/etc/.*"`;
 const DISK_REAL = `device=~"/dev/mapper/.*|/dev/md.*|/dev/sd.*|/dev/nvme.*"`;
 
 // ============================================
@@ -470,16 +470,12 @@ export const queries = {
   cadvisorUp: (instance: string) =>
     `up{job="kubernetes-cadvisor",${m(instance)}}`,
 
-  // ── Filesystem breakdown ──
+  // ── Filesystem breakdown (node-exporter only — cAdvisor lacks mountpoint label) ──
   filesystemSize: (instance: string, hostIp?: string) =>
-    `node_filesystem_size_bytes{${ne(instance, hostIp)},${FS_REAL}}` +
-    ` or ` +
-    `container_fs_limit_bytes{${m(instance)},${DISK_REAL}}`,
+    `node_filesystem_size_bytes{${ne(instance, hostIp)},${FS_REAL}}`,
 
   filesystemAvail: (instance: string, hostIp?: string) =>
-    `node_filesystem_avail_bytes{${ne(instance, hostIp)},${FS_REAL}}` +
-    ` or ` +
-    `container_fs_limit_bytes{${m(instance)},${DISK_REAL}} - container_fs_usage_bytes{${m(instance)},${DISK_REAL}}`,
+    `node_filesystem_avail_bytes{${ne(instance, hostIp)},${FS_REAL}}`,
 
   // ── Network interface inventory (node-exporter only) ──
   networkInterfaceUp: (instance: string, hostIp?: string) =>
