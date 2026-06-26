@@ -75,6 +75,10 @@ if [ "$NO_PROXY" -gt 0 ] 2>/dev/null; then
   $P -c "SELECT e.hostname || ' rack=' || COALESCE(r.name,'NULL') || ' room=' || COALESCE(rm.name,'NULL') FROM \"Equipment\" e LEFT JOIN \"Rack\" r ON r.id=e.\"rackId\" LEFT JOIN \"Room\" rm ON rm.id=r.\"roomId\" WHERE e.type='SERVER' AND e.\"bmcIpAddress\" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM \"Rack\" r2 JOIN \"Room\" rm2 ON r2.\"roomId\"=rm2.id WHERE r2.id=e.\"rackId\" AND rm2.\"bmcProxyUrl\" IS NOT NULL) LIMIT 5;"
 fi
 
+# 0.5. admin 유저 approved=true 보장 (조직 기능 추가 후 기본값이 false)
+$P -c "UPDATE \"User\" SET approved=true WHERE email IN ('admin@dcim.local','adminyj@dcim.local','operator@dcim.local') AND approved=false;" 2>/dev/null
+echo "APPROVED=OK"
+
 # 1. CSRF 토큰 획득
 CSRF=$(curl -s -c "$COOKIE" "$APP_URL/api/auth/csrf" 2>/dev/null | json_val csrfToken)
 if [ -z "$CSRF" ]; then

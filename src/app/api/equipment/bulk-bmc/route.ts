@@ -231,14 +231,14 @@ export async function POST(req: NextRequest) {
     }
 
     const proxyUrl = eq.rack?.room?.bmcProxyUrl ?? undefined;
-    const isPrivateIp = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(eq.bmcIpAddress);
-    if (!proxyUrl && isPrivateIp) {
+    const needsProxy = /^192\.168\./.test(eq.bmcIpAddress);
+    if (!proxyUrl && needsProxy) {
       results.push({
         equipmentId: eqId,
         hostname: eq.hostname,
         bmcIp: eq.bmcIpAddress,
         success: false,
-        error: "No BMC proxy — Rack/Room missing bmcProxyUrl (private IP unreachable without proxy)",
+        error: "No BMC proxy — Rack/Room missing bmcProxyUrl (192.168.x.x unreachable without proxy)",
       });
       continue;
     }

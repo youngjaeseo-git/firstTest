@@ -10,36 +10,39 @@ async function main() {
   const adminPassword = await hash("admin123", 12);
   const admin = await prisma.user.upsert({
     where: { email: "admin@dcim.local" },
-    update: {},
+    update: { approved: true },
     create: {
       email: "admin@dcim.local",
       name: "Administrator",
       password: adminPassword,
       role: "ADMIN",
+      approved: true,
     },
   });
 
   const adminyjPassword = await hash("adminyj", 12);
   await prisma.user.upsert({
     where: { email: "adminyj@dcim.local" },
-    update: {},
+    update: { approved: true },
     create: {
       email: "adminyj@dcim.local",
       name: "Admin YJ",
       password: adminyjPassword,
       role: "ADMIN",
+      approved: true,
     },
   });
 
   const operatorPassword = await hash("operator123", 12);
   await prisma.user.upsert({
     where: { email: "operator@dcim.local" },
-    update: {},
+    update: { approved: true },
     create: {
       email: "operator@dcim.local",
       name: "Operator",
       password: operatorPassword,
       role: "OPERATOR",
+      approved: true,
     },
   });
 
