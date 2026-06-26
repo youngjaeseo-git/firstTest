@@ -8,13 +8,13 @@ cd /home/dcim/firstTest 2>/dev/null || cd "$(dirname "$0")/../.." || exit 1
 COOKIE="/tmp/dcim-bulk-cookie.txt"
 rm -f "$COOKIE"
 
-# JSON에서 키 값 추출 (python3 없어도 동작)
+# JSON에서 키 값 추출 (python3 없어도 동작, 문자열+숫자 모두 지원)
 json_val() {
   local key="$1"
   if command -v python3 &>/dev/null; then
-    python3 -c "import sys,json; print(json.load(sys.stdin).get('$key',''))"
+    python3 -c "import sys,json; v=json.load(sys.stdin).get('$key',''); print('' if v is None else v)"
   else
-    grep -oP "\"$key\"\s*:\s*\"[^\"]*\"" | head -1 | sed "s/.*\"$key\"\s*:\s*\"\([^\"]*\)\".*/\1/"
+    grep -oP "\"$key\"\s*:\s*(\"[^\"]*\"|[0-9]+)" | head -1 | sed 's/.*:\s*//;s/"//g'
   fi
 }
 
@@ -114,10 +114,26 @@ COUNT=$((COUNT + 1))
 echo "=== ${COUNT}대 서버 Bulk HW Refresh 시작 ==="
 
 # 4. Bulk refresh API 호출 (타임아웃 10분)
-RESULT=$(curl -s -b "$COOKIE" --max-time 600 \
+HTTP_FILE="/tmp/dcim-bulk-http.txt"
+RESULT=$(curl -s -L -b "$COOKIE" --max-time 600 \
+  -w "\n%{http_code}" -o - \
   -X POST "$APP_URL/api/equipment/bulk-bmc" \
   -H "Content-Type: application/json" \
   -d "{\"action\":\"refresh-hw\",\"equipmentIds\":[$IDS]}")
+HTTP_CODE=$(echo "$RESULT" | tail -1)
+RESULT=$(echo "$RESULT" | sed '$d')
+
+if [ -z "$RESULT" ] || [ "$RESULT" = "null" ]; then
+  echo "ERR: 빈 응답 (HTTP=$HTTP_CODE)"
+  rm -f "$COOKIE"
+  exit 1
+fi
+if [ "$HTTP_CODE" != "200" ]; then
+  echo "ERR: HTTP $HTTP_CODE"
+  echo "$RESULT" | head -3
+  rm -f "$COOKIE"
+  exit 1
+fi
 
 # 5. 결과 요약
 if command -v python3 &>/dev/null; then

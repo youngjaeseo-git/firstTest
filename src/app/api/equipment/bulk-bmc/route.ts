@@ -72,73 +72,75 @@ interface ResultItem {
 }
 
 async function saveHwInfo(equipmentId: string, hw: SystemHwInfo) {
-  const updateData: Record<string, unknown> = {};
-  if (hw.manufacturer) updateData.manufacturer = hw.manufacturer;
-  if (hw.model) updateData.model = hw.model;
-  if (hw.serialNumber) updateData.serialNumber = hw.serialNumber;
-  if (hw.biosVersion) updateData.biosVersion = hw.biosVersion;
-  if (hw.totalMemoryGiB) updateData.totalMemoryGB = hw.totalMemoryGiB;
+  await prisma.$transaction(async (tx) => {
+    const updateData: Record<string, unknown> = {};
+    if (hw.manufacturer) updateData.manufacturer = hw.manufacturer;
+    if (hw.model) updateData.model = hw.model;
+    if (hw.serialNumber) updateData.serialNumber = hw.serialNumber;
+    if (hw.biosVersion) updateData.biosVersion = hw.biosVersion;
+    if (hw.totalMemoryGiB) updateData.totalMemoryGB = Math.round(hw.totalMemoryGiB);
 
-  await prisma.equipment.update({
-    where: { id: equipmentId },
-    data: updateData,
+    await tx.equipment.update({
+      where: { id: equipmentId },
+      data: updateData,
+    });
+
+    if (hw.cpus.length > 0) {
+      await tx.equipmentCpu.deleteMany({ where: { equipmentId } });
+      await tx.equipmentCpu.createMany({
+        data: hw.cpus.map((cpu, i) => ({
+          equipmentId,
+          socketIndex: i,
+          manufacturer: cpu.manufacturer,
+          model: cpu.model,
+          cores: cpu.cores,
+          threads: cpu.threads,
+          maxFreqMhz: cpu.maxSpeedMhz,
+          tdpWatts: cpu.tdpWatts,
+          architecture: cpu.architecture,
+        })),
+      });
+    }
+
+    if (hw.memories.length > 0) {
+      await tx.equipmentMemory.deleteMany({ where: { equipmentId } });
+      await tx.equipmentMemory.createMany({
+        data: hw.memories.map((mem, i) => ({
+          equipmentId,
+          slotName: mem.slotName || `DIMM_${i}`,
+          slotIndex: i,
+          populated: mem.populated,
+          capacityGb: mem.capacityGb,
+          memoryType: mapMemoryType(mem.memoryType),
+          manufacturer: mem.manufacturer,
+          partNumber: mem.partNumber,
+          serialNumber: mem.serialNumber,
+          speedMhz: mem.speedMhz,
+          currentSpeedMhz: mem.currentSpeedMhz,
+          rank: mem.rank,
+          eccEnabled: mem.eccEnabled,
+          formFactor: mem.formFactor,
+          voltage: mem.voltage,
+        })),
+      });
+    }
+
+    if (hw.networkInterfaces.length > 0) {
+      await tx.networkPort.deleteMany({ where: { equipmentId } });
+      await tx.networkPort.createMany({
+        data: hw.networkInterfaces.map((nic) => ({
+          equipmentId,
+          name: nic.name || "Unknown",
+          speed: nic.speedMbps
+            ? nic.speedMbps >= 1000
+              ? `${nic.speedMbps / 1000}G`
+              : `${nic.speedMbps}M`
+            : null,
+          connected: nic.linkStatus === "LinkUp",
+        })),
+      });
+    }
   });
-
-  if (hw.cpus.length > 0) {
-    await prisma.equipmentCpu.deleteMany({ where: { equipmentId } });
-    await prisma.equipmentCpu.createMany({
-      data: hw.cpus.map((cpu, i) => ({
-        equipmentId,
-        socketIndex: i,
-        manufacturer: cpu.manufacturer,
-        model: cpu.model,
-        cores: cpu.cores,
-        threads: cpu.threads,
-        maxFreqMhz: cpu.maxSpeedMhz,
-        tdpWatts: cpu.tdpWatts,
-        architecture: cpu.architecture,
-      })),
-    });
-  }
-
-  if (hw.memories.length > 0) {
-    await prisma.equipmentMemory.deleteMany({ where: { equipmentId } });
-    await prisma.equipmentMemory.createMany({
-      data: hw.memories.map((mem, i) => ({
-        equipmentId,
-        slotName: mem.slotName || `DIMM_${i}`,
-        slotIndex: i,
-        populated: mem.populated,
-        capacityGb: mem.capacityGb,
-        memoryType: mapMemoryType(mem.memoryType),
-        manufacturer: mem.manufacturer,
-        partNumber: mem.partNumber,
-        serialNumber: mem.serialNumber,
-        speedMhz: mem.speedMhz,
-        currentSpeedMhz: mem.currentSpeedMhz,
-        rank: mem.rank,
-        eccEnabled: mem.eccEnabled,
-        formFactor: mem.formFactor,
-        voltage: mem.voltage,
-      })),
-    });
-  }
-
-  if (hw.networkInterfaces.length > 0) {
-    await prisma.networkPort.deleteMany({ where: { equipmentId } });
-    await prisma.networkPort.createMany({
-      data: hw.networkInterfaces.map((nic) => ({
-        equipmentId,
-        name: nic.name || "Unknown",
-        speed: nic.speedMbps
-          ? nic.speedMbps >= 1000
-            ? `${nic.speedMbps / 1000}G`
-            : `${nic.speedMbps}M`
-          : null,
-        connected: nic.linkStatus === "LinkUp",
-      })),
-    });
-  }
 }
 
 export async function POST(req: NextRequest) {
@@ -228,12 +230,25 @@ export async function POST(req: NextRequest) {
       continue;
     }
 
+    const proxyUrl = eq.rack?.room?.bmcProxyUrl ?? undefined;
+    const isPrivateIp = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(eq.bmcIpAddress);
+    if (!proxyUrl && isPrivateIp) {
+      results.push({
+        equipmentId: eqId,
+        hostname: eq.hostname,
+        bmcIp: eq.bmcIpAddress,
+        success: false,
+        error: "No BMC proxy — Rack/Room missing bmcProxyUrl (private IP unreachable without proxy)",
+      });
+      continue;
+    }
+
     const opts = {
       host: eq.bmcIpAddress,
       username: creds.username,
       password: creds.password,
       timeoutMs: 15_000,
-      proxyUrl: eq.rack?.room?.bmcProxyUrl ?? undefined,
+      proxyUrl,
     };
 
     if (payload.action === "refresh-hw") {
