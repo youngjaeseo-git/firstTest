@@ -54,7 +54,7 @@ echo "DB=OK"
 APP_URL=""
 for URL in "http://localhost:3000" "http://10.144.38.100:3000"; do
   CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 "$URL" 2>/dev/null)
-  if [ "$CODE" = "200" ] || [ "$CODE" = "302" ]; then
+  if [ "$CODE" = "200" ] || [ "$CODE" = "302" ] || [ "$CODE" = "307" ]; then
     APP_URL="$URL"
     break
   fi
