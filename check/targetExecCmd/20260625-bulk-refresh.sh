@@ -96,10 +96,16 @@ LOGIN=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIE" -c "$COOKIE" \
   -L 2>/dev/null)
 echo "LOGIN=$LOGIN"
 
-# 세션 확인
-SESSION_USER=$(curl -s -b "$COOKIE" "$APP_URL/api/auth/session" 2>/dev/null | json_val email)
+# 세션 확인 (email은 user 객체 안에 중첩)
+SESSION_RAW=$(curl -s -b "$COOKIE" "$APP_URL/api/auth/session" 2>/dev/null)
+if command -v python3 &>/dev/null; then
+  SESSION_USER=$(echo "$SESSION_RAW" | python3 -c "import sys,json; d=json.load(sys.stdin); u=d.get('user',{}); print(u.get('email','') if isinstance(u,dict) else '')")
+else
+  SESSION_USER=$(echo "$SESSION_RAW" | grep -oP '"email"\s*:\s*"[^"]*"' | head -1 | sed 's/.*"email"\s*:\s*"//;s/"//')
+fi
 if [ -z "$SESSION_USER" ]; then
   echo "ERR: 로그인 실패. admin@dcim.local / admin123 확인"
+  echo "SESSION_RAW=$SESSION_RAW"
   rm -f "$COOKIE"
   exit 1
 fi
