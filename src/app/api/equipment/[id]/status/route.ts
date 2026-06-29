@@ -44,8 +44,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Org-based access check
-  if (user.role !== "ADMIN" && equipment.organizationId && !user.orgIds?.includes(equipment.organizationId)) {
+  // Org-based access check: non-ADMIN is blocked when equipment has no org or
+  // the user is not a member (consistent with canAccessEquipment).
+  if (user.role !== "ADMIN" && (!equipment.organizationId || !user.orgIds?.includes(equipment.organizationId))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

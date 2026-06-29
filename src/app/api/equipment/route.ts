@@ -78,6 +78,15 @@ export async function POST(req: NextRequest) {
 
   // Determine organizationId: use provided value, or auto-assign for non-ADMIN
   let resolvedOrgId: string | null = bodyOrgId ?? null;
+  // Non-ADMIN may only assign an org they belong to (prevents cross-org creation).
+  if (resolvedOrgId && user.role !== "ADMIN") {
+    const membership = await prisma.userOrganization.findUnique({
+      where: { userId_organizationId: { userId: user.id, organizationId: resolvedOrgId } },
+    });
+    if (!membership) {
+      return NextResponse.json({ error: "Forbidden — 소속되지 않은 조직입니다" }, { status: 403 });
+    }
+  }
   if (!resolvedOrgId && user.role !== "ADMIN") {
     const firstMembership = await prisma.userOrganization.findFirst({
       where: { userId: user.id },

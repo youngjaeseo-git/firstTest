@@ -102,14 +102,14 @@ export function NodeOverviewCard({ instance, hostIp }: { instance: string; hostI
     async function load() {
       const [
         cpuCap, memCap, diskCap,
-        cpuUsed, memUsed,
+        cpuUsedPct, memUsed,
         diskPct, diskUsed, diskTotal,
         pods, podList,
       ] = await Promise.all([
         fetchInstant(queries.nodeCapacityCpu(instance)),
         fetchInstant(queries.nodeCapacityMemory(instance)),
         fetchInstant(queries.nodeCapacityDisk(instance)),
-        fetchInstant(queries.loadAvg5(instance, hostIp)),
+        fetchInstant(queries.cpuUsage(instance, hostIp)),
         fetchInstant(queries.memoryUsedBytes(instance, hostIp)),
         fetchInstant(queries.hostDiskUsage(instance, hostIp)),
         fetchInstant(queries.hostDiskUsedBytes(instance, hostIp)),
@@ -123,11 +123,18 @@ export function NodeOverviewCard({ instance, hostIp }: { instance: string; hostI
       const effectiveDiskCap =
         diskCap && diskCap > 0 ? diskCap : diskTotal;
 
+      // cpuUsage gives 0-100%; convert to used cores so the card shows
+      // "used / total cores" (parallel to Memory) with a correct usage bar.
+      const cpuUsedCores =
+        cpuUsedPct !== null && cpuCap !== null && cpuCap > 0
+          ? (cpuUsedPct / 100) * cpuCap
+          : null;
+
       setMetrics({
         cpuCapacity: cpuCap,
         memoryCapacity: memCap,
         diskCapacity: effectiveDiskCap,
-        cpuUsed: cpuUsed,
+        cpuUsed: cpuUsedCores,
         memoryUsed: memUsed,
         diskUsedPct: diskPct,
         diskUsedBytes: diskUsed,
