@@ -75,13 +75,15 @@
 - Bulk HW Refresh 실패 7대 (BMC 펌웨어/네트워크)
 - Lab-3 cAdvisor (인프라팀 ConfigMap)
 
-### 결정 필요 (회사 확인) — 2026-06-29 소스 감사에서 도출
-- **Digital Twin 평면도**: 컴포넌트가 방 이름을 lab1/2/3로 하드코딩 — 실제 방 이름/토폴로지 확인 필요
-- **클러스터 매처(cAdvisor/up)**: lab1/lab3 hostname 오집계 가능 — 실제 cAdvisor instance 라벨 확인 후 수정
-- **NodeOverview CPU 표기**: load average를 사용률%로 표시 — load 표기 vs cpuUsage 전환 결정
-- **조직 접근 정책**: org 미배정 장비를 비ADMIN에게 보일지 + POST 생성 시 org 검증 정책
-- **evaluations 라우트**: 사이드바 미연결(고립) — 사용/제거 결정(~5,685줄)
-- **죽은 의존성 제거**: socket.io, jspdf, html2canvas, zustand, @dnd-kit×3, date-fns, react-table 등 — verify:full 후 제거 권장
+### 결정 완료 (2026-06-29 감사)
+- **Digital Twin 평면도**: 현행 유지 (운영 DB 방 이름 매핑돼 화면 정상)
+- **NodeOverview CPU 표기**: 수정 완료 (load average → cpuUsage 기반 사용 코어/%)
+- **조직 접근 정책**: 수정 완료 (비ADMIN org null/미소속 차단 통일 + POST org 검증)
+- **evaluations 라우트**: 현행 유지 — 고립 아님(Workloads의 Evaluation 탭이 사용 중)
+
+### 후속 작업 (데이터/빌드 확인 선행)
+- **클러스터 매처(cAdvisor/up)**: lab1/lab3 hostname 오집계 가능 — 실제 cAdvisor instance 라벨 Data-First 확인 후 CLUSTER_CA+UP 동시 수정 (node-exporter 살아있으면 증상 가려짐)
+- **죽은 의존성 제거**: socket.io, jspdf, html2canvas, zustand, @dnd-kit×3, date-fns, react-table 등 — verify:full(빌드) 후 제거 권장
 
 ### 보류 (요건 미확정)
 - DRAM 인증 테스트 관리 / 온도 외부 DB 연동

@@ -53,22 +53,22 @@
 
 ## 결정 필요 사항 (회사 확인)
 
-| 항목 | 질문 | 8-agent 권장 |
+| 항목 | 질문 | 상태/권장 |
 |------|------|-------------|
-| Evaluations/Workloads 메뉴 | 실제로 사용하는가? | Evaluations 사이드바 미연결(고립 라우트). 사용 확인 후 제거/연결 결정. ~5,685줄 |
 | Lab-3 cAdvisor 메트릭 | 인프라팀에 ConfigMap 수리 요청? | node-exporter는 통합 완료. cAdvisor는 인프라팀 영역 |
-| Digital Twin 평면도 | 실제 방 이름/토폴로지? | 컴포넌트가 방 이름 lab1/2/3 하드코딩 → 실제 방 기준 동적 렌더로 수정 필요 (2026-06-29 감사) |
-| 클러스터 매처(cAdvisor/up) | 실제 cAdvisor instance 라벨? | lab1/lab3 hostname 오집계 가능. Data-First 확인 후 CLUSTER_CA+UP 동시 수정 (2026-06-29 감사) |
-| NodeOverview CPU 표기 | load vs 사용률%? | load average를 사용률%로 표시 중 → 라벨 'Load(5m)' 또는 cpuUsage 전환 (2026-06-29 감사) |
-| 조직 접근 정책 | org 미배정 장비 비ADMIN 노출? | 라우트별 정책 불일치 + POST org 검증 누락 → 정책 통일 필요 (2026-06-29 감사) |
-| 죽은 의존성 제거 | socket.io/jspdf/zustand 등 제거? | 실제 미사용 10+개. verify:full 후 제거 권장 (2026-06-29 감사) |
+| 클러스터 매처(cAdvisor/up) | 실제 cAdvisor instance 라벨? | lab1/lab3 hostname 오집계 가능. Data-First 확인 후 CLUSTER_CA+UP 동시 수정 (2026-06-29 감사). node-exporter 살아있으면 증상 가려짐 |
+| 죽은 의존성 제거 | socket.io/jspdf/zustand 등 제거? | 실제 미사용 10+개. verify:full(빌드) 후 제거 권장 (2026-06-29 감사) |
 
-> 2026-06-29 8-에이전트 소스 감사 → 안전·명확한 버그/데드코드는 즉시 수정 완료. 위 항목은 설계/정책/토폴로지 결정 필요. 전체 요약: docs/project-handover.md §7-8
+> 2026-06-29 8-에이전트 소스 감사 → 안전·명확한 버그/데드코드는 즉시 수정 완료. 위 3개는 데이터/빌드 확인이 선행되는 후속 작업. 전체 요약: docs/project-handover.md §7-8
 
 ## 결정 완료 사항
 
 | 항목 | 결정 | 근거 |
 |------|------|------|
+| (감사) Digital Twin 평면도 | **현행 유지** | 운영 DB 방 이름이 매핑돼 화면 정상. 수정 불필요 (2026-06-29) |
+| (감사) NodeOverview CPU 표기 | **수정 완료** | load average → 실제 cpuUsage(%)→사용 코어 환산으로 정정 (2026-06-29) |
+| (감사) 조직 접근 정책 | **수정 완료** | 비ADMIN은 org null/미소속 차단으로 통일 + POST org 검증 추가 (2026-06-29) |
+| (감사) evaluations 라우트 | **현행 유지** | 고립 아님 — Workloads의 Evaluation 탭/프로젝트 추적이 /api/evaluations·/evaluations/[id] 사용 중. 제거 시 Workloads 깨짐 (2026-06-29) |
 | 장비 상세 페이지 중복 | **현행 유지** | /servers/[id]=실시간 모니터링, /infrastructure/[id]=자산 관리. 의도적 역할 분리 |
 | Firmware 단독 메뉴 | **유지** | fleet-wide BIOS 버전 비교 기능. 개별 장비 통합 시 전체 비교 관점 상실 |
 | 알림 규칙 평가 엔진 | **구현 완료** | `/api/cron/alert-check` — crontab 5분 간격 등록 필요 |
