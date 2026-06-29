@@ -1,8 +1,10 @@
 #!/bin/bash
-# Lab-3 node-exporter 파일시스템 노출 진단 (2026-06-29)
-# 목적: node-exporter가 호스트 루트(/)를 마운트하는지, 배포/관리 방식 확인
+# node-exporter 파일시스템 노출 진단 (2026-06-29)
+# 목적: node-exporter가 호스트 루트(/)+--path.rootfs로 설정됐는지, 배포/관리 방식 확인
+# !! Lab-1 클러스터와 Lab-3 클러스터는 별도다. 각 클러스터 컨텍스트에서 1번씩 실행해서
+#    두 출력을 비교해야 한다 (CTX_NOW로 어느 클러스터인지 구분).
 # 실행: bash check/targetExecCmd/20260629.sh
-# 출력: 약 10줄 (타이핑 최소화)
+# 출력: 약 12줄 (타이핑 최소화)
 echo "=== NE_DIAG ==="
 
 # 1) 클러스터 컨텍스트 (Lab-3가 별도 클러스터/컨텍스트면 여기서 드러남)
@@ -30,7 +32,11 @@ if [ -n "$NS" ] && [ -n "$NAME" ]; then
   # 6) 컨테이너 마운트 경로 + 권한 컨텍스트
   echo "VMOUNTS=$(kubectl get ds "$NAME" -n "$NS" -o jsonpath='{range .spec.template.spec.containers[0].volumeMounts[*]}{.mountPath}{";"}{end}' 2>/dev/null)"
   echo "HOSTNET=$(kubectl get ds "$NAME" -n "$NS" -o jsonpath='{.spec.template.spec.hostNetwork}' 2>/dev/null) PID=$(kubectl get ds "$NAME" -n "$NS" -o jsonpath='{.spec.template.spec.hostPID}' 2>/dev/null)"
+  echo "IMAGE=$(kubectl get ds "$NAME" -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null)"
 fi
+
+# 6b) 롤링 재시작 예산: NotReady 노드 수 (06-15처럼 롤아웃 정체 위험 판단)
+echo "NOTREADY=$(kubectl get nodes --no-headers 2>/dev/null | grep -c ' NotReady') / NODES=$(kubectl get nodes --no-headers 2>/dev/null | wc -l | tr -d ' ')"
 
 # 7) Prometheus로 Lab-1(정상) vs Lab-3 마운트 개수 비교
 PROM="http://10.100.175.248:8080"
