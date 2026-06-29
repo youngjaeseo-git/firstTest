@@ -12,6 +12,7 @@ import { useT } from "@/lib/i18n/i18n-context";
 interface FsWarning {
   instance: string;
   hostname: string;
+  equipmentId: string | null;
   usagePercent: number;
   mountpoint: string;
 }
@@ -26,23 +27,22 @@ const cardVariants = {
 };
 
 export function FilesystemWarnings({
-  hostnameIpMap = {},
+  serverMap = {},
 }: {
-  hostnameIpMap?: Record<string, string>;
+  serverMap?: Record<string, { hostname: string; id: string }>;
 }) {
   const t = useT();
   const [warnings, setWarnings] = useState<FsWarning[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const ipToHostname = useCallback(
-    (instance: string): string => {
+  const resolveServer = useCallback(
+    (instance: string): { hostname: string; equipmentId: string | null } => {
       const ip = instance.replace(/:\d+$/, "");
-      for (const [hostname, mappedIp] of Object.entries(hostnameIpMap)) {
-        if (mappedIp === ip) return hostname;
-      }
-      return ip;
+      const entry = serverMap[ip];
+      // Show hostname when registered; fall back to raw IP otherwise.
+      return { hostname: entry?.hostname ?? ip, equipmentId: entry?.id ?? null };
     },
-    [hostnameIpMap],
+    [serverMap],
   );
 
   const fetchFs = useCallback(async () => {
@@ -61,9 +61,11 @@ export function FilesystemWarnings({
         const usage = parseFloat(r.value[1]);
         if (usage < 70) continue;
         const instance = r.metric.instance || "";
+        const { hostname, equipmentId } = resolveServer(instance);
         items.push({
           instance,
-          hostname: ipToHostname(instance),
+          hostname,
+          equipmentId,
           usagePercent: Math.round(usage * 10) / 10,
           mountpoint: r.metric.mountpoint || "/",
         });
@@ -75,13 +77,16 @@ export function FilesystemWarnings({
     } finally {
       setLoading(false);
     }
-  }, [ipToHostname]);
+  }, [resolveServer]);
 
   useEffect(() => {
     fetchFs();
     const timer = setInterval(fetchFs, 60_000);
     return () => clearInterval(timer);
   }, [fetchFs]);
+
+  const ROW_CLASS =
+    "group flex items-center gap-3 rounded-lg border border-gray-800 px-3 py-2 transition-colors";
 
   if (loading || warnings.length === 0) return null;
 
@@ -121,18 +126,9 @@ export function FilesystemWarnings({
                   ? "text-orange-400"
                   : "text-amber-400";
 
-            return (
-              <Link
-                key={w.instance}
-                href={`/servers/${encodeURIComponent(w.hostname)}`}
-                className="group flex items-center gap-3 rounded-lg border border-gray-800 px-3 py-2 transition-colors hover:border-amber-500/30"
-              >
-                <span
-                  className={cn(
-                    "font-mono text-sm",
-                    textColor,
-                  )}
-                >
+            const inner = (
+              <>
+                <span className={cn("font-mono text-sm", textColor)}>
                   {w.hostname}
                 </span>
                 <div className="flex-1 h-2.5 rounded-full bg-gray-800 overflow-hidden">
@@ -149,7 +145,22 @@ export function FilesystemWarnings({
                 >
                   {w.usagePercent.toFixed(1)}%
                 </span>
+              </>
+            );
+
+            // Link only when the server is registered (route resolves by id, not hostname).
+            return w.equipmentId ? (
+              <Link
+                key={w.instance}
+                href={`/servers/${w.equipmentId}`}
+                className={cn(ROW_CLASS, "hover:border-amber-500/30")}
+              >
+                {inner}
               </Link>
+            ) : (
+              <div key={w.instance} className={ROW_CLASS}>
+                {inner}
+              </div>
             );
           })}
         </div>

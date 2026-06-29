@@ -33,7 +33,7 @@ export default async function DashboardPage() {
   let totalRooms = 0;
   let firingAlerts = 0;
   let recentAlerts: { id: string; severity: string; summary: string; source: string | null; firedAt: Date; status: string }[] = [];
-  let equipmentMapping: { hostname: string | null; ipAddress: string | null }[] = [];
+  let equipmentMapping: { id: string; hostname: string | null; ipAddress: string | null }[] = [];
   let allEquipmentForPlatform: { hostname: string | null; model: string | null; status: string }[] = [];
   let promTargets: { instance: string; hostname: string | null }[] = [];
   let alerts24hBySeverity: { severity: string; _count: number }[] = [];
@@ -111,7 +111,7 @@ export default async function DashboardPage() {
       }),
       prisma.equipment.findMany({
         where: { ipAddress: { not: null } },
-        select: { hostname: true, ipAddress: true },
+        select: { id: true, hostname: true, ipAddress: true },
       }),
       prisma.equipment.findMany({
         where: { type: "SERVER" },
@@ -220,6 +220,15 @@ export default async function DashboardPage() {
 
   const hostnameIpMap = buildHostnameIpMapFromData(equipmentMapping, promTargets);
 
+  // IP → {hostname, id} for the Filesystem Warnings widget:
+  // shows hostname (not raw IP) and links to /servers/{id} (route resolves by id, not hostname)
+  const fsServerMap: Record<string, { hostname: string; id: string }> = {};
+  for (const e of equipmentMapping) {
+    if (e.ipAddress && e.hostname) {
+      fsServerMap[e.ipAddress] = { hostname: e.hostname, id: e.id };
+    }
+  }
+
   return (
     <PageTransition>
       <div className="flex gap-6">
@@ -246,7 +255,7 @@ export default async function DashboardPage() {
           />
 
           {/* Filesystem Capacity Warnings (>70%) */}
-          <FilesystemWarnings hostnameIpMap={hostnameIpMap} />
+          <FilesystemWarnings serverMap={fsServerMap} />
 
           {/* Active Alerts */}
           <div>
