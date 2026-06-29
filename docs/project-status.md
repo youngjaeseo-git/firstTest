@@ -55,8 +55,15 @@
 
 | 항목 | 질문 | 8-agent 권장 |
 |------|------|-------------|
-| Evaluations/Workloads 메뉴 | 실제로 사용하는가? | Evaluations 이미 사이드바 제거됨. Workloads는 Dashboard 위젯이 링크 사용 중 → 사용 확인 후 결정. 5,685줄 |
+| Evaluations/Workloads 메뉴 | 실제로 사용하는가? | Evaluations 사이드바 미연결(고립 라우트). 사용 확인 후 제거/연결 결정. ~5,685줄 |
 | Lab-3 cAdvisor 메트릭 | 인프라팀에 ConfigMap 수리 요청? | node-exporter는 통합 완료. cAdvisor는 인프라팀 영역 |
+| Digital Twin 평면도 | 실제 방 이름/토폴로지? | 컴포넌트가 방 이름 lab1/2/3 하드코딩 → 실제 방 기준 동적 렌더로 수정 필요 (2026-06-29 감사) |
+| 클러스터 매처(cAdvisor/up) | 실제 cAdvisor instance 라벨? | lab1/lab3 hostname 오집계 가능. Data-First 확인 후 CLUSTER_CA+UP 동시 수정 (2026-06-29 감사) |
+| NodeOverview CPU 표기 | load vs 사용률%? | load average를 사용률%로 표시 중 → 라벨 'Load(5m)' 또는 cpuUsage 전환 (2026-06-29 감사) |
+| 조직 접근 정책 | org 미배정 장비 비ADMIN 노출? | 라우트별 정책 불일치 + POST org 검증 누락 → 정책 통일 필요 (2026-06-29 감사) |
+| 죽은 의존성 제거 | socket.io/jspdf/zustand 등 제거? | 실제 미사용 10+개. verify:full 후 제거 권장 (2026-06-29 감사) |
+
+> 2026-06-29 8-에이전트 소스 감사 → 안전·명확한 버그/데드코드는 즉시 수정 완료. 위 항목은 설계/정책/토폴로지 결정 필요. 전체 요약: docs/project-handover.md §7-8
 
 ## 결정 완료 사항
 

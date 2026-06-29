@@ -101,10 +101,10 @@
 - **Frontend**: Next.js 14 (App Router) + TypeScript + Tailwind CSS
 - **UI Components**: shadcn/ui (Radix 기반) + Accordion/Collapsible 패턴
 - **Charts/Visualization**: Recharts + D3.js (랙 다이어그램) + SVG (Digital Twin)
-- **State Management**: Zustand
+- **State Management**: React Context + useState (전역 store 미사용)
 - **Backend**: Next.js API Routes + Prisma ORM
 - **Database**: PostgreSQL (자산/설정), Prometheus (시계열 메트릭)
-- **Real-time**: WebSocket (Socket.io) for live metric updates
+- **Real-time**: SSE (Server-Sent Events, EventSource) for live metric updates
 - **Auth**: NextAuth.js (CredentialsProvider, JWT strategy)
 - **Deployment**: Docker (multi-stage build) + docker-compose
 - **Testing**: Vitest + Playwright (E2E)
@@ -114,7 +114,7 @@
 
 - 모노레포 구조 (Next.js fullstack)
 - Server Components 우선, 인터랙티브 부분만 Client Components
-- API는 RESTful, 실시간 데이터는 WebSocket
+- API는 RESTful, 실시간 데이터는 SSE(Server-Sent Events)
 - 모든 메트릭 데이터는 Prometheus에서 가져오고, 자산 데이터는 PostgreSQL
 - 물리 계층: DataCenter → Room → Rack → U Position
 - 접기/펼치기 UI 패턴으로 정보 밀도 관리

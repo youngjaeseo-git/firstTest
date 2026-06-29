@@ -189,7 +189,7 @@
 | 용량 현황 (Capacity) | ✅ 완료 | /capacity — 전력/공간/냉각/컴퓨팅 용량 현황 표시 |
 | 용량 예측 (Forecast) | ✅ 완료 | 장비 createdAt 기반 월별 성장 추이 차트 + 선형회귀 12개월 전망 + 랙공간/전력 소진일 예측 카드 |
 | 리포트 뷰 (Reports) | ✅ 완료 | /reports — 인프라 현황 + 알림 통계 리포트 (생성시각 포함) |
-| 리포트 PDF 내보내기 | ✅ 완료 | 네이티브 PDF 다운로드 (html2canvas+jsPDF, A4 페이지네이션, 한글 지원) + 브라우저 인쇄 |
+| 리포트 PDF 내보내기 | ✅ 완료 | 브라우저 인쇄(window.print) + CSS print 스타일 기반 PDF 출력, CSV 다운로드 |
 
 ---
 
