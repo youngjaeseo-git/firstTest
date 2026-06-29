@@ -26,6 +26,7 @@ services:
       PROMETHEUS_URL: ${PROMETHEUS_URL:-http://10.144.38.100:30004}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-in-production}
+      CRON_SECRET: ${CRON_SECRET:-}
     depends_on:
       db:
         condition: service_healthy
