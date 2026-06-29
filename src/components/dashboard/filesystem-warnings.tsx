@@ -47,7 +47,9 @@ export function FilesystemWarnings({
 
   const fetchFs = useCallback(async () => {
     try {
-      const query = `(1 - node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|devtmpfs|overlay"} / node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|devtmpfs|overlay"}) * 100`;
+      // job="node-exporter" excludes the duplicate kubernetes-pods scrape of the
+      // same node-exporter (avoids the same server appearing twice).
+      const query = `(1 - node_filesystem_avail_bytes{job="node-exporter",mountpoint="/",fstype!~"tmpfs|devtmpfs|overlay"} / node_filesystem_size_bytes{job="node-exporter",mountpoint="/",fstype!~"tmpfs|devtmpfs|overlay"}) * 100`;
       const res = await fetch(
         `/api/metrics/instant?query=${encodeURIComponent(query)}`,
       );
@@ -55,22 +57,31 @@ export function FilesystemWarnings({
       const json = await res.json();
       const results = json?.data?.result ?? [];
 
-      const items: FsWarning[] = [];
+      // Dedup by server (equipmentId, or hostname when unregistered): if a server
+      // is still scraped twice (e.g. IP + hostname instance), keep the higher usage.
+      const byServer = new Map<string, FsWarning>();
       for (const r of results) {
         if (!r.value) continue;
         const usage = parseFloat(r.value[1]);
         if (usage < 70) continue;
         const instance = r.metric.instance || "";
         const { hostname, equipmentId } = resolveServer(instance);
-        items.push({
+        const key = equipmentId ?? hostname;
+        const item: FsWarning = {
           instance,
           hostname,
           equipmentId,
           usagePercent: Math.round(usage * 10) / 10,
           mountpoint: r.metric.mountpoint || "/",
-        });
+        };
+        const existing = byServer.get(key);
+        if (!existing || item.usagePercent > existing.usagePercent) {
+          byServer.set(key, item);
+        }
       }
-      items.sort((a, b) => b.usagePercent - a.usagePercent);
+      const items = Array.from(byServer.values()).sort(
+        (a, b) => b.usagePercent - a.usagePercent,
+      );
       setWarnings(items);
     } catch {
       // ignore
