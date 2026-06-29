@@ -153,7 +153,7 @@ export async function fetchTargets(): Promise<DiscoveredPrometheusTarget[]> {
 // Escape regex metacharacters for use inside PromQL string literals.
 // PromQL strings parse \\ as a literal backslash, so to get \. in the
 // regex engine we must emit \\. in the PromQL source.
-function escapeRe(s: string): string {
+export function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\\\$&");
 }
 

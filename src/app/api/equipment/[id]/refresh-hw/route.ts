@@ -104,7 +104,7 @@ export async function POST(
     if (hw.model) updateData.model = hw.model;
     if (hw.serialNumber) updateData.serialNumber = hw.serialNumber;
     if (hw.biosVersion) updateData.biosVersion = hw.biosVersion;
-    if (hw.totalMemoryGiB) updateData.totalMemoryGB = hw.totalMemoryGiB;
+    if (hw.totalMemoryGiB) updateData.totalMemoryGB = Math.round(hw.totalMemoryGiB);
 
     await prisma.equipment.update({
       where: { id },

@@ -10,7 +10,7 @@ import { CommandPalette } from "@/components/command-palette/command-palette";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { PrometheusStatus } from "@/components/layout/prometheus-status";
-import { useT } from "@/lib/i18n/i18n-context";
+import { useT, useLanguage } from "@/lib/i18n/i18n-context";
 
 interface AlertItem {
   id: string;
@@ -23,6 +23,7 @@ interface AlertItem {
 export function Header() {
   const { data: session } = useSession();
   const t = useT();
+  const { lang } = useLanguage();
   const [bellOpen, setBellOpen] = useState(false);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [alertCount, setAlertCount] = useState(0);
@@ -162,7 +163,7 @@ export function Header() {
                               </p>
                               <p className="mt-0.5 text-xs text-gray-500">
                                 {a.source || "-"} ·{" "}
-                                {new Date(a.firedAt).toLocaleTimeString("ko-KR")}
+                                {new Date(a.firedAt).toLocaleTimeString(lang === "ko" ? "ko-KR" : "en-US")}
                               </p>
                             </div>
                           </div>

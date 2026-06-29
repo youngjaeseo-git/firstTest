@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { bmcCredentialsConfigured } from "@/lib/bmc-credentials";
 import { getSensorsData } from "@/lib/redfish";
+import { getSessionUser } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,8 @@ function isDimmSensor(name: string): boolean {
 }
 
 export async function GET() {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!bmcCredentialsConfigured()) {
     return NextResponse.json({ avgMemTemp: null, serverCount: 0, sensorCount: 0 });
   }

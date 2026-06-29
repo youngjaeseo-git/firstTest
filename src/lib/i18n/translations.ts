@@ -317,6 +317,7 @@ export const translations: Record<Language, Record<string, string>> = {
 
     // ── Common (additions) ──
     "common.unnamed": "(unnamed)",
+    "common.success": "Success",
     "common.showingFirst10": "Showing first 10",
     "common.more": "more",
     "common.serverError": "Server communication error.",
@@ -538,6 +539,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "rack.placeFail": "Place failed",
     "rack.removeFail": "Remove failed",
     "rack.unrackedLoadFail": "Failed to load unracked equipment",
+    "rack.unracked": "Unracked",
     "rack.dropHere": "Drop here",
     "rack.saving": "Saving...",
     "rack.addEquipment": "Add Equipment",
@@ -789,6 +791,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "common.total": "합계",
     "common.type": "유형",
     "common.unnamed": "(이름 없음)",
+    "common.success": "성공",
     "compare.clearSelection": "선택 해제",
     "compare.cpuUsage": "CPU 사용률",
     "compare.description": "2-4대 서버를 선택하여 주요 메트릭을 나란히 비교합니다",
@@ -1015,6 +1018,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "rack.uPosition": "U위치:",
     "rack.unpositioned": "위치 미지정",
     "rack.unrackedLoadFail": "미배치 장비 로드 실패",
+    "rack.unracked": "미배치 처리됨",
     "rack.unrackedPanel": "미배치 장비 추가",
     "rackManage.addRack": "랙 추가",
     "rackManage.addRoom": "Room 추가",

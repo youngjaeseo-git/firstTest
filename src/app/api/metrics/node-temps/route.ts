@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { instantQuery } from "@/lib/prometheus";
 import { buildHostnameIpMap } from "@/lib/hostname-resolver";
+import { getSessionUser } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const emptyResult = { data: { result: [] as { metric?: Record<string, string>; value?: [number, string] }[] } };
   const [hostnameIpMap, tempResult] = await Promise.all([
     buildHostnameIpMap({ withPrometheusFallback: true }),

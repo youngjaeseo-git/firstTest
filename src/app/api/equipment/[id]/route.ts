@@ -182,8 +182,12 @@ export async function DELETE(
     select: { hostname: true, ipAddress: true, serialNumber: true, type: true, organizationId: true },
   });
 
+  if (!equipment) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   // Org-based access check
-  if (equipment && !(await canAccessEquipment(user.id, user.role, equipment.organizationId))) {
+  if (!(await canAccessEquipment(user.id, user.role, equipment.organizationId))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

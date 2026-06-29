@@ -20,6 +20,7 @@ function evaluateCondition(value: number, op: string, threshold: number): boolea
     case ">=": return value >= threshold;
     case "<": return value < threshold;
     case "<=": return value <= threshold;
+    case "=":
     case "==": return value === threshold;
     case "!=": return value !== threshold;
     default: return false;
@@ -55,8 +56,10 @@ export async function runAlertCheck(): Promise<AlertCheckResult> {
         const source = s.metric?.instance || s.metric?.hostname || s.metric?.job || "unknown";
         firingSourcesNow.add(source);
 
+        // Include ACKNOWLEDGED so an already-acknowledged alert that keeps
+        // firing is not duplicated every cron run.
         const existing = await prisma.alert.findFirst({
-          where: { ruleId: rule.id, source, status: "FIRING" },
+          where: { ruleId: rule.id, source, status: { in: ["FIRING", "ACKNOWLEDGED"] } },
         });
         if (existing) continue;
 
@@ -74,8 +77,9 @@ export async function runAlertCheck(): Promise<AlertCheckResult> {
         alertsCreated++;
       }
 
+      // Auto-resolve both FIRING and ACKNOWLEDGED alerts whose source cleared.
       const openAlerts = await prisma.alert.findMany({
-        where: { ruleId: rule.id, status: "FIRING" },
+        where: { ruleId: rule.id, status: { in: ["FIRING", "ACKNOWLEDGED"] } },
       });
       for (const alert of openAlerts) {
         if (alert.source && !firingSourcesNow.has(alert.source)) {

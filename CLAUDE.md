@@ -61,7 +61,7 @@
 ### 왜 tsc/test 통과 후에도 런타임 에러가 나는가
 
 - `npm run typecheck` (tsc): **타입/문법만** 검사. 런타임 동작은 모름.
-- `npm run test:run` (vitest): 존재하는 단위 테스트 7개 파일(약 58개)만 실행. 새 기능·React 렌더링·DB·Prometheus 연동은 **커버하지 않음**.
+- `npm run test:run` (vitest): 존재하는 단위 테스트 8개 파일(약 62개)만 실행. 새 기능·React 렌더링·DB·Prometheus 연동은 **커버하지 않음**.
 - `npm run build` (next build): **컴파일 + Server/Client 경계 + import + RSC 직렬화**까지 검사 → tsc가 못 잡는 오류를 잡는다. 단, ISR 페이지(`/racks`, `/reports`)는 빌드 시 DB 프리렌더를 시도하므로 `DATABASE_URL`이 필요.
 - 그래도 못 잡는 것: 실제 데이터 형식 불일치, DB 마이그레이션 누락(`prisma db push`), Prometheus 응답 구조 → 회사망 배포 후 별도 확인 필요(아래 "검증 범위 명시" 참조).
 

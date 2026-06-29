@@ -428,7 +428,7 @@ export function ServerPageClient({ rooms, servers, initialView = "list" }: Serve
                   {filteredServers.length === 0 && (
                     <tr>
                       <td
-                        colSpan={8}
+                        colSpan={9}
                         className="px-4 py-12 text-center text-gray-500"
                       >
                         {query ? t("servers.noMatch") : t("servers.empty")}

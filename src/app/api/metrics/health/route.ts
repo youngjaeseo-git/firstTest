@@ -3,13 +3,10 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/rbac";
+import { escapeRe } from "@/lib/prometheus";
 
 const PROMETHEUS_URL =
   process.env.PROMETHEUS_URL || "http://10.100.175.248:8080";
-
-function escapeRe(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
 
 export async function GET() {
   const user = await getSessionUser();

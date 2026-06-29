@@ -210,7 +210,7 @@
 
 | 기능 | 상태 | 설명 |
 |------|------|------|
-| UI/디자인 개선 — PageHeader 통일 | ✅ 완료 | 17개 페이지의 raw h1 태그를 PageHeader 컴포넌트로 교체. 아이콘+그라데이션 배경+액센트 색상 통일 |
+| UI/디자인 개선 — PageHeader 통일 | ✅ 완료 | 31개 페이지의 raw h1 태그를 PageHeader 컴포넌트로 교체. 아이콘+그라데이션 배경+액센트 색상 통일 |
 | UI/디자인 개선 — Button 표준화 | ✅ 완료 | evaluations, discovery, prometheus-diagnostic, organizations 페이지의 raw button→shadcn Button 컴포넌트 교체 (19개 버튼) |
 | UI/디자인 개선 — inputClass 추출 | ✅ 완료 | 5개 페이지에 중복된 inputClass/labelClass를 `src/lib/styles.ts` 공유 모듈로 추출 |
 | UI/디자인 개선 — 테이블 패딩 표준화 | ✅ 완료 | firmware, reports, search, bmc 4개 페이지의 테이블 th/td 패딩을 `px-3 py-2` + `divide-y divide-gray-800` 표준 패턴으로 통일 |

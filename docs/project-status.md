@@ -68,7 +68,7 @@
 | 조직별 접근 제어 | **구현 완료** | DB + API + UI + RBAC 모두 구현 |
 | DB 컨테이너 이름 | **변경 불필요** | docker-compose에 이미 `dcim-db`로 적절한 네이밍 |
 | 로고 디자인 | **구현 완료** | 인라인 SVG (SK hynix 로고 + DC Express 텍스트) |
-| UI/디자인 통일 | **기본 완료** | CSS 변수 gray ramp, 다크모드, severity/rack 색상. PageHeader 30/39 페이지 적용 |
+| UI/디자인 통일 | **기본 완료** | CSS 변수 gray ramp, 다크모드, severity/rack 색상. PageHeader 31개 페이지 적용 |
 | 워크로드 스텝 정보 | **구현 완료** | StepConfig + StepConfigBadges 컴포넌트 존재 |
 
 ---

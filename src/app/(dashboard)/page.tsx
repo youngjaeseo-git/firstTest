@@ -26,9 +26,6 @@ export default async function DashboardPage() {
   let statusBreakdown: { status: string; _count: number }[] = [];
   let lab1StatusBreakdown: { status: string; _count: number }[] = [];
   let lab3StatusBreakdown: { status: string; _count: number }[] = [];
-  let maintenanceEquipmentList: { id: string; hostname: string | null; status: string; ipAddress: string | null }[] = [];
-  let failedEquipmentList: { id: string; hostname: string | null; status: string; ipAddress: string | null }[] = [];
-  let activeEquipmentList: { id: string; hostname: string | null; status: string; ipAddress: string | null }[] = [];
   let totalRacks = 0;
   let totalRooms = 0;
   let firingAlerts = 0;
@@ -44,9 +41,6 @@ export default async function DashboardPage() {
       statusBreakdown,
       lab1StatusBreakdown,
       lab3StatusBreakdown,
-      maintenanceEquipmentList,
-      failedEquipmentList,
-      activeEquipmentList,
       totalRacks,
       totalRooms,
       firingAlerts,
@@ -70,36 +64,6 @@ export default async function DashboardPage() {
         by: ["status"],
         where: lab3Where,
         _count: true,
-      }),
-      prisma.equipment.findMany({
-        where: { status: { in: ["MAINTENANCE", "REPAIR"] } },
-        select: {
-          id: true,
-          hostname: true,
-          status: true,
-          ipAddress: true,
-        },
-        take: 10,
-      }),
-      prisma.equipment.findMany({
-        where: { status: "FAILED" },
-        select: {
-          id: true,
-          hostname: true,
-          status: true,
-          ipAddress: true,
-        },
-        take: 10,
-      }),
-      prisma.equipment.findMany({
-        where: { status: "ACTIVE" },
-        select: {
-          id: true,
-          hostname: true,
-          status: true,
-          ipAddress: true,
-        },
-        take: 10,
       }),
       prisma.rack.count(),
       prisma.room.count(),
@@ -131,7 +95,7 @@ export default async function DashboardPage() {
         where: { status: "FIRING" },
         _count: true,
       }),
-    ]) as [typeof statusBreakdown, typeof lab1StatusBreakdown, typeof lab3StatusBreakdown, typeof maintenanceEquipmentList, typeof failedEquipmentList, typeof activeEquipmentList, typeof totalRacks, typeof totalRooms, typeof firingAlerts, typeof recentAlerts, typeof equipmentMapping, typeof allEquipmentForPlatform, typeof promTargets, typeof alerts24hBySeverity, typeof firingBySeverity];
+    ]) as [typeof statusBreakdown, typeof lab1StatusBreakdown, typeof lab3StatusBreakdown, typeof totalRacks, typeof totalRooms, typeof firingAlerts, typeof recentAlerts, typeof equipmentMapping, typeof allEquipmentForPlatform, typeof promTargets, typeof alerts24hBySeverity, typeof firingBySeverity];
   } catch (err) {
     console.error("Dashboard data fetch failed:", err);
   }
@@ -162,7 +126,6 @@ export default async function DashboardPage() {
       .reduce((sum, g) => sum + g._count, 0);
   }
 
-  const totalEquipment = statusBreakdown.reduce((sum, g) => sum + g._count, 0);
   const activeEquipmentCount = countFromGroupBy(statusBreakdown, "ACTIVE");
   const maintenanceCount = countFromGroupBy(statusBreakdown, ["MAINTENANCE", "REPAIR"]);
   const failedCount = countFromGroupBy(statusBreakdown, "FAILED");

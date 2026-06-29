@@ -542,11 +542,6 @@ export function MemoryEditor({
               </tbody>
             </table>
           </div>
-          {slots.length === 0 && (
-            <div className="px-6 py-8 text-center text-sm text-gray-500">
-              No DIMM slots defined. Use &quot;Add Slot&quot; or &quot;Add N Empty Slots&quot; to begin.
-            </div>
-          )}
         </Card>
       )}
 
