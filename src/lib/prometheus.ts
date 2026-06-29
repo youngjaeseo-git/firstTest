@@ -195,6 +195,13 @@ const CLUSTER_NE: Record<Cluster, string> = {
   lab3: `${NE_JOB},instance=~"10.144.131..*"`,
 };
 
+// cAdvisor instance 라벨은 hostname 형식이다(IP 아님). 2026-06-29 확인:
+// 중앙 Prometheus의 cAdvisor(job=kubernetes-cadvisor)는 Lab-1 클러스터 30노드만
+// 수집하며 Lab-3 cAdvisor는 비기능이라 데이터가 없다. 따라서 lab3 매처(.*131.*)는
+// 0개를 매칭하지만 실제 Lab-3 cAdvisor도 0개라 결과적으로 정확하다.
+// ⚠️ 잠재 위험: Lab-3 cAdvisor가 향후 활성화되면 lab1의 .*14ae.*가 Lab-3 hostname
+// (s222h*x14ae*)까지 흡수한다. hostname만으로는 Lab-1/Lab-3 구분이 불가(끝자리 차이뿐)
+// 하므로 그때는 hostname→IP 매핑(node_uname_info) 기반으로 재작성해야 한다.
 const CLUSTER_CA: Record<Cluster, string> = {
   all: `container!=""`,
   lab1: `container!="",instance=~".*13ae.*|.*14ae.*|k8-master"`,
