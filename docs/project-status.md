@@ -57,7 +57,7 @@
 |------|------|-------------|
 | Lab-3 cAdvisor 메트릭 | 인프라팀에 ConfigMap 수리 요청? | node-exporter는 통합 완료. cAdvisor는 인프라팀 영역 |
 | 클러스터 매처(cAdvisor/up) | 실제 cAdvisor instance 라벨? | lab1/lab3 hostname 오집계 가능. Data-First 확인 후 CLUSTER_CA+UP 동시 수정 (2026-06-29 감사). node-exporter 살아있으면 증상 가려짐 |
-| 죽은 의존성 제거 | socket.io/jspdf/zustand 등 제거? | 실제 미사용 10+개. verify:full(빌드) 후 제거 권장 (2026-06-29 감사) |
+| ~~죽은 의존성 제거~~ | socket.io/jspdf/zustand 등 | **현행 유지 결정(2026-06-29)** — import 0회 확인했으나 폐쇄망 리스크 > 정리 이득. 기능 영향 없음 |
 
 > 2026-06-29 8-에이전트 소스 감사 → 안전·명확한 버그/데드코드는 즉시 수정 완료. 위 3개는 데이터/빌드 확인이 선행되는 후속 작업. 전체 요약: docs/project-handover.md §7-8
 

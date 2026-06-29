@@ -81,9 +81,11 @@
 - **조직 접근 정책**: 수정 완료 (비ADMIN org null/미소속 차단 통일 + POST org 검증)
 - **evaluations 라우트**: 현행 유지 — 고립 아님(Workloads의 Evaluation 탭이 사용 중)
 
-### 후속 작업 (데이터/빌드 확인 선행)
-- **클러스터 매처(cAdvisor/up)**: lab1/lab3 hostname 오집계 가능 — 실제 cAdvisor instance 라벨 Data-First 확인 후 CLUSTER_CA+UP 동시 수정 (node-exporter 살아있으면 증상 가려짐)
-- **죽은 의존성 제거**: socket.io, jspdf, html2canvas, zustand, @dnd-kit×3, date-fns, react-table 등 — verify:full(빌드) 후 제거 권장
+### 후속 작업 (데이터 확인 선행)
+- **클러스터 매처(cAdvisor/up)**: lab1/lab3 hostname 오집계 가능 — `check/targetExecCmd/20260629-cadvisor-labels.sh` 실행 → 결과로 CLUSTER_CA+UP 매처 수정 (node-exporter 살아있으면 증상 가려짐, 우선순위 중간)
+
+### 결정: 현행 유지
+- **죽은 의존성 16개**(socket.io/jspdf/html2canvas/zustand/@dnd-kit×3/date-fns/react-table/radix 일부): import 0회지만 폐쇄망 리스크 > 정리 이득 → 그냥 둠 (기능 영향 없음)
 
 ### 보류 (요건 미확정)
 - DRAM 인증 테스트 관리 / 온도 외부 DB 연동
