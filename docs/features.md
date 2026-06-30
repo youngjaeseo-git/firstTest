@@ -22,7 +22,7 @@
 | Prometheus 연결 상태 | ✅ 완료 | 연결 성공/실패 인디케이터 |
 | 에러 바운더리 | ✅ 완료 | Prometheus 장애 시 UI 깨지지 않음 |
 | 워크로드 카드 상세 | ✅ 완료 | Active Workloads 카드에 워크로드 이름(created_by_name) 자동 표시 + Duration 표시. K8s에서 자동 감지 가능한 정보만 표시 |
-| 파일시스템 경고 | ✅ 완료 | 디스크 사용률 70% 초과 서버 경고 섹션. 서버별 사용률 바 + 호스트명 표시(Equipment DB IP→hostname/id 맵), 등록 서버는 /servers/{id}로 링크, 60초 자동 갱신 |
+| 파일시스템 경고 | ✅ 완료 | 디스크 사용률 70% 초과 서버 경고 섹션. 서버별 사용률 바 + 호스트명 표시(Equipment DB IP+hostname→id 맵), 서버 단위 dedup(여러 job 중복 수집 합침), 등록 서버는 /servers/{id}로 링크, 60초 자동 갱신 |
 | 노드 카운트 필터 | ✅ 완료 | Prometheus Nodes Up/Down 카운트를 DB 등록 서버만 필터링 (Equipment.ipAddress 기준) |
 | Favicon | ✅ 완료 | 브라우저 탭/즐겨찾기에 DRAM 셀 그리드 로고 아이콘 표시 (icon.tsx + apple-icon.tsx) |
 
