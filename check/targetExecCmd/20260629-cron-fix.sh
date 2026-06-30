@@ -1,4 +1,6 @@
 #!/bin/bash
+# ⚠️ "앱=docker dcim-app" 전제 스크립트. 실제 운영은 systemd(dcim)라 dcim-app 컨테이너 없음 →
+#    쓰지 말 것. systemd 운영 cron: 20260629-cron-restart.sh 사용.
 # dcim-app에 CRON_SECRET 주입 — compose 미사용, dcim-app만 재생성.
 # DB(dcim-db)·볼륨·firsttest-* 는 전혀 건드리지 않음. 기존 이미지 재사용(재빌드 없음).
 # ⚠️ 먼저 20260629-docker-diag.sh 결과를 공유해 확인받은 뒤 실행하세요.

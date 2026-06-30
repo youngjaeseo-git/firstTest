@@ -1,4 +1,7 @@
 #!/bin/bash
+# ⚠️ 이 스크립트는 "앱이 docker 컨테이너(dcim-app)인 배포" 전제다. 실제 운영은 systemd(dcim)+
+#    호스트 postgres 도커(db, 5433)라 dcim-app 컨테이너가 없다 → 이 스크립트 쓰지 말 것.
+#    systemd 운영 cron 주입: .env에 CRON_SECRET 추가 후 20260629-cron-restart.sh 사용.
 # 알림/만료 cron 설정 — CRON_SECRET 주입 + 컨테이너 재기동 + crontab 등록 + 검증
 # 실행: docker 호스트(38.100 서버)에서, bash check/targetExecCmd/20260629-cron-setup.sh
 # 전제: 최신 docker-compose.yml(CRON_SECRET 전달 추가본)이 서버에 반영돼 있어야 함

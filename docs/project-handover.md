@@ -40,6 +40,24 @@
   - 쿼리 전략: node-exporter(IP instance, `job="node-exporter"`) 우선, cAdvisor(hostname) 폴백
 - **Lab-3 cAdvisor**: 비기능 — 인프라팀 ConfigMap 영역
 
+## 3-1. ⚠️ 실제 운영 배포 구조 (반드시 숙지 — 2026-06-30 사고로 확정)
+
+운영은 **하이브리드**다. docker-compose로 앱 전체를 띄우는 구조가 **아니다.**
+
+| 구성 | 실제 |
+|------|------|
+| **앱** | **systemd 서비스 `dcim`** → `scripts/service-start.sh` → `npm run dev`(또는 prod 시 build→start). 포트 3000. |
+| **DB** | **docker 컨테이너 `dcim-db`** (postgres:16-alpine), 호스트 포트 **5433** 으로 publish (`DB_PORT=5433` in `.env`). 데이터 볼륨 `firsttest_pgdata`. |
+| 앱→DB 연결 | `service-start.sh`가 `docker compose port db 5432`로 5433을 읽어 `DATABASE_URL=...@localhost:5433` 조립 |
+| 호스트 postgres 12 (:5432) | **운영과 무관한 별도 설치**. 앱은 5432가 아니라 **5433**을 쓴다. |
+
+**하면 안 되는 것 / 주의:**
+- ❌ `docker compose up -d app` 금지 — 앱은 systemd라 docker app은 불필요하고, db를 기본 5432로 재생성하려다 호스트 postgres와 충돌해 **운영 db를 멈춘다**(2026-06-30 실제 사고). db만 다룰 땐 반드시 `DB_PORT=5433 docker compose up -d db`.
+- ❌ `docker compose down -v` 절대 금지 (볼륨 `firsttest_pgdata` 삭제 = 데이터 손실).
+- **재시작**: env만 바뀌면 `systemctl restart dcim`(가벼움, .env 재로드). 코드 바뀌면 `sudo bash scripts/rebuild-prod.sh`(풀 빌드).
+- **cron**: 운영이 systemd이므로 `.env`에 `CRON_SECRET` 추가 후 `systemctl restart dcim` 으로 주입(next dev가 .env 자동 로드). docker용 `20260629-cron-setup.sh`/`cron-fix.sh`는 **이 배포에 안 맞음** — `20260629-cron-restart.sh` 사용.
+- **리네이밍 주의**: 디렉토리명이 firstTest라 compose 프로젝트명=firsttest → 볼륨/이미지가 `firsttest_*`. container_name만 dcim으로 바뀐 절반-적용 상태이나 **운영 무영향**(앱·db 접근이 이 prefix에 의존 안 함). 프로젝트명을 dcim으로 강제하면 빈 `dcim_pgdata`가 생겨 데이터 단절되니 손대지 말 것.
+
 ## 4. 기능 영역 (→ docs/features.md, 단일 권위)
 
 대시보드 · 서버 모니터링(CPU/Mem/Disk/Net/온도/PCIe/BMC) · 메모리 상세(DIMM) · 인프라 관리(장비 CRUD/CSV/펌웨어/BMC전원) · 랙 관리(시각화/히트맵/DnD) · Digital Twin(평면도/줌·팬/편집) · 워크로드 · 알림 관리(규칙 평가 엔진/이력/채널/에스컬레이션/유지보수창) · 설정(RBAC/감사로그/조직별 접근제어) · 용량/리포트 · 운영 자동화(백업/cron)
