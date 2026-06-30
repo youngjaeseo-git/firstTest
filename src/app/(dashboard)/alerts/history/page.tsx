@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge, SeverityBadge } from "@/components/ui/badge";
@@ -103,6 +103,9 @@ export default function AlertHistoryPage() {
       if (severity) params.set("severity", severity);
       if (status) params.set("status", status);
       if (category) params.set("category", category);
+      // Date range is applied server-side so total/pagination match the rows.
+      const rangeStart = getDateRangeFilter(dateRange);
+      if (rangeStart) params.set("from", rangeStart.toISOString());
 
       const res = await fetch(`/api/alerts?${params.toString()}`);
       if (res.ok) {
@@ -114,7 +117,7 @@ export default function AlertHistoryPage() {
       // silently fail
     }
     setLoading(false);
-  }, [page, severity, status, category]);
+  }, [page, severity, status, category, dateRange]);
 
   // Load categories once
   useEffect(() => {
@@ -145,12 +148,9 @@ export default function AlertHistoryPage() {
     setPage(1);
   }, [severity, status, category, dateRange]);
 
-  // Client-side date range filtering (since API doesn't support date params)
-  const filteredAlerts = useMemo(() => {
-    const rangeStart = getDateRangeFilter(dateRange);
-    if (!rangeStart) return alerts;
-    return alerts.filter((a) => new Date(a.firedAt) >= rangeStart);
-  }, [alerts, dateRange]);
+  // Date range is now filtered server-side (see fetchAlerts); alerts already
+  // reflect the selected range, count, and pagination.
+  const filteredAlerts = alerts;
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 

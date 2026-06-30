@@ -30,7 +30,7 @@ export async function GET(
   if (!eq) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  if (user.role !== "ADMIN" && eq.organizationId && !user.orgIds?.includes(eq.organizationId)) {
+  if (user.role !== "ADMIN" && (!eq.organizationId || !user.orgIds?.includes(eq.organizationId))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -80,7 +80,7 @@ export async function PUT(
   if (!eq) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  if (user.role !== "ADMIN" && eq.organizationId && !user.orgIds?.includes(eq.organizationId)) {
+  if (user.role !== "ADMIN" && (!eq.organizationId || !user.orgIds?.includes(eq.organizationId))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

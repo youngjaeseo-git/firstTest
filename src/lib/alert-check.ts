@@ -78,16 +78,21 @@ export async function runAlertCheck(): Promise<AlertCheckResult> {
       }
 
       // Auto-resolve both FIRING and ACKNOWLEDGED alerts whose source cleared.
-      const openAlerts = await prisma.alert.findMany({
-        where: { ruleId: rule.id, status: { in: ["FIRING", "ACKNOWLEDGED"] } },
-      });
-      for (const alert of openAlerts) {
-        if (alert.source && !firingSourcesNow.has(alert.source)) {
-          await prisma.alert.update({
-            where: { id: alert.id },
-            data: { status: "RESOLVED", resolvedAt: new Date() },
-          });
-          alertsResolved++;
+      // Guard: only resolve when the query actually returned data. An empty
+      // result (e.g. a transient Prometheus scrape gap) must NOT resolve every
+      // open alert — that causes resolve→re-fire flapping each cron run.
+      if (series.length > 0) {
+        const openAlerts = await prisma.alert.findMany({
+          where: { ruleId: rule.id, status: { in: ["FIRING", "ACKNOWLEDGED"] } },
+        });
+        for (const alert of openAlerts) {
+          if (alert.source && !firingSourcesNow.has(alert.source)) {
+            await prisma.alert.update({
+              where: { id: alert.id },
+              data: { status: "RESOLVED", resolvedAt: new Date() },
+            });
+            alertsResolved++;
+          }
         }
       }
     } catch {

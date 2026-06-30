@@ -59,7 +59,7 @@ export async function GET(
   }
 
   // Org-based access check
-  if (user.role !== "ADMIN" && equipment.organizationId && !user.orgIds?.includes(equipment.organizationId)) {
+  if (user.role !== "ADMIN" && (!equipment.organizationId || !user.orgIds?.includes(equipment.organizationId))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -128,7 +128,7 @@ export async function POST(
   }
 
   // Org-based access check
-  if (user.role !== "ADMIN" && equipment.organizationId && !user.orgIds?.includes(equipment.organizationId)) {
+  if (user.role !== "ADMIN" && (!equipment.organizationId || !user.orgIds?.includes(equipment.organizationId))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
