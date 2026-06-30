@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" font-family="'Segoe UI', sans-serif">
+  <!-- Background -->
+  <rect width="1000" height="520" fill="#f8fafc" rx="12"/>
+
+  <!-- Title -->
+  <text x="500" y="36" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">AI와 미로찾기 — 두 가지 다른 세계</text>
+
+  <!-- ===== LEFT: Newspaper Maze ===== -->
+  <rect x="20" y="55" width="460" height="440" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" rx="10"/>
+  <text x="250" y="82" text-anchor="middle" font-size="15" font-weight="bold" fill="#3b82f6">신문 미로찾기</text>
+  <text x="250" y="100" text-anchor="middle" font-size="11" fill="#64748b">목표가 보인다. 거꾸로 올라갈 수 있다.</text>
+
+  <!-- Maze walls (left) -->
+  <g stroke="#cbd5e1" stroke-width="2.5" fill="none">
+    <!-- Outer border -->
+    <rect x="60" y="115" width="380" height="330" rx="3"/>
+    <!-- Internal walls -->
+    <line x1="60" y1="175" x2="160" y2="175"/>
+    <line x1="120" y1="115" x2="120" y2="175"/>
+    <line x1="200" y1="175" x2="200" y2="235"/>
+    <line x1="200" y1="175" x2="320" y2="175"/>
+    <line x1="320" y1="115" x2="320" y2="175"/>
+    <line x1="60" y1="235" x2="140" y2="235"/>
+    <line x1="180" y1="235" x2="260" y2="235"/>
+    <line x1="260" y1="175" x2="260" y2="295"/>
+    <line x1="320" y1="235" x2="440" y2="235"/>
+    <line x1="320" y1="235" x2="320" y2="295"/>
+    <line x1="60" y1="295" x2="200" y2="295"/>
+    <line x1="120" y1="295" x2="120" y2="355"/>
+    <line x1="200" y1="295" x2="200" y2="355"/>
+    <line x1="260" y1="295" x2="260" y2="355"/>
+    <line x1="380" y1="295" x2="440" y2="295"/>
+    <line x1="380" y1="235" x2="380" y2="355"/>
+    <line x1="60" y1="355" x2="80" y2="355"/>
+    <line x1="140" y1="355" x2="260" y2="355"/>
+    <line x1="300" y1="355" x2="380" y2="355"/>
+    <line x1="300" y1="355" x2="300" y2="445"/>
+    <line x1="200" y1="385" x2="200" y2="445"/>
+    <line x1="120" y1="385" x2="120" y2="445"/>
+    <line x1="380" y1="385" x2="440" y2="385"/>
+  </g>
+
+  <!-- Start label (left maze) -->
+  <circle cx="80" cy="135" r="14" fill="#22c55e" opacity="0.15"/>
+  <circle cx="80" cy="135" r="8" fill="#22c55e"/>
+  <text x="80" y="139" text-anchor="middle" font-size="10" fill="white" font-weight="bold">S</text>
+
+  <!-- Goal label (left maze) -->
+  <circle cx="420" cy="420" r="14" fill="#ef4444" opacity="0.15"/>
+  <circle cx="420" cy="420" r="8" fill="#ef4444"/>
+  <text x="420" y="424" text-anchor="middle" font-size="10" fill="white" font-weight="bold">G</text>
+
+  <!-- Correct path (left — traced from goal backwards, dashed blue) -->
+  <path d="M80,135 L80,200 L160,200 L160,260 L100,260 L100,330 L160,330 L160,380 L250,380 L250,420 L280,420 L280,380 L350,380 L350,420 L420,420"
+        stroke="#3b82f6" stroke-width="2.5" stroke-dasharray="6,3" fill="none" opacity="0.7"/>
+
+  <!-- Eye icon looking at goal -->
+  <g transform="translate(410,370)">
+    <ellipse cx="0" cy="0" rx="14" ry="9" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+    <circle cx="0" cy="0" r="4" fill="#3b82f6"/>
+    <line x1="-5" y1="-18" x2="0" y2="-10" stroke="#3b82f6" stroke-width="1" stroke-dasharray="2,2"/>
+  </g>
+
+  <!-- Left summary -->
+  <text x="250" y="470" text-anchor="middle" font-size="12" fill="#3b82f6" font-weight="600">목표점이 보이니까 역추적이 가능하다</text>
+
+  <!-- ===== RIGHT: Fog-of-War Maze ===== -->
+  <rect x="520" y="55" width="460" height="440" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" rx="10"/>
+  <text x="750" y="82" text-anchor="middle" font-size="15" font-weight="bold" fill="#ef4444">현실 / AI 사용</text>
+  <text x="750" y="100" text-anchor="middle" font-size="11" fill="#64748b">목표가 안 보인다. 앞만 보고 가야 한다.</text>
+
+  <!-- Fog overlay for most of the maze -->
+  <defs>
+    <radialGradient id="fog" cx="0.15" cy="0.15" r="0.35">
+      <stop offset="0%" stop-color="white" stop-opacity="0"/>
+      <stop offset="70%" stop-color="#f1f5f9" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#e2e8f0" stop-opacity="0.95"/>
+    </radialGradient>
+    <radialGradient id="fogDense" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#e2e8f0" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#cbd5e1" stop-opacity="0.95"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Maze walls (right — same structure but mostly hidden) -->
+  <g stroke="#cbd5e1" stroke-width="2.5" fill="none">
+    <rect x="560" y="115" width="380" height="330" rx="3"/>
+    <line x1="560" y1="175" x2="660" y2="175"/>
+    <line x1="620" y1="115" x2="620" y2="175"/>
+    <line x1="700" y1="175" x2="700" y2="235"/>
+    <line x1="700" y1="175" x2="820" y2="175"/>
+    <line x1="820" y1="115" x2="820" y2="175"/>
+    <line x1="560" y1="235" x2="640" y2="235"/>
+    <line x1="680" y1="235" x2="760" y2="235"/>
+    <line x1="760" y1="175" x2="760" y2="295"/>
+    <line x1="820" y1="235" x2="940" y2="235"/>
+    <line x1="820" y1="235" x2="820" y2="295"/>
+    <line x1="560" y1="295" x2="700" y2="295"/>
+    <line x1="620" y1="295" x2="620" y2="355"/>
+    <line x1="700" y1="295" x2="700" y2="355"/>
+    <line x1="760" y1="295" x2="760" y2="355"/>
+    <line x1="880" y1="295" x2="940" y2="295"/>
+    <line x1="880" y1="235" x2="880" y2="355"/>
+    <line x1="560" y1="355" x2="580" y2="355"/>
+    <line x1="640" y1="355" x2="760" y2="355"/>
+    <line x1="800" y1="355" x2="880" y2="355"/>
+    <line x1="800" y1="355" x2="800" y2="445"/>
+    <line x1="700" y1="385" x2="700" y2="445"/>
+    <line x1="620" y1="385" x2="620" y2="445"/>
+    <line x1="880" y1="385" x2="940" y2="385"/>
+  </g>
+
+  <!-- Fog overlay -->
+  <rect x="560" y="115" width="380" height="330" fill="url(#fog)" rx="3"/>
+  <!-- Extra fog on bottom-right (goal area) -->
+  <rect x="720" y="300" width="220" height="145" fill="url(#fogDense)" rx="3"/>
+
+  <!-- Question marks in fog -->
+  <text x="850" y="350" font-size="28" fill="#94a3b8" opacity="0.6" font-weight="bold">?</text>
+  <text x="780" y="420" font-size="22" fill="#94a3b8" opacity="0.5" font-weight="bold">?</text>
+  <text x="910" y="410" font-size="18" fill="#94a3b8" opacity="0.4" font-weight="bold">?</text>
+
+  <!-- Start (right maze) -->
+  <circle cx="580" cy="135" r="14" fill="#22c55e" opacity="0.15"/>
+  <circle cx="580" cy="135" r="8" fill="#22c55e"/>
+  <text x="580" y="139" text-anchor="middle" font-size="10" fill="white" font-weight="bold">S</text>
+
+  <!-- Wrong path (red, with X marks) -->
+  <path d="M580,135 L580,200 L660,200 L660,260 L720,260 L720,200 L780,200 L780,260 L780,280"
+        stroke="#ef4444" stroke-width="2.5" fill="none" opacity="0.6"/>
+  <!-- Dead end X -->
+  <g transform="translate(780,285)" stroke="#ef4444" stroke-width="2.5" opacity="0.8">
+    <line x1="-6" y1="-6" x2="6" y2="6"/>
+    <line x1="6" y1="-6" x2="-6" y2="6"/>
+  </g>
+  <!-- Label: stuck -->
+  <rect x="790" y="270" width="94" height="20" fill="#fef2f2" rx="4" stroke="#fecaca" stroke-width="1"/>
+  <text x="837" y="284" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="600">막다른 길!</text>
+
+  <!-- Wandering attempts from dead end (lighter red, multiple) -->
+  <path d="M780,280 L780,250 L800,250 L800,230"
+        stroke="#f87171" stroke-width="1.5" stroke-dasharray="3,3" fill="none" opacity="0.5"/>
+  <path d="M780,280 L800,280 L800,300"
+        stroke="#f87171" stroke-width="1.5" stroke-dasharray="3,3" fill="none" opacity="0.5"/>
+
+  <!-- Token/time waste indicator -->
+  <g transform="translate(855,220)">
+    <rect x="-40" y="-12" width="80" height="24" fill="#fef2f2" rx="4" stroke="#fecaca" stroke-width="1"/>
+    <text x="0" y="4" text-anchor="middle" font-size="9" fill="#dc2626">토큰 + 시간 낭비</text>
+  </g>
+
+  <!-- Right summary -->
+  <text x="750" y="470" text-anchor="middle" font-size="12" fill="#ef4444" font-weight="600">잘못된 길에서 아무리 발버둥쳐도 해결 안 된다</text>
+
+  <!-- Bottom insight box -->
+  <rect x="100" y="498" width="800" height="2" fill="#e2e8f0"/>
+  <text x="500" y="515" text-anchor="middle" font-size="11" fill="#475569" font-style="italic">"막다른 길인 걸 인지하는 순간, 되돌아가는 것이 가장 빠른 전진이다"</text>
+</svg>

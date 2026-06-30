@@ -1,0 +1,20 @@
+# Prometheus scrape config 추가 항목
+# 기존 ConfigMap (prometheus-config 등)에 scrape_configs 아래에 추가하세요.
+#
+# 확인: kubectl -n monitoring get configmap | grep prometheus
+# 편집: kubectl -n monitoring edit configmap <prometheus-configmap-name>
+#
+# scrape_configs 섹션에 아래 job 추가:
+
+    - job_name: 'node-exporter'
+      kubernetes_sd_configs:
+        - role: node
+      relabel_configs:
+        # node-exporter는 hostNetwork:true + port 9100 사용
+        - source_labels: [__address__]
+          regex: '(.+):.*'
+          replacement: '${1}:9100'
+          target_label: __address__
+        # 호스트네임을 instance 라벨로 사용 (기존 kubernetes-cadvisor와 일관성 유지)
+        - source_labels: [__meta_kubernetes_node_name]
+          target_label: instance

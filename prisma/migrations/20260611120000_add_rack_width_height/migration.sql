@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Rack" ADD COLUMN "width" INTEGER;
+ALTER TABLE "Rack" ADD COLUMN "height" INTEGER;

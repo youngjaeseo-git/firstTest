@@ -1,0 +1,17 @@
+[Unit]
+Description=BMC Reverse Proxy for DCIM
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/bmc-proxy/bmc-proxy.py
+Environment=BMC_PROXY_PORT=8443
+Environment=BMC_PROXY_ALLOWED=10.144.38.100
+Environment=BMC_PROXY_TIMEOUT=15
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

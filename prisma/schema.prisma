@@ -1,0 +1,697 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "debian-openssl-1.1.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Auth Models
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          Role      @default(VIEWER)
+  approved      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  alertAcks     AlertAcknowledgement[]
+  auditLogs     AuditLog[]
+  organizations UserOrganization[]
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members   UserOrganization[]
+  equipment Equipment[]
+}
+
+model UserOrganization {
+  userId         String
+  organizationId String
+  role           Role     @default(VIEWER)
+  joinedAt       DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([userId, organizationId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  ADMIN
+  OPERATOR
+  VIEWER
+}
+
+// ============================================
+// Data Center Models
+// ============================================
+
+model DataCenter {
+  id          String   @id @default(cuid())
+  name        String
+  location    String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rooms Room[]
+}
+
+model Room {
+  id           String   @id @default(cuid())
+  name         String
+  sortOrder    Int      @default(0)
+  dataCenterId String
+  description  String?
+  layoutX      Int?
+  layoutY      Int?
+  layoutW      Int?
+  layoutH      Int?
+  bmcProxyUrl  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  dataCenter DataCenter    @relation(fields: [dataCenterId], references: [id], onDelete: Cascade)
+  racks      Rack[]
+  elements   RoomElement[]
+}
+
+model RoomElement {
+  id         String   @id @default(cuid())
+  roomId     String
+  type       String   // COOLING, PDU, SWITCH, MASTER_SERVER
+  name       String?
+  positionX  Int      @default(0)
+  positionY  Int      @default(0)
+  width      Int?
+  height     Int?
+  rotation   Int?     @default(0)
+  metadata   Json?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// Rack & Equipment Models
+// ============================================
+
+model Rack {
+  id            String   @id @default(cuid())
+  name          String
+  roomId        String
+  rowLabel      String?    // e.g., "A", "B" - for grouping within room
+  sortOrder     Int        @default(0) // ordering within room
+  totalUnits    Int        @default(42)
+  maxPowerWatts Int?
+  positionX     Int?       // room layout grid X
+  positionY     Int?       // room layout grid Y
+  width         Int?       // SVG width override
+  height        Int?       // SVG height override
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  room      Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  equipment Equipment[]
+  pdus      PDU[]
+}
+
+model Equipment {
+  id             String          @id @default(cuid())
+  hostname       String?
+  ipAddress      String?
+  type           EquipmentType
+  manufacturer   String?
+  model          String?
+  serialNumber   String?         @unique
+  assetTag       String?         @unique
+  rackId         String?
+  rackPosition   Int?            // U position in rack (bottom = 1)
+  rackHeight     Int             @default(1) // Height in U
+  status         EquipmentStatus @default(ACTIVE)
+  // System-level info
+  osType         String?         // "Linux", "Windows", "ESXi"
+  osVersion      String?
+  biosVersion    String?
+  bmcIpAddress   String?         // IPMI/BMC address
+  totalMemoryGB  Int?            // Cached total memory
+  purchaseDate   DateTime?
+  warrantyExpiry DateTime?
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  rack             Rack?              @relation(fields: [rackId], references: [id], onDelete: SetNull)
+  organizationId   String?
+  organization     Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  cpus             EquipmentCpu[]
+  memories         EquipmentMemory[]
+  networkPorts     NetworkPort[]
+  prometheusTarget PrometheusTarget?
+  evalResults      EvalResult[]
+  assignments      EquipmentAssignment[]
+
+  // Prometheus target label for metric queries (legacy, prefer PrometheusTarget relation)
+  prometheusInstance String?
+
+  @@index([organizationId])
+}
+
+enum EquipmentType {
+  SERVER
+  SWITCH
+  ROUTER
+  FIREWALL
+  STORAGE
+  PDU
+  UPS
+  PATCH_PANEL
+  OTHER
+}
+
+enum EquipmentStatus {
+  PLANNED           // Ordered / expected
+  RECEIVING         // Physically received, not installed
+  INSTALLED         // Mounted in rack but not in production
+  ACTIVE            // In production
+  MAINTENANCE       // Under planned maintenance
+  REPAIR            // Sent for repair (수리 의뢰)
+  FAILED            // Hardware failure
+  DECOMMISSIONED    // Retired from service
+  DISPOSED          // Physically removed / scrapped
+}
+
+// ============================================
+// CPU & Memory Detail Models
+// ============================================
+
+model EquipmentCpu {
+  id            String  @id @default(cuid())
+  equipmentId   String
+  socketIndex   Int     @default(0)     // 0-based socket number
+  manufacturer  String?                 // "Intel", "AMD"
+  model         String?                 // "Xeon Gold 6348"
+  cores         Int?
+  threads       Int?
+  baseFreqMhz   Int?                    // Base clock in MHz
+  maxFreqMhz    Int?                    // Turbo/boost clock in MHz
+  architecture  String?                 // "x86_64", "aarch64"
+  tdpWatts      Int?
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([equipmentId, socketIndex])
+}
+
+/// DIMM slot level memory detail (HIGH PRIORITY)
+model EquipmentMemory {
+  id              String      @id @default(cuid())
+  equipmentId     String
+  slotName        String      // "DIMM_A1", "DIMM_B2", "CPU0_CH0_DIMM0"
+  slotIndex       Int         // 0-based for ordering
+  populated       Boolean     @default(false) // Whether a DIMM is installed
+  capacityGb      Float?      // e.g. 32, 64
+  memoryType      MemoryType? // DDR4, DDR5, HBM, etc.
+  manufacturer    String?     // "Samsung", "SK Hynix", "Micron"
+  partNumber      String?
+  serialNumber    String?
+  speedMhz        Int?        // Rated speed, e.g. 3200
+  currentSpeedMhz Int?        // Actual running speed
+  rank            Int?        // Single=1, Dual=2, Quad=4
+  eccEnabled      Boolean?
+  formFactor      String?     // "RDIMM", "LRDIMM", "UDIMM"
+  voltage         Float?      // e.g. 1.2V
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([equipmentId, slotIndex])
+  @@index([equipmentId])
+}
+
+enum MemoryType {
+  DDR3
+  DDR4
+  DDR5
+  HBM
+  HBM2
+  HBM2E
+  HBM3
+  LPDDR4
+  LPDDR5
+}
+
+// ============================================
+// Network & Power Models
+// ============================================
+
+model NetworkPort {
+  id          String  @id @default(cuid())
+  name        String
+  equipmentId String
+  speed       String? // e.g., "1G", "10G", "25G", "100G"
+  connected   Boolean @default(false)
+  connectedTo String? // ID of connected port
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+}
+
+model PDU {
+  id            String   @id @default(cuid())
+  name          String
+  rackId        String
+  maxAmps       Float?
+  voltage       Int?     @default(220)
+  phases        Int?     @default(1)
+  outlets       Int?
+  snmpTarget    String?  // For SNMP polling
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  rack Rack @relation(fields: [rackId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// Prometheus Auto-Discovery
+// ============================================
+
+model PrometheusTarget {
+  id          String   @id @default(cuid())
+  instance    String   @unique    // e.g., "10.144.38.50:9100"
+  job         String              // e.g., "node_exporter"
+  hostname    String?
+  labels      Json?               // All Prometheus labels
+  health      String   @default("unknown") // "up", "down", "unknown"
+  lastSeen    DateTime @default(now())
+  equipmentId String?  @unique    // Linked Equipment record
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  equipment Equipment? @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+}
+
+// ============================================
+// Alert Models
+// ============================================
+
+model AlertRule {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  metric      String        // PromQL expression
+  condition   String        // e.g., "> 80"
+  duration    Int           // seconds
+  severity    AlertSeverity
+  category    String?       // e.g., "temperature", "disk", "network"
+  enabled     Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  alerts Alert[]
+}
+
+model Alert {
+  id         String        @id @default(cuid())
+  ruleId     String?
+  status     AlertStatus   @default(FIRING)
+  severity   AlertSeverity
+  category   String?       // For category-based filtering
+  summary    String
+  details    String?
+  source     String?       // server/equipment identifier
+  firedAt    DateTime      @default(now())
+  resolvedAt DateTime?
+
+  rule            AlertRule?             @relation(fields: [ruleId], references: [id])
+  acknowledgement AlertAcknowledgement[]
+
+  @@index([firedAt])
+  @@index([severity])
+  @@index([category])
+}
+
+model AlertAcknowledgement {
+  id      String   @id @default(cuid())
+  alertId String
+  userId  String
+  note    String?
+  ackedAt DateTime @default(now())
+
+  alert Alert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+}
+
+enum AlertSeverity {
+  CRITICAL
+  WARNING
+  INFO
+}
+
+enum AlertStatus {
+  FIRING
+  RESOLVED
+  ACKNOWLEDGED
+}
+
+// ============================================
+// Maintenance & Audit
+// ============================================
+
+model MaintenanceWindow {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  // Suppression scope:
+  //   "all"      -> suppress every alert while the window is active
+  //   "source"   -> suppress alerts whose `source` matches targetValue (hostname/IP)
+  //   "category" -> suppress alerts whose `category` matches targetValue
+  targetType  String   @default("all")
+  targetValue String?  // hostname/IP or category; null for "all"
+  enabled     Boolean  @default(true)
+  createdBy   String?
+  createdAt   DateTime @default(now())
+
+  @@index([startTime, endTime])
+}
+
+// ============================================
+// Alert Notification & Escalation
+// ============================================
+
+model NotificationChannel {
+  id          String        @id @default(cuid())
+  name        String
+  type        String        // "EMAIL" | "SLACK" | "TEAMS" | "WEBHOOK"
+  target      String        // email address or webhook URL
+  minSeverity AlertSeverity @default(WARNING)
+  enabled     Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  escalations EscalationPolicy[]
+}
+
+model EscalationPolicy {
+  id           String        @id @default(cuid())
+  name         String
+  description  String?
+  severity     AlertSeverity // applies to alerts of this severity
+  afterMinutes Int           // escalate if still unacknowledged after N minutes
+  channelId    String?       // channel to notify on escalation
+  enabled      Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  channel NotificationChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String   // "CREATE", "UPDATE", "DELETE", "STATUS_CHANGE", "POWER_ACTION"
+  entityType  String   // "Equipment", "Rack", "Room", etc.
+  entityId    String
+  changes     Json?    // { field: { old: x, new: y } } or { detail: ... }
+  reason      String?  // Operator-supplied "why" — required for destructive ops
+  ticketRef   String?  // External ticket reference (Jira/ServiceNow key)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+// ============================================
+// Memory Evaluation Models
+// ============================================
+
+model EvalProject {
+  id            String            @id @default(cuid())
+  title         String
+  description   String?
+  evalType      EvalType
+  status        EvalProjectStatus @default(PLANNED)
+  namespace     String?
+
+  // Memory product info
+  memoryType    MemoryType?
+  manufacturer  String?
+  partNumber    String?
+  capacityGb    Float?
+  speedMhz      Int?
+  formFactor    String?
+
+  // Schedule
+  startDate     DateTime?
+  endDate       DateTime?
+
+  // Ownership
+  createdBy     String
+  assigneeId    String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  phases        EvalPhase[]
+  results       EvalResult[]
+  tasks         EvalTask[]
+  notes         EvalNote[]
+
+  @@index([status])
+  @@index([evalType])
+  @@index([namespace])
+}
+
+enum EvalType {
+  FIELD
+  ACCELERATED
+}
+
+enum EvalProjectStatus {
+  PLANNED
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+model EvalPhase {
+  id          String          @id @default(cuid())
+  projectId   String
+  name        String
+  sortOrder   Int             @default(0)
+  status      EvalPhaseStatus @default(PENDING)
+  startDate   DateTime?
+  endDate     DateTime?
+  description String?
+  config      Json?
+
+  project     EvalProject     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  results     EvalResult[]
+  tasks       EvalTask[]
+
+  @@index([projectId])
+}
+
+enum EvalPhaseStatus {
+  PENDING
+  IN_PROGRESS
+  PASSED
+  FAILED
+  SKIPPED
+}
+
+model EvalResult {
+  id              String         @id @default(cuid())
+  projectId       String
+  phaseId         String?
+  equipmentId     String?
+
+  workloadName    String
+  workloadConfig  String?
+  cycleDuration   String?
+  totalCycles     Int?
+  completedCycles Int?
+
+  result          EvalTestResult
+  value           String?
+  unit            String?
+  notes           String?
+
+  startedAt       DateTime?
+  completedAt     DateTime?
+  testedBy        String
+  createdAt       DateTime       @default(now())
+
+  project         EvalProject    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase           EvalPhase?     @relation(fields: [phaseId], references: [id])
+  equipment       Equipment?     @relation(fields: [equipmentId], references: [id])
+
+  @@index([projectId])
+  @@index([equipmentId])
+}
+
+enum EvalTestResult {
+  PASS
+  FAIL
+  WARNING
+  RUNNING
+  PENDING
+}
+
+model EvalTask {
+  id          String           @id @default(cuid())
+  projectId   String
+  phaseId     String?
+  title       String
+  description String?
+  status      EvalTaskStatus   @default(TODO)
+  priority    EvalTaskPriority @default(MEDIUM)
+  assigneeId  String?
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdBy   String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  project     EvalProject      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase       EvalPhase?       @relation(fields: [phaseId], references: [id])
+
+  @@index([projectId])
+  @@index([status])
+}
+
+enum EvalTaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  BLOCKED
+}
+
+enum EvalTaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model EvalNote {
+  id          String      @id @default(cuid())
+  projectId   String
+  content     String
+  createdBy   String
+  createdAt   DateTime    @default(now())
+
+  project     EvalProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+// ============================================
+// Equipment Assignment (Usage Tracking)
+// ============================================
+
+model EquipmentAssignment {
+  id          String    @id @default(cuid())
+  equipmentId String
+  assignedTo  String
+  purpose     String?
+  assignedAt  DateTime  @default(now())
+  releasedAt  DateTime?
+  notes       String?
+  createdBy   String
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([equipmentId])
+  @@index([assignedTo])
+  @@index([releasedAt])
+}
+
+// ============================================
+// Expiry Tracking (Certificates, Licenses, etc.)
+// ============================================
+
+model ExpiryTracker {
+  id          String       @id @default(cuid())
+  name        String
+  category    ExpiryCategory
+  description String?
+  expiresAt   DateTime
+  notifyDays  Int          @default(30)  // days before expiry to alert
+  status      ExpiryStatus @default(ACTIVE)
+  source      String?      // e.g., "K8s API Server", "equipment hostname"
+  metadata    Json?        // extra info like cert CN, issuer
+  createdBy   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([expiresAt])
+  @@index([category])
+}
+
+enum ExpiryCategory {
+  K8S_CERTIFICATE
+  TLS_CERTIFICATE
+  LICENSE
+  WARRANTY
+  DOMAIN
+  CUSTOM
+}
+
+enum ExpiryStatus {
+  ACTIVE
+  EXPIRED
+  RENEWED
+  DISMISSED
+}
