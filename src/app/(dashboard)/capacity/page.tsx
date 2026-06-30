@@ -7,7 +7,6 @@ import { EmptyState } from "@/components/ui/states";
 import { LiveCapacityMetrics } from "@/components/capacity/live-capacity-metrics";
 import { CapacityForecast } from "@/components/capacity/capacity-forecast";
 import { TranslatedPageHeader } from "@/components/ui/translated-page-header";
-import { BarChart3 } from "lucide-react";
 
 export default async function CapacityPage() {
   let data;
@@ -48,7 +47,7 @@ export default async function CapacityPage() {
     return (
       <div className="space-y-6">
         <TranslatedPageHeader
-          icon={BarChart3}
+          iconName="BarChart3"
           title="Capacity Planning"
           subtitleKey="capacity.subtitle"
           accent="amber"
@@ -148,7 +147,7 @@ export default async function CapacityPage() {
   return (
     <div className="space-y-6">
       <TranslatedPageHeader
-        icon={BarChart3}
+        iconName="BarChart3"
         title="Capacity Planning"
         subtitleKey="capacity.subtitle"
         accent="amber"
