@@ -7,38 +7,58 @@ import { EmptyState } from "@/components/ui/states";
 import { LiveCapacityMetrics } from "@/components/capacity/live-capacity-metrics";
 import { CapacityForecast } from "@/components/capacity/capacity-forecast";
 import { TranslatedPageHeader } from "@/components/ui/translated-page-header";
-import { BarChart3 } from "lucide-react";
 
 export default async function CapacityPage() {
-  const [rooms, equipment] = await Promise.all([
-    prisma.room.findMany({
-      include: {
-        racks: {
-          include: {
-            equipment: {
-              select: {
-                id: true,
-                rackPosition: true,
-                rackHeight: true,
-                status: true,
-                totalMemoryGB: true,
-                cpus: { select: { tdpWatts: true } },
+  let data;
+  try {
+    data = await Promise.all([
+      prisma.room.findMany({
+        include: {
+          racks: {
+            include: {
+              equipment: {
+                select: {
+                  id: true,
+                  rackPosition: true,
+                  rackHeight: true,
+                  status: true,
+                  totalMemoryGB: true,
+                  cpus: { select: { tdpWatts: true } },
+                },
               },
             },
           },
         },
-      },
-      orderBy: { sortOrder: "asc" },
-    }),
-    prisma.equipment.findMany({
-      select: {
-        status: true,
-        rackHeight: true,
-        totalMemoryGB: true,
-        cpus: { select: { cores: true, tdpWatts: true } },
-      },
-    }),
-  ]);
+        orderBy: { sortOrder: "asc" },
+      }),
+      prisma.equipment.findMany({
+        select: {
+          status: true,
+          rackHeight: true,
+          totalMemoryGB: true,
+          cpus: { select: { cores: true, tdpWatts: true } },
+        },
+      }),
+    ]);
+  } catch (err) {
+    // DB schema drift (e.g. migrations not applied after a DB restore) would
+    // otherwise crash the whole page into the error boundary. Degrade instead.
+    console.error("Capacity page DB query failed:", err);
+    return (
+      <div className="space-y-6">
+        <TranslatedPageHeader
+          iconName="BarChart3"
+          title="Capacity Planning"
+          subtitleKey="capacity.subtitle"
+          accent="amber"
+        />
+        <Card>
+          <EmptyState message="용량 데이터를 불러오지 못했습니다. 서버 DB 스키마 동기화가 필요할 수 있습니다 (prisma db push)." />
+        </Card>
+      </div>
+    );
+  }
+  const [rooms, equipment] = data;
 
   // Global totals
   const totalEquipment = equipment.length;
@@ -127,7 +147,7 @@ export default async function CapacityPage() {
   return (
     <div className="space-y-6">
       <TranslatedPageHeader
-        icon={BarChart3}
+        iconName="BarChart3"
         title="Capacity Planning"
         subtitleKey="capacity.subtitle"
         accent="amber"

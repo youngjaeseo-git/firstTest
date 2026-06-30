@@ -49,6 +49,7 @@
 | | 문서 | 내용 |
 |---|------|------|
 | 사용자 매뉴얼 | [`user-manual.md`](user-manual.md) · `DC_Express_User_Manual.pptx` | 화면별 사용법 |
+| 스크린샷 캡처 목록 | [`screenshot-checklist.md`](screenshot-checklist.md) | PPT/매뉴얼에 넣을 화면 체크리스트 |
 
 ## 📊 보고 / 회고 (산출물)
 | | 문서 | 내용 |

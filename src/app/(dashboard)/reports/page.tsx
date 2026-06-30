@@ -5,7 +5,6 @@ import { Card } from "@/components/ui/card";
 import { Badge, SeverityBadge } from "@/components/ui/badge";
 import { ReportActions } from "@/components/reports/report-actions";
 import { TranslatedPageHeader } from "@/components/ui/translated-page-header";
-import { FileText } from "lucide-react";
 
 export default async function ReportsPage() {
   const now = new Date();
@@ -50,7 +49,8 @@ export default async function ReportsPage() {
     prisma.alert.groupBy({
       by: ["ruleId"],
       where: { ruleId: { not: null }, firedAt: { gte: thirtyDaysAgo } },
-      _count: { _all: true },
+      // orderBy._count.ruleId requires ruleId selected in _count; keep _all for rendering.
+      _count: { _all: true, ruleId: true },
       orderBy: { _count: { ruleId: "desc" } },
       take: 5,
     }),
@@ -121,7 +121,7 @@ export default async function ReportsPage() {
   return (
     <div className="space-y-6">
       <TranslatedPageHeader
-        icon={FileText}
+        iconName="FileText"
         title="Reports"
         subtitleKey="reports.subtitle"
         subtitleSuffix={` · ${reportDate}`}

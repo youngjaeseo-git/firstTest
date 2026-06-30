@@ -38,7 +38,8 @@
 
 | 항목 | 상태 | 설명 |
 |------|------|------|
-| DRAM 인증 테스트 관리 | 📋 보류 | 파트넘 기반 테스트 계획/추적. 요건 미확정 |
+| **워크로드 테스트 자동 연동 (v1.0 후보)** | 📋 보류(v1.0) | 워크로드 카드에 Step이름(ECC_OFF 등)·Started·Duration·**ETA** 자동 표시. 현황: 파드명(stress-sat)은 K8s `kube_pod_info.created_by_name`로 자동, 그러나 **Step이름·Test Time(12d)·Loop은 `.f` 파일에만** 존재(K8s 미노출). 설계안: `.f` 업로드→파싱→Step.Workload와 실행 deployment 매칭→Started+Test Time으로 Duration/ETA 계산. 미해결: (1)`.f` 접근방식(업로드/경로/API) (2)현재 실행 step 식별법. 구조 자료: `check/results/20260625-workload-yaml-structure.md` |
+| DRAM 인증 테스트 관리 | 📋 보류 | 파트넘 기반 테스트 계획/추적. 요건 미확정 (위 워크로드 연동과 연관) |
 | 온도 외부 DB 연동 | 📋 보류 | Grafana ddr4_temp CSV + PostgreSQL. 요건 미확인. Prometheus에서 이미 온도 수집 중 |
 
 ## 완료된 문서
