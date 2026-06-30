@@ -185,10 +185,15 @@ export default async function DashboardPage() {
 
   // IP → {hostname, id} for the Filesystem Warnings widget:
   // shows hostname (not raw IP) and links to /servers/{id} (route resolves by id, not hostname)
+  // Key by BOTH ip and hostname so the same server scraped under different
+  // jobs (IP instance vs hostname instance) resolves to one equipmentId and
+  // dedups to a single row.
   const fsServerMap: Record<string, { hostname: string; id: string }> = {};
   for (const e of equipmentMapping) {
     if (e.ipAddress && e.hostname) {
-      fsServerMap[e.ipAddress] = { hostname: e.hostname, id: e.id };
+      const entry = { hostname: e.hostname, id: e.id };
+      fsServerMap[e.ipAddress] = entry;
+      fsServerMap[e.hostname] = entry;
     }
   }
 

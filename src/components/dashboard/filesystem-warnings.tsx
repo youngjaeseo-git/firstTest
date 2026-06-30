@@ -47,9 +47,11 @@ export function FilesystemWarnings({
 
   const fetchFs = useCallback(async () => {
     try {
-      // job="node-exporter" excludes the duplicate kubernetes-pods scrape of the
-      // same node-exporter (avoids the same server appearing twice).
-      const query = `(1 - node_filesystem_avail_bytes{job="node-exporter",mountpoint="/",fstype!~"tmpfs|devtmpfs|overlay"} / node_filesystem_size_bytes{job="node-exporter",mountpoint="/",fstype!~"tmpfs|devtmpfs|overlay"}) * 100`;
+      // No job filter: the same node-exporter is scraped under several jobs
+      // (node-exporter, kubernetes-pods, server-info) and some servers appear
+      // ONLY under non-"node-exporter" jobs — filtering by job would hide them.
+      // We include all and dedup per server (by equipmentId) below.
+      const query = `(1 - node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|devtmpfs|overlay"} / node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|devtmpfs|overlay"}) * 100`;
       const res = await fetch(
         `/api/metrics/instant?query=${encodeURIComponent(query)}`,
       );
