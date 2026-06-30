@@ -33,6 +33,7 @@ DC Express — DCIM. 날짜는 YYYY-MM-DD.
 - **알림 엔진**: ACKNOWLEDGED 알림 중복 생성·미해소 수정, Prometheus 빈응답 시 잘못된 일괄 해소(플랩) 방지, `=` 연산자 허용.
 - **알림 이력 날짜 필터**: 현재 페이지만 거르던 것 → 서버 사이드 필터로 총계·페이지네이션 정합.
 - **refresh-hw**: Int 컬럼에 소수 메모리값 → 반올림(Prisma 에러 방지). 장비 DELETE 404 처리.
+- **[크래시] 용량 관리·리포트 화면 복구**: 서버 컴포넌트가 클라이언트 헤더(TranslatedPageHeader)에 아이콘 *함수*를 넘겨 RSC 직렬화 에러("Functions cannot be passed directly to Client Components")로 두 화면이 통째로 죽던 문제 → 아이콘을 이름(문자열)으로 전달하도록 수정. (부수: reports groupBy 정합, capacity DB오류 방어 추가)
 - 다수 데드코드·i18n 누락 키·문서 정합성 수정.
 
 ### 문서 (산출물)
