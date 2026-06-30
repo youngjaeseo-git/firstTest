@@ -50,7 +50,8 @@ export default async function ReportsPage() {
     prisma.alert.groupBy({
       by: ["ruleId"],
       where: { ruleId: { not: null }, firedAt: { gte: thirtyDaysAgo } },
-      _count: { _all: true },
+      // orderBy._count.ruleId requires ruleId selected in _count; keep _all for rendering.
+      _count: { _all: true, ruleId: true },
       orderBy: { _count: { ruleId: "desc" } },
       take: 5,
     }),
