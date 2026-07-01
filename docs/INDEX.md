@@ -54,7 +54,8 @@
 ## 📊 보고 / 회고 (산출물)
 | | 문서 | 내용 |
 |---|------|------|
-| 결과 보고서 | [`final-report.md`](final-report.md) · [`final-report-plan.md`](final-report-plan.md) | 프로젝트 결과 |
+| 결과 보고서 | [`final-report.md`](final-report.md) · [`final-report-plan.md`](final-report-plan.md) | 프로젝트 결과 (§7에 비용·생산성 비교) |
+| 비용·생산성 비교 | [`cost-comparison-20260630.md`](cost-comparison-20260630.md) | AI 단독 vs 외주(FP·맨먼스·역할분장) 상세 근거 |
 | 진행 보고 | [`monthly-progress.md`](monthly-progress.md) · `weekly-report-*.md` | 월간/주간 |
 | 회고 | [`retrospective-prep.md`](retrospective-prep.md) · [`retrospective-summary.md`](retrospective-summary.md) · `retrospective-presentation.pptx` | 바이브 코딩 회고 |
 
