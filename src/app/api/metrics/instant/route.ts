@@ -14,6 +14,11 @@ export async function GET(req: NextRequest) {
   if (!query) {
     return NextResponse.json({ error: "Missing query" }, { status: 400 });
   }
+  // Bound the PromQL length — an authenticated user reaches this proxy, but an
+  // over-long expression is either a bug or an abuse attempt (heavy query).
+  if (query.length > 2000) {
+    return NextResponse.json({ error: "Query too long" }, { status: 400 });
+  }
 
   const source = req.nextUrl.searchParams.get("source");
 
@@ -22,7 +27,9 @@ export async function GET(req: NextRequest) {
       ? await instantQueryFrom(LAB3_PROMETHEUS_URL, query, 3000)
       : await instantQuery(query);
     return NextResponse.json(result, {
-      headers: { "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30" },
+      // Metric responses require an authenticated session — never let a shared
+      // cache serve them to another user.
+      headers: { "Cache-Control": "private, max-age=15" },
     });
   } catch (error) {
     return NextResponse.json(

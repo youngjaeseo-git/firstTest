@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { getSessionUser } from "@/lib/rbac";
+import { getSessionUser, canEdit } from "@/lib/rbac";
 import { parseBody } from "@/lib/api-validation";
 
 export const dynamic = "force-dynamic";
@@ -48,8 +48,8 @@ export async function POST(
   { params }: { params: { namespace: string } },
 ) {
   const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user || !canEdit(user.role)) {
+    return NextResponse.json({ error: "Forbidden — ADMIN 또는 OPERATOR 권한 필요" }, { status: 403 });
   }
 
   const ns = decodeURIComponent(params.namespace);

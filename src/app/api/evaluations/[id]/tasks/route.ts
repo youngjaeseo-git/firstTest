@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSessionUser } from "@/lib/rbac";
+import { getSessionUser, canEdit } from "@/lib/rbac";
 import { parseBody } from "@/lib/api-validation";
 import { CreateTaskSchema, UpdateTaskSchema } from "@/lib/schemas/evaluation";
 
@@ -10,8 +10,8 @@ export async function POST(
 ) {
   const { id } = await params;
   const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user || !canEdit(user.role)) {
+    return NextResponse.json({ error: "Forbidden — ADMIN 또는 OPERATOR 권한 필요" }, { status: 403 });
   }
 
   const parsed = await parseBody(req, CreateTaskSchema);
@@ -38,8 +38,8 @@ export async function PATCH(
   req: NextRequest,
 ) {
   const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user || !canEdit(user.role)) {
+    return NextResponse.json({ error: "Forbidden — ADMIN 또는 OPERATOR 권한 필요" }, { status: 403 });
   }
 
   const parsed = await parseBody(req, UpdateTaskSchema);
@@ -64,8 +64,8 @@ export async function DELETE(
   req: NextRequest,
 ) {
   const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user || !canEdit(user.role)) {
+    return NextResponse.json({ error: "Forbidden — ADMIN 또는 OPERATOR 권한 필요" }, { status: 403 });
   }
 
   const { searchParams } = req.nextUrl;

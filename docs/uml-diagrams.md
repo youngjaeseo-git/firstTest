@@ -218,16 +218,19 @@ sequenceDiagram
 
 ## 5. 다이어그램을 그리며 발견한 설계 허점
 
-> 유즈케이스·플로우를 코드로 추적하며 나온 **비대칭·누락·관측성** 이슈. v1.0 정리 후보. 심각도순.
+> 유즈케이스·플로우를 코드로 추적하며 나온 **비대칭·누락·관측성** 이슈. 심각도순.
+>
+> **2026-07-02 조치**: 🔴 권한/보안 중 **S1·S2·S4·S5·S17 수정 완료**, **S3는 스키마 변경 필요라 v1.0로 이월**.
+> S4는 "duration 7일 캡 + query 2000자 캡 + `Cache-Control: private`"로 경량 하드닝(팀A/B 결과 — 서버측 PromQL 화이트리스트 전면 도입은 프론트 13개 호출부 리팩터 필요라 v1.0 방어심화로 이월). 상세: CHANGELOG.
 
 ### 🔴 권한/보안 (우선)
-| # | 허점 | 근거 | 권장 |
-|---|------|------|------|
-| S1 | **평가(Evaluations)·워크로드 쓰기 API에 역할 체크 전무** → VIEWER가 생성/수정/삭제 가능 | `api/evaluations/route.ts:66`, `workloads/[namespace]/route.ts:50` | `canEdit` 가드 추가 |
-| S2 | **장비 할당(assignments) 쓰기에 역할 체크 없음** → VIEWER가 org 내 할당 변경 | `assignments/route.ts:63-82` | `canEdit`/`canChangeStatus` 추가 |
-| S3 | **알림 목록 org 필터 없음** → 타 조직 알림까지 노출(장비는 필터되는데 비대칭) | `api/alerts/route.ts` GET | org 필터 적용 |
-| S4 | **메트릭 API가 임의 PromQL을 무검증 전달**(열린 프록시) → VIEWER가 전 클러스터 조회·고비용 쿼리(DoS), range duration 상한 없음 | `metrics/instant·range/route.ts` | 쿼리 화이트리스트/서버측 빌드, duration 캡 |
-| S5 | **CRON_SECRET을 `?key=`로도 수용 + 비교 non-timing-safe** → 로그에 시크릿 노출 | `cron/*/route.ts:28-31` | Bearer만 허용, `timingSafeEqual` |
+| # | 허점 → 조치 | 근거 |
+|---|------|------|
+| S1 | ✅ **수정됨** — 평가·워크로드 쓰기 API 전체(POST/PATCH/DELETE)에 `canEdit` 가드(프로젝트 삭제는 `canDelete`) → VIEWER 쓰기 차단 | `api/evaluations/**`, `workloads/[namespace]` |
+| S2 | ✅ **수정됨** — 장비 할당 POST/PATCH에 `canEdit` 가드(org 검사와 병행) | `equipment/[id]/assignments/route.ts` |
+| S3 | ⏳ **v1.0 이월** — `Alert`·`AlertRule`에 organizationId 없음 → 스키마 마이그레이션 + source→equipment 매핑 필요 | `api/alerts/route.ts` GET |
+| S4 | ✅ **수정됨(경량 하드닝)** — range duration 7일 캡·query 2000자 캡·`Cache-Control: private`. 화이트리스트는 v1.0 | `metrics/instant·range/route.ts` |
+| S5 | ✅ **수정됨** — Bearer 헤더만 허용(`?key=` 제거)·`timingSafeEqual`. 공통 헬퍼 `lib/cron-auth.ts` | `cron/*/route.ts` |
 
 ### ⚠️ 권한 비대칭 (정합성)
 | # | 허점 | 근거 |
@@ -247,7 +250,7 @@ sequenceDiagram
 | S14 | **감사로그 write 실패 무시** vs "Always recorded" 주석 불일치 → 감사 없이 전원 액션 성공 가능(write-audit-first 아님) | `power/route.ts:100` vs `audit.ts:73-76` |
 | S15 | 전원 **GET은 실패도 200+error**(POST는 4xx/5xx) → 모니터링이 실패를 성공으로 집계 | `power/route.ts:66-94` |
 | S16 | BMC 자격증명 **proxy 경유 시 http(평문) + 전 함대 단일 admin 계정** → 유출 시 폭발반경 큼 | `redfish.ts:63-104`, `bmc-credentials.ts:32-43` |
-| S17 | 인증 필수 메트릭 응답에 **`Cache-Control: public`** → 공유 캐시 히트 여지 | `metrics/instant·range/route.ts` |
+| S17 | ✅ **수정됨** — 메트릭 응답 `Cache-Control: public`→`private`(S4와 함께) | `metrics/instant·range/route.ts` |
 | S18 | 차트 **부분 실패 무시**(전 시리즈 실패만 에러) → 1개 시리즈 계속 502여도 사용자는 "선 하나 없음"만 봄 | `metric-chart.tsx:149-156` |
 | S19 | 알림 평가 **N+1 쿼리**(규칙×시리즈마다 findFirst) → 규모 증가 시 cron 1회 수백 쿼리 | `alert-check.ts:61,85` |
 

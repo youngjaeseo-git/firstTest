@@ -4,6 +4,23 @@ DC Express — DCIM. 날짜는 YYYY-MM-DD.
 
 ---
 
+## [Unreleased]
+
+UML 다이어그램 작성 중 발견한 권한/보안 허점(S1~S19) 조치. 근거·전체 목록: `docs/uml-diagrams.md §5`.
+
+### [보안] 권한 우회 수정
+- **[S1] 평가·워크로드 쓰기 API 역할 가드 추가**: `evaluations`(프로젝트·phases·tasks·notes·results)와 `workloads/[namespace]`의 모든 쓰기(POST/PATCH/DELETE)에 `canEdit` 가드 추가(프로젝트 삭제는 `canDelete`). 이전엔 로그인만 하면 VIEWER도 생성/수정/삭제 가능했음.
+- **[S2] 장비 할당 역할 가드 추가**: `equipment/[id]/assignments` POST·PATCH에 `canEdit` 추가(기존 org 검사와 병행). VIEWER가 org 내 할당을 변경하던 우회 차단.
+- **[S4] 메트릭 프록시 경량 하드닝**: `metrics/range` 조회 창(duration) 7일 상한, `instant`·`range` PromQL 길이 2000자 상한, 응답 `Cache-Control: public`→`private`(S17 동시 해결). 무제한 range로 인한 Prometheus DoS·공유 캐시 노출 방지.
+- **[S5] cron 인증 강화**: `?key=` 쿼리 파라미터 수용 제거(로그 노출 방지), Bearer 헤더만 허용, 비교를 `timingSafeEqual`(상수시간)로 변경. 공통 헬퍼 `src/lib/cron-auth.ts`로 alert-check·expiry-check 통일.
+
+### v1.0 이월 (설계 허점 후속)
+- **[S3] 알림 org 필터**: `Alert`·`AlertRule` 모델에 organizationId가 없어 조직별 필터 불가 → 스키마 마이그레이션(+ `source`→equipment 매핑) 필요. 폐쇄망 `prisma db push` 동반이라 v1.0에서 처리.
+- **[S4-심화] 서버측 PromQL 화이트리스트**: 팀A/B 토론 결과, 프론트 13개 호출부를 `queryId+params` 방식으로 옮기는 전면 리팩터(1~2일)라 방어심화 항목으로 이월. 프론트에 자유형 PromQL 입력 UI가 없어(사실상 화이트리스트) 현행 캡으로 실질 위험은 차단됨.
+- **[S6~S16, S18~S19]** 권한 비대칭·알림 엔진 관측성·감사로그 write 실패 처리 등 → `docs/uml-diagrams.md §5` 참조.
+
+---
+
 ## [0.9.0] — 2026-06-30 (릴리즈 후보)
 
 소스 확정(release candidate). 8-에이전트 버그 점검·적대적 검증 후 확정.

@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runExpiryCheck } from "@/lib/expiry-check";
+import { checkCronAuth } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Cron endpoint for automated expiry checking.
  *
- * Auth: requires the CRON_SECRET to be supplied either as
- *   - Authorization: Bearer THE_SECRET   (recommended)
- *   - or ?key=THE_SECRET
- * No user session is needed so an external scheduler can call it.
+ * Auth: requires CRON_SECRET via Authorization: Bearer header. No user session
+ * is needed so an external scheduler can call it. The secret must NOT be passed
+ * in the URL (leaks into access logs).
  *
  * Setup (docker host crontab, daily 08:00):
  *   0 8 * * * curl -fsS -H "Authorization: Bearer THE_SECRET" \
@@ -19,22 +19,8 @@ export const dynamic = "force-dynamic";
  * unauthenticated trigger in production.
  */
 async function handle(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
-    return NextResponse.json(
-      { error: "CRON_SECRET not configured" },
-      { status: 503 },
-    );
-  }
-
-  const auth = req.headers.get("authorization") || "";
-  const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : null;
-  const keyParam = req.nextUrl.searchParams.get("key");
-  const provided = bearer || keyParam;
-
-  if (provided !== secret) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const unauthorized = checkCronAuth(req);
+  if (unauthorized) return unauthorized;
 
   const result = await runExpiryCheck();
   return NextResponse.json({ ok: true, ...result, ranAt: new Date().toISOString() });

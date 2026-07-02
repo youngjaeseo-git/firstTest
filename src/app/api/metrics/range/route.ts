@@ -42,15 +42,24 @@ export async function GET(req: NextRequest) {
   }
 
   const query = req.nextUrl.searchParams.get("query");
+  // Cap the look-back window. Without an upper bound a caller could request a
+  // multi-year range at a fine step and force Prometheus to return millions of
+  // points (DoS). 7 days covers every dashboard/chart in the app.
+  const MAX_DURATION_MIN = 7 * 24 * 60; // 10080
   const parsedDuration = parseInt(
     req.nextUrl.searchParams.get("duration") || "60"
   );
-  const durationMin =
-    Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : 60;
+  const durationMin = Math.min(
+    MAX_DURATION_MIN,
+    Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : 60,
+  );
   const step = validateStep(req.nextUrl.searchParams.get("step"));
 
   if (!query) {
     return NextResponse.json({ error: "Missing query" }, { status: 400 });
+  }
+  if (query.length > 2000) {
+    return NextResponse.json({ error: "Query too long" }, { status: 400 });
   }
 
   const end = new Date();
@@ -59,7 +68,8 @@ export async function GET(req: NextRequest) {
   try {
     const result = await rangeQuery(query, start, end, step);
     return NextResponse.json(result, {
-      headers: { "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30" },
+      // Authenticated metric response — keep it out of shared caches.
+      headers: { "Cache-Control": "private, max-age=15" },
     });
   } catch (error) {
     return NextResponse.json(
