@@ -1,5 +1,7 @@
 # DCIM TODO (rev1 - 2026-04-12)
 
+> ⚠️ **[이력용 · 아카이브]** 2026-04 초기 미결정 작업 목록. 최신 현황은 `docs/features.md`(구현)·`docs/project-status.md`(진행)·`CHANGELOG.md`(변경/이슈) 참조.
+
 이 파일은 **아직 결정되지 않았거나 의도적으로 미뤄둔** 작업들의 목록입니다.
 완료된 작업은 CLAUDE.md의 "Confirmed Decisions" 섹션이나 git log를 참고하세요.
 

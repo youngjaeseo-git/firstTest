@@ -147,10 +147,11 @@ src/
 │   ├── db.ts               # Prisma client
 │   ├── prometheus.ts       # Prometheus query client + auto-discovery
 │   ├── discovery.ts        # Prometheus target sync logic
-│   ├── websocket.ts        # WebSocket setup
+│   ├── alert-check.ts      # 알림 규칙 평가 엔진 (cron)
 │   └── utils.ts            # Utility functions
+│   (실시간은 SSE — API route의 text/event-stream, 별도 websocket.ts 없음)
 ├── hooks/                  # Custom React hooks
-├── stores/                 # Zustand stores
+│   (전역 상태는 React Context + useState — 별도 stores/ 없음)
 ├── types/                  # TypeScript type definitions
 └── styles/                 # Global styles
 prisma/

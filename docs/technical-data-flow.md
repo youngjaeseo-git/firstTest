@@ -15,7 +15,7 @@
             │ HTTP/SSE          │ HTTP REST          │ Next.js RSC
             ▼                   ▼                    ▼
 ┌───────────────────────────────────────────────────────────────────┐
-│                    Next.js API Routes (73개)                      │
+│                    Next.js API Routes (74개)                      │
 │  /api/metrics/*  /api/equipment/*  /api/alerts/*  /api/racks/*   │
 │  /api/discovery/*  /api/workloads/*  /api/capacity/*  ...        │
 └───┬──────────┬──────────────┬─────────────┬──────────────────────┘

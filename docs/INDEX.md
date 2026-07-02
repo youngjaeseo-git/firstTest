@@ -1,6 +1,6 @@
 # 📑 문서 인덱스 (DC Express — DCIM)
 
-> 이 한 장만 보고 **필요한 문서를 골라서** 보면 된다. 35개 문서를 다 열 필요 없다.
+> 이 한 장만 보고 **필요한 문서를 골라서** 보면 된다. 문서를 다 열 필요 없다.
 > ⭐ = 단일 권위(single source of truth) / 가장 먼저 볼 문서
 
 ---
@@ -22,6 +22,7 @@
 | | 문서 | 내용 |
 |---|------|------|
 | 아키텍처 개요 | [`ARCHITECTURE.md`](ARCHITECTURE.md) / [`architecture.md`](architecture.md) | 시스템 구조 |
+| ⭐ UML 다이어그램 | [`uml-diagrams.md`](uml-diagrams.md) | 유즈케이스·액티비티·시퀀스 + 권한 매트릭스 + 설계 허점(S1~) |
 | 시각적 다이어그램 | [`architecture-diagram.html`](architecture-diagram.html) · [`data-flow-diagram.html`](data-flow-diagram.html) | 브라우저로 열어 보는 도식 |
 | 화면별 데이터 출처 | [`technical-data-flow.md`](technical-data-flow.md) · [`data-source-mapping.md`](data-source-mapping.md) | 어느 화면이 어느 데이터를 쓰는지 |
 

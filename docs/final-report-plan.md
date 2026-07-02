@@ -47,14 +47,14 @@ CSV 일괄 등록 → 랙 위치 배정 → Prometheus 자동 탐지로 모니�
 
 - 시스템 구성도 1장 (Next.js + Prometheus + PostgreSQL + BMC/Redfish + K8s)
 - 4종 데이터소스 연동 구조
-- 73개 API, 29개 DB 모델, SSE 실시간 스트림
+- 74개 API, 29개 DB 모델, SSE 실시간 스트림
 - node-exporter 우선 + cAdvisor 폴백 전략
 - 폐쇄망 BMC 프록시 구현
 - 참고: docs/technical-data-flow.md, docs/data-flow-diagram.html
 
 ### 6. 개발 과정: AI 협업(바이브 코딩) 경험 (1.5p)
 
-- 514커밋(AI 99%+), 43,974줄, 1인 개발
+- 576커밋(AI 99%+), 44,211줄, 1인 개발
 - 7단계 타임라인 (스캐폴딩 1일 → 기능폭발 → 실데이터 고통 → 안정화)
 - fix가 전체의 23% (~120건): "빠르게 만들고 → 실데이터에서 깨지고 → 고치는" 사이클
 - CLAUDE.md 6개 규칙이 각각 어떤 실패에서 탄생했는지

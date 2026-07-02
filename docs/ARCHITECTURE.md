@@ -19,19 +19,19 @@
 │  └──────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────┐   │
 │  │              API Routes (/api/*)                   │   │
-│  │  REST endpoints + WebSocket upgrade               │   │
+│  │  REST endpoints + SSE (Server-Sent Events)        │   │
 │  └─────────┬──────────────┬─────────────┬───────────┘   │
 │            │              │             │                 │
 │  ┌─────────▼────┐ ┌──────▼──────┐ ┌───▼────────────┐   │
-│  │ Prisma ORM   │ │ Prom Client │ │ WebSocket Srv  │   │
+│  │ Prisma ORM   │ │ Prom Client │ │ SSE Stream     │   │
 │  └─────────┬────┘ └──────┬──────┘ └───┬────────────┘   │
 └────────────┼─────────────┼─────────────┼────────────────┘
              │             │             │
     ┌────────▼───┐  ┌──────▼──────┐     │
     │ PostgreSQL │  │ Prometheus  │     │
     │ (Assets,   │  │ (External)  │     │
-    │  Config,   │  │ 10.144.38.  │     │
-    │  Users)    │  │ 100:30004   │     │
+    │  Config,   │  │ 10.100.175. │     │
+    │  Users)    │  │ 248:8080    │     │
     └────────────┘  └─────────────┘     │
                                         │
     ┌───────────────────────────────────┘
@@ -104,7 +104,7 @@ User submits login form
 ```
 User opens server detail page
   → Server Component fetches initial data from Prometheus (PromQL)
-  → Client Component mounts, subscribes to WebSocket channel
+  → Client Component mounts, subscribes to SSE stream (EventSource)
   → Backend periodically queries Prometheus, pushes to subscribed clients
   → Charts update in real-time
 ```
@@ -130,7 +130,7 @@ Status transitions:
 ```
 Admin clicks "Sync Now" in Settings > Discovery
   → POST /api/discovery/sync
-  → Fetch http://10.144.38.100:30004/api/v1/targets
+  → Fetch http://10.100.175.248:8080/api/v1/targets
   → Parse activeTargets (instance, job, labels, health)
   → Upsert into PrometheusTarget table
   → Admin maps unlinked targets to Equipment records
@@ -139,12 +139,13 @@ Admin clicks "Sync Now" in Settings > Discovery
 
 ### Alert Flow
 ```
-Prometheus evaluates alert rules (Alertmanager)
-  → Webhook fires to our API (/api/webhooks/alertmanager)
-  → Alert stored in PostgreSQL (with severity, source, timestamp)
-  → WebSocket pushes to connected clients
+Cron scheduler calls /api/cron/alert-check (CRON_SECRET auth)
+  → Engine loads active AlertRule records, queries Prometheus per rule (PromQL)
+  → parseCondition/evaluateCondition compares series against thresholds
+  → New breach → Alert stored in PostgreSQL (FIRING, severity, source, timestamp)
   → Alert History page: grouped by date (Accordion), filtered by category
-  → Operator acknowledges alert → status changes to ACKNOWLEDGED
+  → Operator acknowledges alert → status FIRING → ACKNOWLEDGED
+  → Condition clears (series present, below threshold) → status → RESOLVED
 ```
 
 ### Memory Detail Page Flow

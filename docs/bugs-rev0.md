@@ -1,3 +1,6 @@
+> ⚠️ **[이력용 · 아카이브]** 2026-04 초기 rev0 점검 기록. 현재 구현 현황은 반영하지 않음.
+> 최신 구현 현황은 [`features.md`](features.md)(SSOT), 남은 이슈는 [`CHANGELOG.md`](../CHANGELOG.md)의 "알려진 이슈" 참조.
+
 기능확인 체크리스트
 (로그인)
 ![[Pasted image 20260410085641.png]]
