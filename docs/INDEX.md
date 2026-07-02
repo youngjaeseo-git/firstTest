@@ -23,6 +23,8 @@
 |---|------|------|
 | 아키텍처 개요 | [`ARCHITECTURE.md`](ARCHITECTURE.md) / [`architecture.md`](architecture.md) | 시스템 구조 |
 | ⭐ UML 다이어그램 | [`uml-diagrams.md`](uml-diagrams.md) | 유즈케이스·액티비티·시퀀스 + 권한 매트릭스 + 설계 허점(S1~) |
+| 데이터 모델 ERD | [`data-model-erd.md`](data-model-erd.md) | 29개 Prisma 모델 관계도(도메인별) + onDelete 정책 |
+| 보안·권한(RBAC) | [`security-rbac.md`](security-rbac.md) | 인증·역할·권한 매트릭스·조직 격리·cron 인증·허점 조치 현황 |
 | 시각적 다이어그램 | [`architecture-diagram.html`](architecture-diagram.html) · [`data-flow-diagram.html`](data-flow-diagram.html) | 브라우저로 열어 보는 도식 |
 | 화면별 데이터 출처 | [`technical-data-flow.md`](technical-data-flow.md) · [`data-source-mapping.md`](data-source-mapping.md) | 어느 화면이 어느 데이터를 쓰는지 |
 
@@ -65,6 +67,7 @@
 |---|------|------|
 | ⭐ 프로젝트 규칙 | [`/CLAUDE.md`](../CLAUDE.md) | 작업 규칙(팀A/B, Data-First, 검증 등) |
 | 코드 작성 규칙 | [`/rules.md`](../rules.md) | 코드/스크립트 컨벤션 |
+| 테스트 현황 | [`test-summary.md`](test-summary.md) | 테스트 파일·케이스·커버리지 공백·위험도 |
 | 작업 로그 | [`work-log.md`](work-log.md) | 시간순 작업 이력 |
 | 세션 인계 | [`handoff-20260629.md`](handoff-20260629.md) | 세션 인수인계 |
 | 버그/TODO | [`bugs-rev0.md`](bugs-rev0.md) · [`TODO-cleanup.md`](TODO-cleanup.md) · [`/todo.md`](../todo.md) | 미해결 목록 |
