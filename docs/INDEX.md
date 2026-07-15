@@ -58,6 +58,8 @@
 | | 문서 | 내용 |
 |---|------|------|
 | 결과 보고서 | [`final-report.md`](final-report.md) · [`final-report-plan.md`](final-report-plan.md) | 프로젝트 결과 (§7에 비용·생산성 비교) |
+| ⭐ AI 혁신 완료보고 | `DC_Express_AI_Innovation_Report.pptx` (30슬라이드, 생성: `scripts/generate-innovation-pptx.py`) | 공청회용 — AI 활용 사례·효과(비용/자동화/품질)·운영계획·확산 방향 |
+| 운영 계획 | [`operations-plan.md`](operations-plan.md) | 공청회용 운영 계획(안) — 점검·장애·백업·릴리즈·지원·리스크 |
 | 비용·생산성 비교 | [`cost-comparison-20260630.md`](cost-comparison-20260630.md) | AI 단독 vs 외주(FP·맨먼스·역할분장) 상세 근거 |
 | 진행 보고 | [`monthly-progress.md`](monthly-progress.md) · `weekly-report-*.md` | 월간/주간 |
 | 회고 | [`retrospective-prep.md`](retrospective-prep.md) · [`retrospective-summary.md`](retrospective-summary.md) · `retrospective-presentation.pptx` | 바이브 코딩 회고 |
