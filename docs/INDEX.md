@@ -57,6 +57,7 @@
 ## 📊 보고 / 회고 (산출물)
 | | 문서 | 내용 |
 |---|------|------|
+| ⭐ 핵심 수치(SSOT) | [`stats.md`](stats.md) (자동생성: `scripts/project-stats.mjs`) | 커밋·LOC·API 등 숫자의 단일 권위. 문서·PPT가 따를 값 |
 | 결과 보고서 | [`final-report.md`](final-report.md) · [`final-report-plan.md`](final-report-plan.md) | 프로젝트 결과 (§7에 비용·생산성 비교) |
 | ⭐ AI 혁신 완료보고 | `DC_Express_AI_Innovation_Report.pptx` (30슬라이드, 생성: `scripts/generate-innovation-pptx.py`) | 공청회용 — AI 활용 사례·효과(비용/자동화/품질)·운영계획·확산 방향 |
 | 운영 계획 | [`operations-plan.md`](operations-plan.md) | 공청회용 운영 계획(안) — 점검·장애·백업·릴리즈·지원·리스크 |
