@@ -1,8 +1,8 @@
 {
   "generatedAt": "2026-07-19",
-  "commits": 583,
-  "loc": 44246,
-  "srcFiles": 218,
+  "commits": 584,
+  "loc": 44429,
+  "srcFiles": 221,
   "pages": 39,
   "apiRoutes": 74,
   "components": 53,
@@ -13,8 +13,8 @@
   "featureCategories": 12,
   "checkScripts": 116,
   "checkResults": 31,
-  "testFiles": 8,
-  "testCases": 62,
+  "testFiles": 11,
+  "testCases": 72,
   "e2eSpecs": 1,
   "e2eCases": 6,
   "translationKeysPerLang": 511
