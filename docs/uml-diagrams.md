@@ -1,7 +1,7 @@
 # UML 다이어그램 (DC Express — DCIM)
 
 > 작성 2026-07-01. 실제 코드(파일:라인) 기반으로 도출. Mermaid 표기 → GitHub에서 자동 렌더링, 폐쇄망에선 코드블록 텍스트로 열람.
-> 범위: **유즈케이스 · 액티비티 · 시퀀스**. 정적 구조는 [architecture.md](architecture.md)·[technical-data-flow.md](technical-data-flow.md) 참조(중복 회피).
+> 범위: **유즈케이스 · 액티비티 · 시퀀스**. 정적 구조는 [ARCHITECTURE.md](ARCHITECTURE.md)·[technical-data-flow.md](technical-data-flow.md) 참조(중복 회피).
 > 이 문서를 그리며 발견한 **설계 허점**은 맨 아래 §5.
 
 ---

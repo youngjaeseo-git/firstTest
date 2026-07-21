@@ -21,7 +21,7 @@
 ## 🏗️ 아키텍처 / 데이터 흐름
 | | 문서 | 내용 |
 |---|------|------|
-| 아키텍처 개요 | [`ARCHITECTURE.md`](ARCHITECTURE.md) / [`architecture.md`](architecture.md) | 시스템 구조 |
+| 아키텍처 개요 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | 시스템 구조 (비개발자용 설명 포함, 구 architecture.md 통합) |
 | ⭐ UML 다이어그램 | [`uml-diagrams.md`](uml-diagrams.md) | 유즈케이스·액티비티·시퀀스 + 권한 매트릭스 + 설계 허점(S1~) |
 | 데이터 모델 ERD | [`data-model-erd.md`](data-model-erd.md) | 29개 Prisma 모델 관계도(도메인별) + onDelete 정책 |
 | 보안·권한(RBAC) | [`security-rbac.md`](security-rbac.md) | 인증·역할·권한 매트릭스·조직 격리·cron 인증·허점 조치 현황 |
