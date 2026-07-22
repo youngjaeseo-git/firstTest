@@ -6,12 +6,34 @@ set -eo pipefail
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$APP_DIR"
 
-# node 바이너리 경로 (서버 환경에 맞게 자동 탐색)
-if [ -d "$HOME/opt/node-20/bin" ]; then
-  export PATH=$HOME/opt/node-20/bin:$PATH
-elif [ -d "/opt/node22/bin" ]; then
-  export PATH=/opt/node22/bin:$PATH
+# node 바이너리 경로 탐색 (sudo로 PATH/$HOME이 root로 바뀌어도 찾도록)
+#  수동 지정: NODE_BIN_DIR=/경로/bin sudo -E bash scripts/rebuild-prod.sh
+[ -n "${NODE_BIN_DIR:-}" ] && export PATH="$NODE_BIN_DIR:$PATH"
+
+if ! command -v node >/dev/null 2>&1; then
+  # 1) 스크립트를 호출한 '실제 사용자'의 로그인 셸에서 node 위치를 물어봄 (nvm/커스텀 설치 대응)
+  if [ -n "${SUDO_USER:-}" ]; then
+    USER_NODE=$(sudo -u "$SUDO_USER" -i bash -lc 'command -v node' 2>/dev/null || true)
+    [ -n "$USER_NODE" ] && [ -x "$USER_NODE" ] && export PATH="$(dirname "$USER_NODE"):$PATH"
+  fi
 fi
+if ! command -v node >/dev/null 2>&1; then
+  # 2) 흔한 설치 위치 탐색 (사용자 홈 nvm 포함)
+  USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" 2>/dev/null | cut -d: -f6)
+  for d in "$HOME/opt/node-20/bin" "$USER_HOME/opt/node-20/bin" \
+           /opt/node22/bin /opt/node-20/bin /usr/local/bin /usr/bin \
+           "$USER_HOME/.nvm/versions/node"/*/bin; do
+    [ -x "$d/node" ] && { export PATH="$d:$PATH"; break; }
+  done
+fi
+if ! command -v node >/dev/null 2>&1; then
+  echo "[FATAL] node 실행 파일을 찾지 못했습니다."
+  echo "  평소 셸에서 'which node' 결과를 확인한 뒤, 그 경로의 상위 폴더로 아래처럼 실행하세요:"
+  echo "    which node          # 예: /home/사용자/.nvm/versions/node/v20.x/bin/node"
+  echo "    NODE_BIN_DIR=위경로의 bin폴더 sudo -E bash scripts/rebuild-prod.sh"
+  exit 1
+fi
+echo "  node: $(command -v node) ($(node -v 2>/dev/null))"
 
 PRISMA="node $APP_DIR/node_modules/prisma/build/index.js"
 
@@ -43,17 +65,28 @@ echo "DB URL 설정 완료"
 echo ""
 
 echo "=== 2. 전체 캐시 삭제 ==="
-rm -rf node_modules/.prisma/client
-rm -rf .next
-rm -f tsconfig.tsbuildinfo
-echo "  .prisma/client + .next + tsconfig.tsbuildinfo 삭제"
-
-# NFS stale handle 확인
-if ls node_modules/.prisma/client/.nfs* 2>/dev/null; then
-  echo "  [경고] NFS stale 파일 감지 — 5초 대기"
-  sleep 5
-  rm -rf node_modules/.prisma/client 2>/dev/null || true
-fi
+# NFS에서는 열린 파일 핸들이 .nfs* 로 남아 'Directory not empty'가 나며 rm이 실패한다.
+# 견고 삭제: 재시도 → 그래도 남으면 옆으로 비켜두고 빌드 진행(스크립트 중단 방지).
+safe_rmrf() {
+  local target="$1"
+  [ -e "$target" ] || return 0
+  rm -rf "$target" 2>/dev/null && return 0
+  find "$target" -name '.nfs*' -delete 2>/dev/null || true
+  sync 2>/dev/null || true
+  sleep 2
+  rm -rf "$target" 2>/dev/null && return 0
+  # 여전히 남으면(열린 핸들 지속) 이름만 바꿔 비켜두고 계속 — 새 빌드에 지장 없음
+  local aside="${target}.stale-$$"
+  if mv "$target" "$aside" 2>/dev/null; then
+    echo "  [경고] '$target' 삭제 실패(NFS 핸들) → '$aside'로 비켜두고 진행"
+  else
+    echo "  [경고] '$target' 삭제/이동 모두 실패 — 계속 진행하나 빌드 오류 시 남은 node 프로세스를 확인하세요"
+  fi
+}
+safe_rmrf node_modules/.prisma/client
+safe_rmrf .next
+rm -f tsconfig.tsbuildinfo 2>/dev/null || true
+echo "  .prisma/client + .next + tsconfig.tsbuildinfo 정리 완료"
 echo ""
 
 echo "=== 3. Prisma 준비 ==="
