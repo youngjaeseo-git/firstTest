@@ -1,6 +1,9 @@
 #!/bin/bash
 # 프로덕션 빌드 수동 실행 + 서비스 재시작
 # 사용법: sudo bash scripts/rebuild-prod.sh
+# sh(dash)로 실행되면 'set -o pipefail'이 'Illegal option'으로 실패하므로,
+# bash가 아니면 bash로 스스로 재실행한다.
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 set -eo pipefail
 
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
