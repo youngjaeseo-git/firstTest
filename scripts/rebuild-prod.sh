@@ -120,6 +120,16 @@ echo ""
 echo "=== 4. 프로덕션 빌드 ==="
 npm run build 2>&1
 echo ""
+
+echo "=== 4.5 빌드 산출물 검증 ==="
+# set -e가 못 잡는 '빌드는 끝났지만 산출물 불완전' 케이스 차단.
+# .next/static 청크가 없으면 서비스 시작 시 'Loading chunk failed'가 난다.
+if [ ! -s .next/BUILD_ID ] || [ -z "$(ls -A .next/static 2>/dev/null)" ]; then
+  echo "[FATAL] 빌드 산출물 불완전(.next/BUILD_ID 또는 .next/static 없음) — 서비스 시작 중단"
+  echo "  .next 를 삭제하고 다시 실행하세요. 서비스는 중지 상태로 둡니다."
+  exit 1
+fi
+echo "  산출물 검증 OK (.next/BUILD_ID + .next/static 존재)"
 echo "빌드 성공!"
 echo ""
 

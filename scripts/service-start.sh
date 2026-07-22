@@ -47,12 +47,21 @@ npx prisma generate 2>&1 | tail -1
 
 if [ "$MODE" = "prod" ]; then
   echo "[dcim] 프로덕션 모드 (port=$PORT)"
-  if [ ! -f ".next/BUILD_ID" ] || [ "$(find src -newer .next/BUILD_ID -type f 2>/dev/null | head -1)" ]; then
+  # 재빌드 조건: BUILD_ID 없음 OR .next/static 비어있음(부분/훼손 빌드) OR src가 더 최신.
+  # .next/static 검사가 핵심 — 훼손된 .next를 그대로 서빙해 청크 404가 나던 문제 방지.
+  if [ ! -f ".next/BUILD_ID" ] \
+     || [ -z "$(ls -A .next/static 2>/dev/null)" ] \
+     || [ "$(find src -newer .next/BUILD_ID -type f 2>/dev/null | head -1)" ]; then
     echo "[dcim] 빌드 실행..."
-    npm run build
+    npm run build || { echo "[dcim] 빌드 실패 — 기동 중단(훼손된 .next 서빙 방지)"; exit 1; }
     echo "[dcim] 빌드 완료"
   else
-    echo "[dcim] 빌드 캐시 사용 (변경 없음)"
+    echo "[dcim] 빌드 캐시 사용 (변경 없음, .next/static 존재 확인됨)"
+  fi
+  # 최종 산출물 검증 — 불완전하면 청크 404가 나므로 아예 시작하지 않음
+  if [ ! -s ".next/BUILD_ID" ] || [ -z "$(ls -A .next/static 2>/dev/null)" ]; then
+    echo "[dcim] [FATAL] 빌드 산출물 불완전(.next/BUILD_ID 또는 .next/static 없음) — 기동 중단"
+    exit 1
   fi
   exec npm run start -- -p "$PORT"
 else

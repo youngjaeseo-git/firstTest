@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import { tryRecoverFromChunkError } from "@/lib/chunk-recovery";
+
 export default function GlobalError({
   error,
   reset,
@@ -7,6 +10,11 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    // 재배포/부분빌드로 청크가 없을 때 자동 1회 하드 리로드
+    tryRecoverFromChunkError(error);
+  }, [error]);
+
   return (
     <html lang="ko">
       <body style={{ background: "#030712", color: "#f3f4f6", fontFamily: "sans-serif" }}>
