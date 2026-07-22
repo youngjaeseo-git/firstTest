@@ -391,6 +391,172 @@ def make_pie_slide(title, categories, values, subtitle="", footnote="", colors=N
     add_page_number(slide)
 
 
+# --- 인포그래픽 색 ---
+BEFORE_BG = RGBColor(0xFD, 0xEC, 0xEC)
+BEFORE_TX = RGBColor(0xB4, 0x2B, 0x2B)
+AFTER_BG = RGBColor(0xE7, 0xF6, 0xEC)
+AFTER_TX = RGBColor(0x15, 0x7F, 0x3C)
+
+
+def _slide_header(title, subtitle=""):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    set_slide_bg(slide)
+    color = SECTION_COLORS[current_section_idx % len(SECTION_COLORS)]
+    add_accent_bar(slide, Inches(0), Inches(0), SLIDE_W, Inches(0.05), color)
+    add_text_box(slide, Inches(0.6), Inches(0.3), Inches(12), Inches(0.7),
+                 title, font_size=26, color=TEXT_PRIMARY, bold=True)
+    add_accent_bar(slide, Inches(0.6), Inches(1.0), Inches(2), Inches(0.035), color)
+    if subtitle:
+        add_text_box(slide, Inches(0.65), Inches(1.05), Inches(12), Inches(0.4),
+                     subtitle, font_size=14, color=TEXT_SECONDARY)
+    return slide, color
+
+
+def _card_text(slide, left, top, width, height, text, bg, tx, size=13, bold=False, align=PP_ALIGN.LEFT):
+    add_shape(slide, left, top, width, height, fill_color=bg, border_color=None)
+    tb = slide.shapes.add_textbox(left + Inches(0.12), top, width - Inches(0.24), height)
+    tf = tb.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = 3  # MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]
+    p.text = text
+    p.font.size = Pt(size)
+    p.font.color.rgb = tx
+    p.font.bold = bold
+    p.font.name = "맑은 고딕"
+    p.alignment = align
+
+
+def make_before_after_slide(title, rows, subtitle=""):
+    """rows: [(before, after), ...]  좌우 대비 인포그래픽."""
+    slide, color = _slide_header(title, subtitle)
+    top0 = Inches(1.75)
+    row_h = Inches(0.82)
+    gap = Inches(0.12)
+    lw, aw = Inches(5.4), Inches(5.4)
+    lx, arrow_x, ax = Inches(0.6), Inches(6.15), Inches(7.35)
+    # 헤더
+    _card_text(slide, lx, top0, lw, Inches(0.5), "Before — 기존 방식", BEFORE_BG, BEFORE_TX, size=15, bold=True, align=PP_ALIGN.CENTER)
+    _card_text(slide, ax, top0, aw, Inches(0.5), "After — DC Express", AFTER_BG, AFTER_TX, size=15, bold=True, align=PP_ALIGN.CENTER)
+    y = top0 + Inches(0.62)
+    for before, after in rows:
+        _card_text(slide, lx, y, lw, row_h, before, BEFORE_BG, BEFORE_TX, size=12)
+        add_text_box(slide, arrow_x, y + Inches(0.18), Inches(1.1), Inches(0.5), "➜",
+                     font_size=22, color=color, bold=True, alignment=PP_ALIGN.CENTER)
+        _card_text(slide, ax, y, aw, row_h, after, AFTER_BG, AFTER_TX, size=12, bold=True)
+        y = y + row_h + gap
+    add_page_number(slide)
+
+
+def make_kpi_slide(title, tiles, subtitle="", cols=4):
+    """tiles: [(value, label), ...]  빅넘버 타일 그리드."""
+    slide, color = _slide_header(title, subtitle)
+    import math
+    n = len(tiles)
+    rows = math.ceil(n / cols)
+    margin = Inches(0.6)
+    gap = Inches(0.3)
+    total_w = SLIDE_W - margin * 2
+    card_w = (total_w - gap * (cols - 1)) / cols
+    card_h = Inches(1.9) if rows <= 2 else Inches(1.5)
+    top0 = Inches(1.9)
+    palette = [SECTION_COLORS[0], ACCENT_CYAN, ACCENT_PURPLE, ACCENT_ORANGE,
+               ACCENT_GREEN, ACCENT_RED, RGBColor(0x06, 0xB6, 0xD4), ACCENT_BLUE]
+    for i, (value, label) in enumerate(tiles):
+        r, c = divmod(i, cols)
+        x = margin + c * (card_w + gap)
+        y = top0 + r * (card_h + gap)
+        add_shape(slide, x, y, card_w, card_h, fill_color=CARD_BG, border_color=CARD_BORDER, border_width=Pt(1))
+        add_accent_bar(slide, x, y, card_w, Inches(0.08), palette[i % len(palette)])
+        vb = slide.shapes.add_textbox(x, y + Inches(0.28), card_w, Inches(0.85))
+        vp = vb.text_frame.paragraphs[0]
+        vp.text = str(value)
+        vp.font.size = Pt(40)
+        vp.font.bold = True
+        vp.font.color.rgb = palette[i % len(palette)]
+        vp.font.name = "맑은 고딕"
+        vp.alignment = PP_ALIGN.CENTER
+        lb = slide.shapes.add_textbox(x, y + card_h - Inches(0.55), card_w, Inches(0.5))
+        lp = lb.text_frame.paragraphs[0]
+        lp.text = label
+        lp.font.size = Pt(13)
+        lp.font.color.rgb = TEXT_SECONDARY
+        lp.font.name = "맑은 고딕"
+        lp.alignment = PP_ALIGN.CENTER
+    add_page_number(slide)
+
+
+def make_timeline_slide(title, stages, subtitle=""):
+    """stages: [(num, name, date), ...]  가로 타임라인."""
+    slide, color = _slide_header(title, subtitle)
+    n = len(stages)
+    margin = Inches(0.75)
+    span = SLIDE_W - margin * 2
+    line_y = Inches(4.0)
+    add_accent_bar(slide, margin, line_y, span, Inches(0.04), color)
+    step = span / n
+    palette = SECTION_COLORS
+    for i, (num, name, date) in enumerate(stages):
+        cx = margin + step * i + step / 2
+        # 날짜(위)
+        add_text_box(slide, cx - Inches(0.75), line_y - Inches(1.0), Inches(1.5), Inches(0.4),
+                     date, font_size=11, color=TEXT_MUTED, alignment=PP_ALIGN.CENTER)
+        # 노드
+        d = Inches(0.55)
+        circ = slide.shapes.add_shape(MSO_SHAPE.OVAL, cx - d / 2, line_y - d / 2 + Inches(0.02), d, d)
+        circ.fill.solid()
+        circ.fill.fore_color.rgb = palette[i % len(palette)]
+        circ.line.color.rgb = WHITE
+        circ.line.width = Pt(2)
+        circ.shadow.inherit = False
+        cp = circ.text_frame.paragraphs[0]
+        cp.text = str(num)
+        cp.font.size = Pt(15)
+        cp.font.bold = True
+        cp.font.color.rgb = WHITE
+        cp.font.name = "맑은 고딕"
+        cp.alignment = PP_ALIGN.CENTER
+        # 이름(아래)
+        add_text_box(slide, cx - Inches(0.85), line_y + Inches(0.55), Inches(1.7), Inches(1.6),
+                     name, font_size=11, color=TEXT_PRIMARY, bold=True, alignment=PP_ALIGN.CENTER)
+    add_page_number(slide)
+
+
+def make_flow_slide(title, steps, subtitle="", note=""):
+    """steps: [name, ...]  가로 화살표 플로우(각 단계 박스 + ▶)."""
+    slide, color = _slide_header(title, subtitle)
+    n = len(steps)
+    margin = Inches(0.6)
+    total_w = SLIDE_W - margin * 2
+    arrow_w = Inches(0.5)
+    box_w = (total_w - arrow_w * (n - 1)) / n
+    box_h = Inches(1.6)
+    y = Inches(3.0)
+    palette = SECTION_COLORS
+    x = margin
+    for i, step in enumerate(steps):
+        box = add_shape(slide, x, y, box_w, box_h, fill_color=palette[i % len(palette)], border_color=None)
+        tf = box.text_frame
+        tf.word_wrap = True
+        tf.vertical_anchor = 3
+        p = tf.paragraphs[0]
+        p.text = step
+        p.font.size = Pt(14)
+        p.font.bold = True
+        p.font.color.rgb = WHITE
+        p.font.name = "맑은 고딕"
+        p.alignment = PP_ALIGN.CENTER
+        x = x + box_w
+        if i < n - 1:
+            add_text_box(slide, x, y + Inches(0.5), arrow_w, Inches(0.6), "▶",
+                         font_size=20, color=TEXT_MUTED, bold=True, alignment=PP_ALIGN.CENTER)
+            x = x + arrow_w
+    if note:
+        add_text_box(slide, margin, y + box_h + Inches(0.4), total_w, Inches(1.5),
+                     note, font_size=14, color=TEXT_SECONDARY)
+    add_page_number(slide)
+
+
 # ===================================================================
 # SLIDES
 # ===================================================================
@@ -456,6 +622,34 @@ make_two_col_slide("추진 배경 — 흩어진 운영 도구",
         "알림 엔진 5분 주기 자동 평가 + 만료 D-day 추적",
     ])
 
+# --- Before/After 인포그래픽 ---
+make_before_after_slide(
+    "Before → After — 무엇이 달라졌나",
+    [
+        ("모니터링: Grafana 대시보드 10개+ 산재 (서버 1대에 3~4개 이동)", "통합 대시보드 — 서버 클릭 1번에 전체 지표"),
+        ("자산 관리: 엑셀 수기 대장 (버전 혼란·이력 없음)", "DB 기반 CRUD + 라이프사이클 + 변경 이력 자동"),
+        ("물리 배치: 담당자 기억·종이 도면", "Digital Twin 평면도 + 랙 열지도"),
+        ("장비 등록: 한 대씩 타이핑 (24대 반나절)", "CSV 일괄 + Prometheus 자동 탐지 (~30분)"),
+        ("전원 제어: 서버별 IPMI 개별 접속", "웹에서 원격 전원 제어 (BMC/Redfish)"),
+        ("용량 계획: 감(感) 의존·수기 보고", "12개월 예측 + PDF 리포트 자동 생성"),
+    ],
+    subtitle="10개+ 도구·엑셀·수기로 흩어진 운영 → 통합 웹 시스템 한 곳")
+
+# --- KPI 빅넘버 타일 ---
+make_kpi_slide(
+    "한눈에 보는 규모",
+    [
+        ("4.5", "개발 기간(개월)"),
+        ("1+AI", "개발 인력(명)"),
+        ("580+", "커밋 (99%+ AI)"),
+        ("44K+", "소스 코드(줄)"),
+        ("74", "API 엔드포인트"),
+        ("39", "화면(페이지)"),
+        ("135", "구현 기능"),
+        ("29", "DB 모델"),
+    ],
+    subtitle="인프라 엔지니어 1명 + AI가 4.5개월에 만든 결과물 (정확 수치는 docs/stats.md)")
+
 make_table_slide("핵심 수치 (2026-07-02 감사 시점 기준)",
     ["항목", "수치", "항목", "수치"],
     [
@@ -467,6 +661,21 @@ make_table_slide("핵심 수치 (2026-07-02 감사 시점 기준)",
     ],
     col_widths=[2.6, 3.4, 2.6, 3.4],
     footnote="기술 스택: Next.js 14 + TypeScript + Prisma + PostgreSQL + Prometheus 연동, SSE 실시간, Docker/systemd 하이브리드 운영 (폐쇄망)")
+
+# --- 8단계 진화 타임라인 ---
+make_timeline_slide(
+    "4.5개월의 여정 — 8단계 진화",
+    [
+        (1, "스캐폴딩", "4/8"),
+        (2, "Docker 삽질", "4/9"),
+        (3, "기능 폭발", "4/10~20"),
+        (4, "실데이터 고통", "4말~5중"),
+        (5, "규칙 정립", "5월"),
+        (6, "고도화", "6월"),
+        (7, "문서화", "6/16~17"),
+        (8, "품질 감사·도구화", "6/22~25"),
+    ],
+    subtitle="빠르게 만들고(3) → 실환경에서 깨지고(4) → 규칙으로 압축하고(5) → 도구화(8). 실패가 규칙·도구가 된 과정")
 
 # ==================== §2 AI 활용 방법 ====================
 make_section_slide("AI 활용 방법", "구현 · 병렬 감사 · 문서 생성 · 운영 지원", 1)
@@ -619,6 +828,13 @@ make_content_slide("자동화·생산성 — 종합", [
     "",
     "개발 생산성: 1인이 39화면·74 API·135기능 — 문서·발표자료(매뉴얼 805줄, PPT 56슬라이드)까지 AI가 코드를 읽고 직접 생성",
 ])
+
+# --- 장비 라이프사이클 플로우 ---
+make_flow_slide(
+    "자동화 사례 — 장비 라이프사이클 관리",
+    ["등록\n(PLANNED·입고)", "설치\n(INSTALLED)", "운영\n(ACTIVE)", "유지보수·수리\n(MAINT·REPAIR)", "퇴역·폐기\n(DECOMM·DISPOSED)"],
+    subtitle="엑셀 수기 대장 → 시스템이 상태 전이를 관리. 모든 변경은 감사 로그(누가·언제·왜)에 자동 기록",
+    note="※ 실제 상태는 9단계(PLANNED·RECEIVING·INSTALLED·ACTIVE·MAINTENANCE·REPAIR·FAILED·DECOMMISSIONED·DISPOSED)이며, 위는 발표용 5단계 요약. 각 전이 시 알림·감사 자동 처리.")
 
 # ==================== §5 품질 개선 ====================
 make_section_slide("에러 감소·품질 개선", "결함이 사용자에게 닿기 전에 잡는 다층 방어", 4)
