@@ -1510,31 +1510,7 @@ function Lab3Interior({ rect, room, isEditMode, getRackPos, getElemPos, onDragSt
         );
       })}
 
-      {/* Future expansion zones */}
-      {[0, 1].map((col) => {
-        const ox2 = rect.x + rect.w * 0.18;
-        const ox3 = rect.x + rect.w * 0.36;
-        return (
-          <g key={`exp-${col}`}>
-            {[0, 1, 2, 3].map((row) => {
-              const ex = (col === 0 ? ox2 : ox3) + col * 30;
-              return (
-                <g key={row}>
-                  <rect
-                    x={ex} y={oy + row * (defaultRh + gap)}
-                    width={defaultRw + 8} height={defaultRh} rx={3}
-                    fill="#1e1b4b" fillOpacity={0.15}
-                    stroke="#7c3aed" strokeOpacity={0.12} strokeWidth={0.8} strokeDasharray="4 3"
-                  />
-                  <text x={ex + (defaultRw + 8) / 2} y={oy + row * (defaultRh + gap) + defaultRh / 2 + 3} fill="#4c1d95" fillOpacity={0.4} fontSize="8" textAnchor="middle" fontFamily="system-ui, sans-serif">
-                    RESERVED
-                  </text>
-                </g>
-              );
-            })}
-          </g>
-        );
-      })}
+      {/* (제거됨) 향후 확장 구역 'RESERVED' 장식 블록 — 실제 데이터가 아니라 혼란을 주어 삭제 */}
 
       {/* Infrastructure elements (DOOR rendered at building level) */}
       {(() => {
