@@ -252,6 +252,145 @@ def make_quote_slide(quote, attribution=""):
     add_page_number(slide)
 
 
+from pptx.chart.data import CategoryChartData
+from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
+from pptx.enum.chart import XL_LABEL_POSITION
+
+
+def make_chart_slide(title, categories, values, chart_type="bar", highlight_idx=None,
+                     value_labels=None, footnote="", bar_color=None, subtitle=""):
+    """단일 시리즈 막대/가로막대/꺾은선 차트 슬라이드.
+    highlight_idx: 강조할 데이터포인트 인덱스(초록). value_labels: 막대에 표시할 문자열 배열."""
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    set_slide_bg(slide)
+    color = SECTION_COLORS[current_section_idx % len(SECTION_COLORS)]
+    add_accent_bar(slide, Inches(0), Inches(0), SLIDE_W, Inches(0.05), color)
+    add_text_box(slide, Inches(0.6), Inches(0.3), Inches(12), Inches(0.7),
+                 title, font_size=26, color=TEXT_PRIMARY, bold=True)
+    add_accent_bar(slide, Inches(0.6), Inches(1.0), Inches(2), Inches(0.035), color)
+    if subtitle:
+        add_text_box(slide, Inches(0.65), Inches(1.05), Inches(12), Inches(0.4),
+                     subtitle, font_size=14, color=TEXT_SECONDARY)
+
+    cd = CategoryChartData()
+    cd.categories = categories
+    cd.add_series("값", values)
+    ctype = {
+        "bar": XL_CHART_TYPE.BAR_CLUSTERED,       # 가로 막대
+        "column": XL_CHART_TYPE.COLUMN_CLUSTERED, # 세로 막대
+        "line": XL_CHART_TYPE.LINE_MARKERS,
+    }[chart_type]
+    top = Inches(1.55) if subtitle else Inches(1.35)
+    gf = slide.shapes.add_chart(ctype, Inches(0.7), top, Inches(11.9), Inches(5.2), cd)
+    chart = gf.chart
+    chart.has_legend = False
+    chart.has_title = False
+
+    plot = chart.plots[0]
+    plot.has_data_labels = True
+    dl = plot.data_labels
+    dl.font.size = Pt(14)
+    dl.font.bold = True
+    dl.font.name = "맑은 고딕"
+    dl.number_format = "General"
+    dl.number_format_is_linked = False
+
+    series = chart.series[0]
+    base = bar_color or color
+    # 전체 기본색
+    series.format.fill.solid()
+    series.format.fill.fore_color.rgb = base
+    # 포인트별 색(강조는 초록, 나머지는 회색톤 + base)
+    for i in range(len(categories)):
+        pt = series.points[i]
+        pt.format.fill.solid()
+        if highlight_idx is not None and i == highlight_idx:
+            pt.format.fill.fore_color.rgb = ACCENT_GREEN
+        else:
+            pt.format.fill.fore_color.rgb = base
+
+    # 축 폰트
+    try:
+        chart.category_axis.tick_labels.font.size = Pt(13)
+        chart.category_axis.tick_labels.font.name = "맑은 고딕"
+        chart.value_axis.has_major_gridlines = True
+        chart.value_axis.tick_labels.font.size = Pt(11)
+    except Exception:
+        pass
+
+    # 커스텀 라벨 문자열(예: "4.5개월", "~0.45억") — 데이터라벨 텍스트 덮어쓰기
+    if value_labels:
+        try:
+            for i, txt in enumerate(value_labels):
+                pt = series.points[i]
+                pt.data_label.has_text_frame = True
+                pt.data_label.text_frame.text = txt
+                for p in pt.data_label.text_frame.paragraphs:
+                    p.font.size = Pt(13)
+                    p.font.bold = True
+                    p.font.name = "맑은 고딕"
+                    p.font.color.rgb = TEXT_PRIMARY
+        except Exception:
+            pass
+
+    if footnote:
+        add_text_box(slide, Inches(0.65), Inches(6.95), Inches(12), Inches(0.4),
+                     footnote, font_size=10, color=TEXT_MUTED)
+    add_page_number(slide)
+
+
+def make_pie_slide(title, categories, values, subtitle="", footnote="", colors=None):
+    """도넛 차트 슬라이드 (구성비). 데이터라벨=카테고리+백분율."""
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    set_slide_bg(slide)
+    color = SECTION_COLORS[current_section_idx % len(SECTION_COLORS)]
+    add_accent_bar(slide, Inches(0), Inches(0), SLIDE_W, Inches(0.05), color)
+    add_text_box(slide, Inches(0.6), Inches(0.3), Inches(12), Inches(0.7),
+                 title, font_size=26, color=TEXT_PRIMARY, bold=True)
+    add_accent_bar(slide, Inches(0.6), Inches(1.0), Inches(2), Inches(0.035), color)
+    if subtitle:
+        add_text_box(slide, Inches(0.65), Inches(1.05), Inches(12), Inches(0.4),
+                     subtitle, font_size=14, color=TEXT_SECONDARY)
+
+    cd = CategoryChartData()
+    cd.categories = categories
+    cd.add_series("구성비", values)
+    gf = slide.shapes.add_chart(XL_CHART_TYPE.DOUGHNUT, Inches(2.6), Inches(1.6),
+                                Inches(8.1), Inches(5.2), cd)
+    chart = gf.chart
+    chart.has_title = False
+    chart.has_legend = True
+    chart.legend.position = XL_LEGEND_POSITION.RIGHT
+    chart.legend.include_in_layout = False
+    chart.legend.font.size = Pt(13)
+    chart.legend.font.name = "맑은 고딕"
+
+    plot = chart.plots[0]
+    plot.has_data_labels = True
+    dl = plot.data_labels
+    dl.show_percentage = True
+    dl.show_category_name = False
+    dl.number_format = "0%"
+    dl.number_format_is_linked = False
+    dl.font.size = Pt(13)
+    dl.font.bold = True
+    dl.font.name = "맑은 고딕"
+    dl.font.color.rgb = WHITE
+
+    palette = colors or [SECTION_COLORS[0], ACCENT_ORANGE, ACCENT_CYAN, TEXT_MUTED,
+                         ACCENT_PURPLE, ACCENT_GREEN]
+    series = chart.series[0]
+    for i in range(len(categories)):
+        pt = series.points[i]
+        pt.format.fill.solid()
+        pt.format.fill.fore_color.rgb = palette[i % len(palette)]
+
+    if footnote:
+        add_text_box(slide, Inches(0.65), Inches(6.95), Inches(12), Inches(0.4),
+                     footnote, font_size=10, color=TEXT_MUTED)
+    add_page_number(slide)
+
+
 # ===================================================================
 # SLIDES
 # ===================================================================
@@ -396,6 +535,50 @@ make_table_slide("1인+AI vs 외주 개발 — 정량 비교",
     col_widths=[2.2, 3.9, 3.9, 2.0],
     footnote="※ 개략 산정 — 공식 IFPUG 계수·정부 대가산정 아님. 외주에는 QA·문서·하자보수가 포함되어 동일 조건 비교가 아님 (상세 전제: docs/cost-comparison-20260630.md)")
 
+# --- 차트 1: 개발 기간 (인력 투입 방식별) — 핵심 시각화 ---
+make_chart_slide(
+    "개발 기간 비교 — 인력 투입 방식별",
+    ["1명\n(AI 없이)", "2명 팀", "3명 팀", "4명 팀", "1명 + AI\n(실제)"],
+    [28, 14, 9, 7, 4.5],
+    chart_type="column",
+    highlight_idx=4,
+    value_labels=["~28개월", "~14개월", "~9개월", "~7개월", "4.5개월"],
+    subtitle="같은 결과물(약 700 FP)을 만드는 데 걸리는 기간. 인원이 줄수록 겸업으로 기간↑ — 그런데 1명+AI가 팀보다 빠름",
+    footnote="※ 외주 맨먼스(약 28MM) 기준 인원별 환산. 1명(AI 없이)은 순수 1인 환산치(≈2.5~3년). 개략 추정.")
+
+# --- 차트 2: 총 비용 ---
+make_chart_slide(
+    "총 비용 비교 — 외주(팀) vs 1인+AI",
+    ["외주 개발\n(팀 3~4명)", "1인 + AI\n(실제)"],
+    [45000, 4500],
+    chart_type="bar",
+    highlight_idx=1,
+    value_labels=["약 3.5~5.5억 원", "약 4,500만 원"],
+    subtitle="단위: 만원 · 약 8~11배 절감",
+    footnote="※ 외주는 SW사업 대가/맨먼스 기준 추정, QA·문서·하자보수 포함. 1인+AI는 내부 인건비+AI 구독. 동일 조건 비교 아님.")
+
+# --- 차트 3: 인당 생산성 ---
+make_chart_slide(
+    "인당 생산성 — 외주 vs 1인+AI",
+    ["외주 개발", "1인 + AI"],
+    [20, 155],
+    chart_type="column",
+    highlight_idx=1,
+    value_labels=["~20 FP/MM", "~155 FP/MM"],
+    subtitle="맨먼스당 기능점수(FP/MM) · 약 7~8배",
+    footnote="※ FP는 구조 기반 개략 추정. '역량 있는 개발자 + AI' 전제(AI ≠ 완전 자동).")
+
+# --- 차트: 월별 커밋 추이 (개발 속도) ---
+make_chart_slide(
+    "개발 속도 — 월별 커밋 수 (git 실측)",
+    ["2월", "4월", "5월", "6월", "7월"],
+    [1, 102, 165, 303, 18],
+    chart_type="column",
+    highlight_idx=3,
+    value_labels=["1", "102", "165", "303", "18"],
+    subtitle="스캐폴딩(2월) → 기능 폭발기(4~6월 가속) → 릴리즈 후 안정화(7월). 커밋의 99%+를 AI가 작성",
+    footnote="※ 3월은 커밋 없음(공백). 7월은 v0.9 릴리즈 후 안정화·문서 정비 기간이라 감소.")
+
 make_content_slide("기간·비용의 의미 — 세 가지 환산", [
     "가장 강력한 비교: 같은 1명이 AI 없이 개발하면 약 2.5~3년 → AI와 함께 4.5개월",
     "팀 환산: 1인+AI의 산출량이 외주 3~4인 팀 수준 — 개발 속도 피크 주 81커밋, 주 평균 약 42커밋 (git 실측)",
@@ -471,6 +654,24 @@ make_table_slide("실증 ② — 월별 수정(fix) 커밋 비율 추이 (git �
     ],
     col_widths=[1.2, 1.8, 1.4, 1.6, 6.0],
     footnote="※ 스토리: 규칙 도입으로 fix 반토막(38→18%) → 6월 반등은 자체 감사가 선제 발견한 수정 (커밋명 'Fix audit findings batch 1~5'가 증거) → 7월 9%")
+
+# --- 차트 4: 월별 fix 비율 추세 ---
+make_chart_slide(
+    "월별 수정(fix) 커밋 비율 추이",
+    ["4월", "5월", "6월", "7월"],
+    [38.2, 17.6, 21.1, 9.1],
+    chart_type="line",
+    value_labels=["38.2%", "17.6%", "21.1%", "9.1%"],
+    subtitle="Data-First 규칙 도입 후 반토막(4→5월). 6월 반등은 릴리즈 전 '의도된 버그 사냥'. 단위: %",
+    footnote="※ git 실측(전체 586커밋 중 fix 133건=약 23%). 6월 반등분 상당수는 사용자 신고가 아닌 자체 감사가 선제 발견·수정한 것.")
+
+# --- 도넛: 커밋 유형 구성비 ---
+make_pie_slide(
+    "커밋 유형 구성비 — '만들고 → 고치는' 리듬 (git 실측)",
+    ["기능 추가 (feat/add)", "수정 (fix)", "문서 (docs)", "기타 (chore·refactor·test 등)"],
+    [256, 133, 51, 146],
+    subtitle="fix가 약 23% — '빠르게 만들고 실환경에서 고친다'는 바이브 코딩의 정직한 현실. 숨기지 않고 공개",
+    footnote="※ 커밋 제목 접두사 기준 분류. 리팩터링(refactor)은 3건뿐 → 향후 테스트·리팩터링 투자 필요(정직한 한계).")
 
 make_two_col_slide("정직한 한계와 다음 투자",
     "한계 (스스로 계량해 공개)", [
