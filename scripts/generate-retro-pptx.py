@@ -693,6 +693,90 @@ add_accent_bar(slide, Inches(0), Inches(7.44), SLIDE_W, Inches(0.06), ACCENT_CYA
 
 
 # ===================================================================
+# APPENDIX — 화면 스크린샷 갤러리
+# ===================================================================
+# 디자인: 슬라이드당 1화면(크게, 가독성 우선) · 상단 번호배지+제목+엑센트 언더라인
+#         · 중앙 이미지 프레임(aspect 유지) · 하단 캡션 · 페이지번호. 본문과 동일 톤.
+# 운영: docs/images/<파일명> 이 있으면 자동 삽입, 없으면 '캡처 위치' 플레이스홀더.
+#       → 스크린샷을 그 파일명으로 저장 후 이 스크립트만 다시 돌리면 자동 반영(재생성해도 유지).
+
+APPENDIX_COLOR = ACCENT_BLUE
+IMAGES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs", "images")
+
+
+def make_screenshot_slide(num, title, filename, caption):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    set_slide_bg(slide)
+    c = APPENDIX_COLOR
+    add_accent_bar(slide, Inches(0), Inches(0), SLIDE_W, Inches(0.05), c)
+    # 번호 배지 + 제목
+    badge = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.6), Inches(0.28), Inches(0.75), Inches(0.5))
+    badge.fill.solid(); badge.fill.fore_color.rgb = c; badge.line.fill.background(); badge.shadow.inherit = False
+    bp = badge.text_frame.paragraphs[0]
+    bp.text = f"A{num:02d}"; bp.font.size = Pt(14); bp.font.bold = True; bp.font.color.rgb = WHITE
+    bp.font.name = "맑은 고딕"; bp.alignment = PP_ALIGN.CENTER
+    add_text_box(slide, Inches(1.5), Inches(0.3), Inches(11.2), Inches(0.6), title, font_size=22, color=TEXT_PRIMARY, bold=True)
+    add_accent_bar(slide, Inches(0.6), Inches(0.92), Inches(2), Inches(0.03), c)
+
+    # 이미지 프레임 영역
+    fx, fy, fw, fh = Inches(0.7), Inches(1.2), Inches(11.93), Inches(5.35)
+    path = os.path.join(IMAGES_DIR, filename)
+    if os.path.exists(path):
+        pic = slide.shapes.add_picture(path, fx, fy, width=fw)
+        if pic.height > fh:  # 세로가 넘치면 높이 기준으로 재삽입
+            pic._element.getparent().remove(pic._element)
+            pic = slide.shapes.add_picture(path, fx, fy, height=fh)
+        pic.left = int(fx + (fw - pic.width) / 2)
+        pic.top = int(fy + (fh - pic.height) / 2)
+    else:
+        card = add_shape(slide, fx, fy, fw, fh, fill_color=CARD_BG, border_color=c, border_width=Pt(1.2))
+        _ = card
+        add_text_box(slide, fx, fy + Inches(1.9), fw, Inches(0.6), "🖼  화면 캡처 위치",
+                     font_size=20, color=TEXT_MUTED, bold=True, alignment=PP_ALIGN.CENTER)
+        add_text_box(slide, fx, fy + Inches(2.6), fw, Inches(0.5), f"docs/images/{filename}",
+                     font_size=13, color=c, alignment=PP_ALIGN.CENTER, font_name="Consolas")
+        add_text_box(slide, fx, fy + Inches(3.15), fw, Inches(0.5),
+                     "이 파일명으로 저장 후 스크립트를 다시 실행하면 자동 삽입됩니다",
+                     font_size=11, color=TEXT_MUTED, alignment=PP_ALIGN.CENTER)
+
+    add_text_box(slide, Inches(0.7), Inches(6.72), Inches(11.93), Inches(0.55), caption,
+                 font_size=13, color=TEXT_SECONDARY)
+    add_page_number(slide)
+
+
+# 부록 구분 슬라이드 (다음 섹션 색상 인덱스 사용)
+make_section_slide("부록. 화면 스크린샷", "실제 운영 화면 (DC Express)", 9)
+
+# 캡처 목록 (docs/screenshot-checklist.md 기준) — (제목, 파일명, 캡션)
+SCREENSHOTS = [
+    ("로그인", "login.png", "자체 인증(NextAuth) 로그인 화면"),
+    ("대시보드 — 전체", "dashboard-overview.png", "서버 현황·전력/PUE·알림·파일시스템 경고를 한 화면에"),
+    ("대시보드 — 파일시스템 경고", "dashboard-filesystem-warning.png", "사용률 70%+ 서버를 서버 단위로 집계·표시"),
+    ("서버 모니터링 — 목록", "servers-list.png", "전체 서버 목록과 상태"),
+    ("서버 상세 — 상단 지표", "server-detail-top.png", "CPU·메모리·디스크·네트워크 실시간 차트"),
+    ("서버 상세 — 파일시스템", "server-detail-filesystem.png", "마운트별 사용량(NFS 포함)"),
+    ("서버 상세 — BMC 센서/전원", "server-detail-bmc.png", "BMC 센서 + 웹 원격 전원 제어"),
+    ("메모리 상세", "memory-detail.png", "DIMM 슬롯별 상세 + 채널 다이어그램"),
+    ("인프라 관리", "infrastructure.png", "장비 CRUD + 라이프사이클 관리"),
+    ("인프라 — CSV 일괄 등록", "infrastructure-csv.png", "CSV 업로드로 장비 일괄 등록"),
+    ("Digital Twin — 평면도", "digital-twin.png", "룸·랙 물리 배치(SVG)"),
+    ("Digital Twin — 랙/열지도", "digital-twin-rack.png", "랙 배치도 + 온도 히트맵"),
+    ("랙 관리", "rack-management.png", "랙 배치·드래그&드롭"),
+    ("펌웨어 관리", "firmware.png", "모델별 BIOS/펌웨어 버전 비교"),
+    ("워크로드", "workloads.png", "K8s Pod / 평가(Evaluation)"),
+    ("알림 — 규칙", "alerts-rules.png", "알림 규칙 목록·생성"),
+    ("알림 — 이력", "alerts-history.png", "발생/해결 알림 이력(날짜 필터)"),
+    ("용량 계획", "capacity.png", "전력·공간·냉각 + 12개월 예측"),
+    ("리포트", "reports.png", "리포트 생성 및 출력"),
+    ("설정 — RBAC/조직", "settings-rbac.png", "사용자·역할·조직별 접근 제어"),
+    ("설정 — 감사 로그", "settings-audit.png", "변경/작업 감사 로그"),
+    ("전역 검색 (Cmd+K)", "search-cmdk.png", "서버·랙·알림 통합 검색"),
+]
+for i, (t, fn, cap) in enumerate(SCREENSHOTS, start=1):
+    make_screenshot_slide(i, t, fn, cap)
+
+
+# ===================================================================
 # SAVE
 # ===================================================================
 output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs")
