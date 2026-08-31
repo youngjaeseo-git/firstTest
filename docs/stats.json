@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-07-21",
+  "commits": 586,
+  "loc": 44429,
+  "srcFiles": 221,
+  "pages": 39,
+  "apiRoutes": 74,
+  "components": 53,
+  "models": 29,
+  "enums": 14,
+  "schemaLines": 698,
+  "featuresDone": 136,
+  "featureCategories": 12,
+  "checkScripts": 116,
+  "checkResults": 31,
+  "testFiles": 11,
+  "testCases": 72,
+  "e2eSpecs": 1,
+  "e2eCases": 6,
+  "translationKeysPerLang": 511
+}

@@ -1,0 +1,36 @@
+services:
+  db:
+    container_name: dcim-db
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dcim
+      POSTGRES_USER: dcim
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dcim_password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dcim -d dcim"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    container_name: dcim-app
+    build: .
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgresql://dcim:${DB_PASSWORD:-dcim_password}@db:5432/dcim?schema=public
+      PROMETHEUS_URL: ${PROMETHEUS_URL:-http://10.144.38.100:30004}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-in-production}
+      CRON_SECRET: ${CRON_SECRET:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

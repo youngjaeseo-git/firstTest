@@ -1,0 +1,91 @@
+import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { getSessionUser, canEdit } from "@/lib/rbac";
+import { parseBody } from "@/lib/api-validation";
+import { CreatePhaseSchema, UpdatePhaseSchema } from "@/lib/schemas/evaluation";
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const user = await getSessionUser();
+  if (!user || !canEdit(user.role)) {
+    return NextResponse.json({ error: "Forbidden — ADMIN 또는 OPERATOR 권한 필요" }, { status: 403 });
+  }
+
+  const parsed = await parseBody(req, CreatePhaseSchema);
+  if (parsed.response) return parsed.response;
+  const { name, description, startDate, endDate, config } = parsed.data;
+
+  const maxOrder = await prisma.evalPhase.aggregate({
+    where: { projectId: id },
+    _max: { sortOrder: true },
+  });
+
+  const configValue = config === null ? Prisma.JsonNull : config === undefined ? undefined : (config as Prisma.InputJsonValue);
+
+  const phase = await prisma.evalPhase.create({
+    data: {
+      projectId: id,
+      name,
+      description: description ?? null,
+      sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
+      startDate: startDate ?? null,
+      endDate: endDate ?? null,
+      config: configValue,
+    },
+  });
+
+  return NextResponse.json(phase, { status: 201 });
+}
+
+export async function PATCH(
+  req: NextRequest,
+) {
+  const user = await getSessionUser();
+  if (!user || !canEdit(user.role)) {
+    return NextResponse.json({ error: "Forbidden — ADMIN 또는 OPERATOR 권한 필요" }, { status: 403 });
+  }
+
+  const parsed = await parseBody(req, UpdatePhaseSchema);
+  if (parsed.response) return parsed.response;
+  const { phaseId, config: patchConfig, ...rest } = parsed.data;
+
+  const data: Record<string, unknown> = { ...rest };
+  if (patchConfig !== undefined) {
+    data.config = patchConfig === null ? Prisma.JsonNull : (patchConfig as Prisma.InputJsonValue);
+  }
+
+  const phase = await prisma.evalPhase.update({
+    where: { id: phaseId },
+    data,
+  });
+
+  return NextResponse.json(phase);
+}
+
+export async function DELETE(
+  req: NextRequest,
+) {
+  const user = await getSessionUser();
+  if (!user || !canEdit(user.role)) {
+    return NextResponse.json({ error: "Forbidden — ADMIN 또는 OPERATOR 권한 필요" }, { status: 403 });
+  }
+
+  const { searchParams } = req.nextUrl;
+  const phaseId = searchParams.get("phaseId");
+  if (!phaseId) {
+    return NextResponse.json({ error: "phaseId required" }, { status: 400 });
+  }
+
+  // Cascade: delete related results and tasks, then the phase itself
+  await prisma.$transaction([
+    prisma.evalResult.deleteMany({ where: { phaseId } }),
+    prisma.evalTask.deleteMany({ where: { phaseId } }),
+    prisma.evalPhase.delete({ where: { id: phaseId } }),
+  ]);
+
+  return NextResponse.json({ success: true });
+}

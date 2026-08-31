@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>DC Express - Data Flow Architecture Diagram</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f8fafc; color: #1e293b; padding: 24px; }
+.page { max-width: 1400px; margin: 0 auto; }
+h1 { text-align: center; font-size: 26px; font-weight: 700; margin-bottom: 4px; color: #0f172a; }
+.subtitle { text-align: center; font-size: 13px; color: #64748b; margin-bottom: 28px; }
+.section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #64748b; margin: 24px 0 12px 0; }
+
+/* === Layout === */
+.diagram { display: flex; flex-direction: column; gap: 16px; }
+.row { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+.col-full { flex: 1 1 100%; }
+
+/* === Cards === */
+.card { border-radius: 10px; padding: 16px; flex: 1; min-width: 200px; border: 1px solid #e2e8f0; position: relative; background: #fff; transition: box-shadow 0.2s; }
+.card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+.card-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.card-title .icon { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+.card-desc { font-size: 11px; color: #64748b; line-height: 1.6; }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; margin: 1px; }
+
+/* === Color Themes === */
+.blue { border-color: #bfdbfe; background: #eff6ff; }
+.blue .icon { background: #dbeafe; color: #2563eb; }
+.blue .badge { background: #dbeafe; color: #1d4ed8; }
+
+.green { border-color: #bbf7d0; background: #f0fdf4; }
+.green .icon { background: #dcfce7; color: #16a34a; }
+.green .badge { background: #dcfce7; color: #15803d; }
+
+.purple { border-color: #ddd6fe; background: #f5f3ff; }
+.purple .icon { background: #ede9fe; color: #7c3aed; }
+.purple .badge { background: #ede9fe; color: #6d28d9; }
+
+.orange { border-color: #fed7aa; background: #fff7ed; }
+.orange .icon { background: #ffedd5; color: #ea580c; }
+.orange .badge { background: #ffedd5; color: #c2410c; }
+
+.cyan { border-color: #a5f3fc; background: #ecfeff; }
+.cyan .icon { background: #cffafe; color: #0891b2; }
+.cyan .badge { background: #cffafe; color: #0e7490; }
+
+.red { border-color: #fecaca; background: #fef2f2; }
+.red .icon { background: #fee2e2; color: #dc2626; }
+.red .badge { background: #fee2e2; color: #b91c1c; }
+
+.gray { border-color: #e2e8f0; background: #f8fafc; }
+.gray .icon { background: #f1f5f9; color: #475569; }
+.gray .badge { background: #f1f5f9; color: #334155; }
+
+.teal { border-color: #99f6e4; background: #f0fdfa; }
+.teal .icon { background: #ccfbf1; color: #0d9488; }
+.teal .badge { background: #ccfbf1; color: #0f766e; }
+
+.pink { border-color: #fbcfe8; background: #fdf2f8; }
+.pink .icon { background: #fce7f3; color: #db2777; }
+.pink .badge { background: #fce7f3; color: #be185d; }
+
+.amber { border-color: #fde68a; background: #fffbeb; }
+.amber .icon { background: #fef3c7; color: #d97706; }
+.amber .badge { background: #fef3c7; color: #b45309; }
+
+/* === Flow Arrows === */
+.flow { display: flex; align-items: center; justify-content: center; padding: 8px 0; }
+.flow-arrow { color: #94a3b8; font-size: 20px; letter-spacing: -2px; }
+.flow-label { font-size: 10px; color: #64748b; padding: 2px 8px; background: #f1f5f9; border-radius: 4px; margin: 0 8px; white-space: nowrap; }
+
+/* === Data Source Layer === */
+.datasource { border-width: 2px; }
+
+/* === Detail Tables === */
+.detail-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 10px; }
+.detail-table th { text-align: left; padding: 3px 6px; background: rgba(0,0,0,0.03); font-weight: 600; color: #475569; border-bottom: 1px solid rgba(0,0,0,0.06); }
+.detail-table td { padding: 3px 6px; border-bottom: 1px solid rgba(0,0,0,0.04); color: #64748b; }
+
+/* === Legend === */
+.legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 16px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #475569; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+/* === Tabs === */
+.tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+.tab { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #e2e8f0; background: #fff; color: #475569; transition: all 0.2s; }
+.tab:hover { background: #f1f5f9; }
+.tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* === Connection Lines === */
+.conn-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 10px; color: #64748b; }
+.conn-line { height: 2px; width: 20px; border-radius: 1px; }
+.conn-solid { background: #3b82f6; }
+.conn-dashed { background: repeating-linear-gradient(90deg, #f59e0b 0, #f59e0b 4px, transparent 4px, transparent 8px); }
+.conn-dotted { background: repeating-linear-gradient(90deg, #8b5cf6 0, #8b5cf6 2px, transparent 2px, transparent 6px); }
+
+h2 { font-size: 18px; font-weight: 700; color: #0f172a; margin: 28px 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
+h3 { font-size: 14px; font-weight: 600; color: #334155; margin: 16px 0 8px 0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>DC Express DCIM - Data Flow Architecture</h1>
+<p class="subtitle">전체 기능별 데이터 소스, 프로토콜, 기술 스택 다이어그램 | 2026-06-17</p>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> Prometheus (시계열 메트릭)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div> PostgreSQL (자산/설정 DB)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ea580c"></div> BMC/Redfish (하드웨어 제어)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div> kube-state-metrics (K8s)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#0891b2"></div> SSE Stream (실시간)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div> BMC Proxy (Lab-3)</div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs" id="mainTabs">
+  <div class="tab active" onclick="showTab('overview')">System Overview</div>
+  <div class="tab" onclick="showTab('dashboard')">Dashboard</div>
+  <div class="tab" onclick="showTab('monitoring')">Server Monitoring</div>
+  <div class="tab" onclick="showTab('rack')">Rack / Digital Twin</div>
+  <div class="tab" onclick="showTab('infra')">Infrastructure</div>
+  <div class="tab" onclick="showTab('bmc')">BMC / Redfish</div>
+  <div class="tab" onclick="showTab('k8s')">K8s / Workloads</div>
+  <div class="tab" onclick="showTab('alerts')">Alerts</div>
+  <div class="tab" onclick="showTab('other')">Settings / Other</div>
+</div>
+
+<!-- ===== TAB: Overview ===== -->
+<div class="tab-panel active" id="tab-overview">
+<div class="diagram">
+  <p class="section-title">Presentation Layer (Browser)</p>
+  <div class="row">
+    <div class="card blue"><div class="card-title"><div class="icon">D</div> Dashboard</div>
+      <div class="card-desc">SSE 스트림 (15초) + Prometheus instant/range<br><span class="badge blue">Recharts</span> <span class="badge blue">SSE</span></div></div>
+    <div class="card cyan"><div class="card-title"><div class="icon">S</div> Server Monitoring</div>
+      <div class="card-desc">~20개 MetricChart + 히트맵 + 노드 개요<br><span class="badge cyan">Recharts</span> <span class="badge cyan">Polling 30s</span></div></div>
+    <div class="card purple"><div class="card-title"><div class="icon">R</div> Rack View</div>
+      <div class="card-desc">랙 엘리베이션 + 히트맵 + 드래그앤드롭<br><span class="badge purple">D3.js</span> <span class="badge purple">DnD</span></div></div>
+    <div class="card teal"><div class="card-title"><div class="icon">T</div> Digital Twin</div>
+      <div class="card-desc">SVG 바닥평면도 + 3단계 드릴다운<br><span class="badge teal">SVG</span> <span class="badge teal">Pan/Zoom</span></div></div>
+  </div>
+  <div class="row">
+    <div class="card green"><div class="card-title"><div class="icon">I</div> Infrastructure</div>
+      <div class="card-desc">장비 CRUD + CSV 벌크 임포트<br><span class="badge green">Prisma</span> <span class="badge green">Zod</span></div></div>
+    <div class="card orange"><div class="card-title"><div class="icon">B</div> BMC / Redfish</div>
+      <div class="card-desc">전원 제어 + HW 인벤토리 + 센서<br><span class="badge orange">HTTPS</span> <span class="badge orange">Basic Auth</span></div></div>
+    <div class="card pink"><div class="card-title"><div class="icon">W</div> Workloads / K8s</div>
+      <div class="card-desc">K8s 파드 현황 + DRAM 평가 관리<br><span class="badge pink">kube-state-metrics</span></div></div>
+    <div class="card red"><div class="card-title"><div class="icon">A</div> Alerts</div>
+      <div class="card-desc">규칙 기반 알림 + 에스컬레이션<br><span class="badge red">PromQL</span> <span class="badge red">Cron</span></div></div>
+  </div>
+
+  <div class="flow"><span class="flow-arrow">▼ ▼ ▼</span><span class="flow-label">HTTP REST / SSE / Server Components</span><span class="flow-arrow">▼ ▼ ▼</span></div>
+
+  <p class="section-title">Application Layer (Next.js API Routes - 73개)</p>
+  <div class="row">
+    <div class="card gray" style="flex:2">
+      <div class="card-title"><div class="icon">⚡</div> Metric API Routes</div>
+      <div class="card-desc">
+        <code>/api/metrics/instant</code> — PromQL instant query proxy<br>
+        <code>/api/metrics/range</code> — PromQL range query proxy<br>
+        <code>/api/metrics/dashboard/stream</code> — SSE 15초 push<br>
+        <code>/api/metrics/node-temps</code> — 노드별 온도<br>
+        <code>/api/metrics/health</code> — Prometheus 연결 확인<br>
+        <code>/api/discovery/*</code> — 서버 자동 탐지/동기화
+      </div>
+    </div>
+    <div class="card gray" style="flex:2">
+      <div class="card-title"><div class="icon">📦</div> CRUD API Routes</div>
+      <div class="card-desc">
+        <code>/api/equipment/*</code> — 장비 CRUD + bulk + BMC 연동 (15개 라우트)<br>
+        <code>/api/racks/*</code>, <code>/api/rooms/*</code> — 공간 관리<br>
+        <code>/api/alerts/*</code>, <code>/api/alert-rules/*</code> — 알림 관리<br>
+        <code>/api/evaluations/*</code>, <code>/api/workloads/*</code> — 평가/워크로드<br>
+        <code>/api/users/*</code>, <code>/api/audit-logs/*</code> — 사용자/감사
+      </div>
+    </div>
+    <div class="card gray">
+      <div class="card-title"><div class="icon">🔧</div> Support Routes</div>
+      <div class="card-desc">
+        <code>/api/auth/[...nextauth]</code><br>
+        <code>/api/search</code> — 통합 검색<br>
+        <code>/api/capacity/forecast</code><br>
+        <code>/api/cron/alert-check</code><br>
+        <code>/api/expiry-tracker/*</code>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow"><span class="flow-arrow">▼ ▼ ▼</span><span class="flow-label">Prometheus HTTP / Prisma ORM / Redfish HTTPS</span><span class="flow-arrow">▼ ▼ ▼</span></div>
+
+  <p class="section-title">Data Source Layer</p>
+  <div class="row">
+    <div class="card blue datasource">
+      <div class="card-title"><div class="icon">P</div> Prometheus</div>
+      <div class="card-desc">
+        <strong>URL:</strong> <code>http://10.100.175.248:8080</code><br>
+        <strong>프로토콜:</strong> HTTP (PromQL)<br>
+        <strong>Exporter:</strong> node-exporter, cAdvisor, Intel PCM, kube-state-metrics<br>
+        <strong>메트릭 수:</strong> 60+ 종류 (70+ PromQL 빌더)
+      </div>
+    </div>
+    <div class="card green datasource">
+      <div class="card-title"><div class="icon">DB</div> PostgreSQL</div>
+      <div class="card-desc">
+        <strong>접속:</strong> Docker 내부 (Prisma ORM)<br>
+        <strong>모델:</strong> 29개 (Equipment 중심 허브)<br>
+        <strong>역할:</strong> 자산/설정/알림규칙/사용자/감사로그<br>
+        <strong>스키마:</strong> 667줄, 10개 enum
+      </div>
+    </div>
+    <div class="card orange datasource">
+      <div class="card-title"><div class="icon">BMC</div> BMC / IPMI</div>
+      <div class="card-desc">
+        <strong>프로토콜:</strong> Redfish REST API (HTTPS)<br>
+        <strong>인증:</strong> HTTP Basic Auth<br>
+        <strong>대상:</strong> 각 서버 BMC IP (192.168.x.x)<br>
+        <strong>Proxy:</strong> Lab-3 → <code>10.144.131.100:8443</code>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== TAB: Dashboard ===== -->
+<div class="tab-panel" id="tab-dashboard">
+<div class="diagram">
+  <h2>Dashboard Data Flow</h2>
+  <div class="row">
+    <div class="card blue" style="flex:2">
+      <div class="card-title"><div class="icon">📊</div> Real-Time Metrics (SSE)</div>
+      <div class="card-desc"><strong>Endpoint:</strong> <code>/api/metrics/dashboard/stream?cluster=all|lab1|lab3</code></div>
+      <table class="detail-table">
+        <tr><th>Widget</th><th>PromQL Metric</th><th>Source</th></tr>
+        <tr><td>CPU 사용률</td><td><code>node_cpu_seconds_total{mode="idle"}</code> or cAdvisor</td><td>node-exporter</td></tr>
+        <tr><td>메모리 사용률</td><td><code>node_memory_MemAvailable/MemTotal_bytes</code></td><td>node-exporter</td></tr>
+        <tr><td>전력 소비</td><td><code>Package_Joules_Consumed</code> (rate)</td><td>Intel PCM</td></tr>
+        <tr><td>온도</td><td><code>node_hwmon_temp_celsius</code> (avg)</td><td>node-exporter</td></tr>
+        <tr><td>네트워크 Rx/Tx</td><td><code>node_network_receive/transmit_bytes_total</code></td><td>node-exporter</td></tr>
+        <tr><td>서버 UP/DOWN</td><td><code>up{job!~"kube-state-metrics|..."}</code></td><td>Prometheus</td></tr>
+        <tr><td>업타임</td><td><code>node_boot_time_seconds</code></td><td>node-exporter</td></tr>
+        <tr><td>PUE</td><td><code>dcim_pue or (power * 1.35 / power)</code></td><td>커스텀/계산</td></tr>
+      </table>
+    </div>
+    <div class="card green">
+      <div class="card-title"><div class="icon">DB</div> Static Data (Server Component)</div>
+      <table class="detail-table">
+        <tr><th>Widget</th><th>Prisma Model</th></tr>
+        <tr><td>Platform 분포</td><td>Equipment (groupBy manufacturer)</td></tr>
+        <tr><td>만료 임박</td><td>ExpiryTracker (status: ACTIVE)</td></tr>
+        <tr><td>알림 심각도</td><td>Alert (groupBy severity, FIRING)</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card blue">
+      <div class="card-title"><div class="icon">📈</div> Fleet Top 5</div>
+      <div class="card-desc">
+        <strong>API:</strong> <code>/api/metrics/instant</code><br>
+        <code>topk(10, CPU usage by instance)</code><br>
+        <code>topk(10, Memory usage by instance)</code><br>
+        <span class="badge blue">Polling 30s</span>
+      </div>
+    </div>
+    <div class="card blue">
+      <div class="card-title"><div class="icon">📉</div> Trend Sparklines</div>
+      <div class="card-desc">
+        <strong>API:</strong> <code>/api/metrics/range</code><br>
+        30분 범위, 30초 간격<br>
+        CPU/Memory/Network/Power 추이<br>
+        <span class="badge blue">Recharts LineChart</span>
+      </div>
+    </div>
+    <div class="card pink">
+      <div class="card-title"><div class="icon">K8</div> Active Workloads</div>
+      <div class="card-desc">
+        <strong>API:</strong> <code>/api/metrics/instant</code><br>
+        <code>kube_pod_info</code>, <code>kube_pod_status_phase</code><br>
+        네임스페이스별 Pod 그룹핑<br>
+        <span class="badge pink">kube-state-metrics</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== TAB: Server Monitoring ===== -->
+<div class="tab-panel" id="tab-monitoring">
+<div class="diagram">
+  <h2>Server Monitoring Data Flow</h2>
+  <p style="font-size:12px; color:#64748b; margin-bottom:12px;">서버 상세 페이지 (/servers/[id]): ~20개 MetricChart + 4개 커스텀 서브 컴포넌트</p>
+  <div class="row">
+    <div class="card blue">
+      <div class="card-title"><div class="icon">CPU</div> CPU Metrics</div>
+      <table class="detail-table">
+        <tr><th>Chart</th><th>Primary Metric</th></tr>
+        <tr><td>CPU Usage %</td><td>node_cpu_seconds_total{mode="idle"}</td></tr>
+        <tr><td>Core Heatmap</td><td>avg by(cpu) rate(node_cpu_seconds_total)</td></tr>
+        <tr><td>Load Average</td><td>node_load1, node_load5, node_load15</td></tr>
+        <tr><td>CPU Mode</td><td>user/system/iowait/steal modes</td></tr>
+        <tr><td>PCM IPC</td><td>Instructions_Retired / Clock_Unhalted</td></tr>
+        <tr><td>Cache Hit Rate</td><td>L2/L3_Cache_Hits / (Hits+Misses)</td></tr>
+      </table>
+    </div>
+    <div class="card cyan">
+      <div class="card-title"><div class="icon">MEM</div> Memory Metrics</div>
+      <table class="detail-table">
+        <tr><th>Chart</th><th>Primary Metric</th></tr>
+        <tr><td>Memory Usage %</td><td>MemAvailable / MemTotal</td></tr>
+        <tr><td>Memory Absolute</td><td>Used + Cached bytes</td></tr>
+        <tr><td>Swap Usage</td><td>SwapTotal - SwapFree</td></tr>
+        <tr><td>DRAM Bandwidth</td><td>DRAM_Reads, DRAM_Writes (PCM)</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card purple">
+      <div class="card-title"><div class="icon">DSK</div> Disk Metrics</div>
+      <table class="detail-table">
+        <tr><th>Chart</th><th>Primary Metric</th></tr>
+        <tr><td>Disk I/O</td><td>disk_read/written_bytes_total</td></tr>
+        <tr><td>IOPS</td><td>disk_reads/writes_completed_total</td></tr>
+        <tr><td>Latency</td><td>read/write_time / completed</td></tr>
+        <tr><td>Usage %</td><td>filesystem_avail / filesystem_size</td></tr>
+        <tr><td>Filesystem Table</td><td>filesystem_size/avail by mount</td></tr>
+      </table>
+    </div>
+    <div class="card teal">
+      <div class="card-title"><div class="icon">NET</div> Network Metrics</div>
+      <table class="detail-table">
+        <tr><th>Chart</th><th>Primary Metric</th></tr>
+        <tr><td>Bandwidth Rx/Tx</td><td>network_receive/transmit_bytes</td></tr>
+        <tr><td>Errors/Drops</td><td>errs_total, drop_total</td></tr>
+        <tr><td>TCP Connections</td><td>Tcp_CurrEstab</td></tr>
+        <tr><td>NIC Inventory</td><td>network_info, network_speed</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card red">
+      <div class="card-title"><div class="icon">HW</div> Hardware / Thermal</div>
+      <table class="detail-table">
+        <tr><th>Chart</th><th>Primary Metric</th></tr>
+        <tr><td>Temperature</td><td>hwmon_temp_celsius (inlet/exhaust/cpu)</td></tr>
+        <tr><td>Fan Speed</td><td>hwmon_fan_rpm</td></tr>
+        <tr><td>Power (W)</td><td>Package/DRAM/PP0_Joules_Consumed</td></tr>
+      </table>
+    </div>
+    <div class="card orange">
+      <div class="card-title"><div class="icon">BMC</div> BMC Data</div>
+      <table class="detail-table">
+        <tr><th>Feature</th><th>Redfish Endpoint</th></tr>
+        <tr><td>Power State</td><td>GET /redfish/v1/Systems/1</td></tr>
+        <tr><td>Sensor Card</td><td>GET /Chassis/1/Thermal + Power</td></tr>
+        <tr><td>Power Control</td><td>POST /Systems/1/Actions/Reset</td></tr>
+      </table>
+    </div>
+    <div class="card green">
+      <div class="card-title"><div class="icon">DB</div> Server Component Data</div>
+      <table class="detail-table">
+        <tr><th>Data</th><th>Prisma Model</th></tr>
+        <tr><td>서버 기본 정보</td><td>Equipment + CPUs + Memories</td></tr>
+        <tr><td>Prometheus Instance</td><td>PrometheusTarget.instance</td></tr>
+        <tr><td>변경 이력</td><td>AuditLog</td></tr>
+        <tr><td>장비 할당</td><td>EquipmentAssignment</td></tr>
+      </table>
+    </div>
+  </div>
+  <div style="margin-top:12px; padding:12px; background:#f0f9ff; border:1px solid #bfdbfe; border-radius:8px; font-size:11px; color:#1e40af;">
+    <strong>Query Strategy:</strong> node-exporter 우선 <code>or</code> cAdvisor 폴백. node-exporter = IP:port instance, cAdvisor = hostname instance. <code>hostIp</code> 파라미터로 hostname→IP 변환 처리.
+  </div>
+</div>
+</div>
+
+<!-- ===== TAB: Rack / Digital Twin ===== -->
+<div class="tab-panel" id="tab-rack">
+<div class="diagram">
+  <h2>Rack View & Digital Twin Data Flow</h2>
+  <div class="row">
+    <div class="card purple">
+      <div class="card-title"><div class="icon">R</div> Rack View (/racks)</div>
+      <table class="detail-table">
+        <tr><th>Feature</th><th>Data Source</th><th>API / Query</th></tr>
+        <tr><td>랙 목록 (Room별)</td><td>PostgreSQL (ISR 30s)</td><td>prisma.rack.findMany + room + equipment</td></tr>
+        <tr><td>U 엘리베이션 다이어그램</td><td>위 데이터 계산</td><td>rackPosition + rackHeight</td></tr>
+        <tr><td>온도 히트맵</td><td>Prometheus</td><td>avg by(instance) node_hwmon_temp_celsius</td></tr>
+        <tr><td>장비 드래그이동</td><td>PostgreSQL</td><td>PUT /api/equipment/[id] + checkRackPlacement</td></tr>
+        <tr><td>미배치 장비</td><td>PostgreSQL</td><td>GET /api/equipment?unracked=true</td></tr>
+        <tr><td>일괄 배치</td><td>PostgreSQL</td><td>POST /api/equipment/bulk-place (트랜잭션)</td></tr>
+        <tr><td>Room/Rack CRUD</td><td>PostgreSQL</td><td>POST/PATCH/DELETE /api/rooms, /api/racks</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card teal">
+      <div class="card-title"><div class="icon">T</div> Digital Twin (/digital-twin)</div>
+      <table class="detail-table">
+        <tr><th>Feature</th><th>Data Source</th><th>API / Query</th></tr>
+        <tr><td>바닥평면도 (SVG)</td><td>PostgreSQL (RSC)</td><td>prisma.room.findMany + racks + equipment + elements</td></tr>
+        <tr><td>서버 UP/DOWN</td><td>Prometheus (30s)</td><td>up{job!~"kube-state-metrics|..."}</td></tr>
+        <tr><td>서버 Running/Idle</td><td>Prometheus (30s)</td><td>fleetCpuPerInstance (CPU > 5% = running)</td></tr>
+        <tr><td>온도 오버레이</td><td>Prometheus (30s)</td><td>/api/metrics/node-temps (hwmon_temp_celsius)</td></tr>
+        <tr><td>공간 사용률</td><td>로컬 계산</td><td>equipment.length / rack.totalUnits</td></tr>
+        <tr><td>에어플로우</td><td>로컬 렌더링</td><td>RoomElement.metadata.airflowDirection</td></tr>
+        <tr><td>요소 편집 (CRUD)</td><td>PostgreSQL</td><td>POST/PATCH/DELETE /api/room-elements</td></tr>
+        <tr><td>위치/크기 편집</td><td>PostgreSQL</td><td>PATCH /api/racks/[id], /api/rooms/[id]</td></tr>
+      </table>
+    </div>
+  </div>
+  <div style="margin-top:12px; padding:12px; background:#f0fdfa; border:1px solid #99f6e4; border-radius:8px; font-size:11px; color:#0f766e;">
+    <strong>3-Level Drill-down:</strong> DataCenter 전체 → Room 바닥평면도 → Rack 엘리베이션 (클라이언트 사이드 상태 전환, 페이지 이동 없음)
+  </div>
+</div>
+</div>
+
+<!-- ===== TAB: Infrastructure ===== -->
+<div class="tab-panel" id="tab-infra">
+<div class="diagram">
+  <h2>Infrastructure Management Data Flow</h2>
+  <div class="row">
+    <div class="card green" style="flex:2">
+      <div class="card-title"><div class="icon">I</div> Equipment CRUD</div>
+      <table class="detail-table">
+        <tr><th>Operation</th><th>API</th><th>Prisma Model</th><th>Auth</th></tr>
+        <tr><td>장비 목록</td><td>Server Component (ISR)</td><td>Equipment + Rack + Room + CPUs</td><td>Any</td></tr>
+        <tr><td>장비 등록</td><td>POST /api/equipment</td><td>Equipment + CPUs + Memories (nested)</td><td>ADMIN/OPERATOR</td></tr>
+        <tr><td>장비 수정</td><td>PUT /api/equipment/[id]</td><td>Equipment + CPUs (delete+create)</td><td>ADMIN/OPERATOR</td></tr>
+        <tr><td>장비 삭제</td><td>DELETE /api/equipment/[id]</td><td>cascade delete</td><td>ADMIN only</td></tr>
+        <tr><td>상태 변경</td><td>PATCH /api/equipment/[id]/status</td><td>Equipment.status</td><td>ADMIN/OPERATOR</td></tr>
+        <tr><td>CSV 벌크 임포트</td><td>POST /api/equipment/bulk</td><td>max 500 rows, transaction</td><td>ADMIN/OPERATOR</td></tr>
+        <tr><td>DIMM 슬롯 관리</td><td>PUT /api/equipment/[id]/memory</td><td>EquipmentMemory (delete+create)</td><td>ADMIN/OPERATOR</td></tr>
+        <tr><td>변경 이력</td><td>GET /api/equipment/[id]/history</td><td>AuditLog</td><td>Any</td></tr>
+        <tr><td>장비 할당</td><td>POST/PATCH /api/equipment/[id]/assignments</td><td>EquipmentAssignment</td><td>Any</td></tr>
+      </table>
+    </div>
+    <div class="card orange">
+      <div class="card-title"><div class="icon">BMC</div> HW Refresh</div>
+      <div class="card-desc">
+        <strong>POST /api/equipment/[id]/refresh-hw</strong><br><br>
+        Redfish에서 가져와 DB 갱신:<br>
+        - 제조사, 모델, 시리얼<br>
+        - BIOS 버전<br>
+        - CPU 정보 (전체 교체)<br>
+        - DIMM 정보 (전체 교체)<br>
+        - NIC 정보 (전체 교체)<br>
+        <span class="badge orange">파괴적 갱신</span>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:12px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; font-size:11px; color:#15803d;">
+    <strong>Equipment Lifecycle:</strong> PLANNED → RECEIVING → INSTALLED → <strong>ACTIVE</strong> ↔ MAINTENANCE ↔ REPAIR → FAILED → DECOMMISSIONED → DISPOSED
+  </div>
+</div>
+</div>
+
+<!-- ===== TAB: BMC/Redfish ===== -->
+<div class="tab-panel" id="tab-bmc">
+<div class="diagram">
+  <h2>BMC / Redfish Integration</h2>
+  <div class="row">
+    <div class="card orange" style="flex:2">
+      <div class="card-title"><div class="icon">BMC</div> Redfish API Endpoints</div>
+      <table class="detail-table">
+        <tr><th>Redfish Path</th><th>Method</th><th>Purpose</th><th>DCIM API</th></tr>
+        <tr><td>/redfish/v1/Systems</td><td>GET</td><td>시스템 목록 탐색</td><td>(internal)</td></tr>
+        <tr><td>/redfish/v1/Systems/1</td><td>GET</td><td>전원 상태, 제조사, 모델, BIOS</td><td>/api/equipment/[id]/power GET</td></tr>
+        <tr><td>/Systems/1/Actions/ComputerSystem.Reset</td><td>POST</td><td>전원 On/Off/Restart</td><td>/api/equipment/[id]/power POST</td></tr>
+        <tr><td>/Systems/1/Processors/*</td><td>GET</td><td>CPU 상세 (코어, 스레드, TDP)</td><td>/api/equipment/[id]/refresh-hw</td></tr>
+        <tr><td>/Systems/1/Memory/*</td><td>GET</td><td>DIMM 상세 (용량, 타입, 속도, ECC)</td><td>/api/equipment/[id]/refresh-hw</td></tr>
+        <tr><td>/Systems/1/EthernetInterfaces/*</td><td>GET</td><td>NIC 정보 (MAC, 속도)</td><td>/api/equipment/[id]/refresh-hw</td></tr>
+        <tr><td>/Chassis/1/Thermal</td><td>GET</td><td>온도 센서 + 팬 속도</td><td>/api/equipment/[id]/sensors</td></tr>
+        <tr><td>/Chassis/1/Power</td><td>GET</td><td>PSU + 소비 전력</td><td>/api/equipment/[id]/sensors</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card amber">
+      <div class="card-title"><div class="icon">P</div> BMC Proxy (Lab-3)</div>
+      <div class="card-desc">
+        <strong>경로:</strong> DCIM App (Lab-1) → BMC Proxy → Lab-3 BMCs<br><br>
+        <code>DCIM (10.144.38.100:3000)</code><br>
+        → <code>HTTP GET http://10.144.131.100:8443/bmc-proxy/{BMC_IP}/redfish/v1/...</code><br>
+        → <code>bmc-proxy.py → HTTPS GET https://{BMC_IP}/redfish/v1/...</code><br>
+        → <code>Lab-3 BMC (192.168.10.x)</code><br><br>
+        <span class="badge amber">systemd service</span>
+        <span class="badge amber">Python reverse proxy</span>
+      </div>
+    </div>
+    <div class="card gray">
+      <div class="card-title"><div class="icon">🔑</div> Authentication</div>
+      <div class="card-desc">
+        <strong>방식:</strong> HTTP Basic Auth<br>
+        <strong>자격증명:</strong> BMC_USERNAME / BMC_PASSWORD 환경변수<br>
+        <strong>TLS:</strong> 자체서명 인증서 무시 (rejectUnauthorized: false)<br>
+        <strong>Timeout:</strong> 5초 (직접), 10초 (프록시)<br>
+        <strong>라이브러리:</strong> node:https (직접 사용, 외부 의존성 없음)
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== TAB: K8s/Workloads ===== -->
+<div class="tab-panel" id="tab-k8s">
+<div class="diagram">
+  <h2>Kubernetes / Workload Data Flow</h2>
+  <div class="row">
+    <div class="card pink" style="flex:2">
+      <div class="card-title"><div class="icon">K8</div> K8s Data via Prometheus (kube-state-metrics)</div>
+      <div class="card-desc" style="margin-bottom:8px;">K8s API 직접 호출 없음. 모든 K8s 데이터는 kube-state-metrics → Prometheus → DCIM PromQL 경로로 수집.</div>
+      <table class="detail-table">
+        <tr><th>PromQL Metric</th><th>Source</th><th>Purpose</th></tr>
+        <tr><td>kube_pod_info{ns filter}</td><td>kube-state-metrics</td><td>Pod 목록 (이름, 네임스페이스, 노드)</td></tr>
+        <tr><td>kube_pod_created{ns filter}</td><td>kube-state-metrics</td><td>Pod 생성 시간</td></tr>
+        <tr><td>kube_pod_status_phase==1</td><td>kube-state-metrics</td><td>Pod 상태 (Running/Pending/...)</td></tr>
+        <tr><td>kube_pod_container_status_waiting_reason==1</td><td>kube-state-metrics</td><td>대기 이유 (CrashLoopBackOff 등)</td></tr>
+        <tr><td>kube_node_info</td><td>kube-state-metrics</td><td>K8s 노드 → IP 매핑</td></tr>
+        <tr><td>container_cpu_usage_seconds_total</td><td>cAdvisor</td><td>Pod별 CPU 사용률</td></tr>
+        <tr><td>container_memory_working_set_bytes</td><td>cAdvisor</td><td>Pod별 메모리 사용량</td></tr>
+      </table>
+    </div>
+    <div class="card green">
+      <div class="card-title"><div class="icon">DB</div> DRAM Evaluation (PostgreSQL)</div>
+      <div class="card-desc">
+        워크로드 페이지 = K8s 파드 + DRAM 평가<br>
+        namespace 필드로 연결<br><br>
+        <strong>Models:</strong><br>
+        EvalProject → EvalPhase<br>
+        → EvalResult<br>
+        → EvalTask<br>
+        → EvalNote<br><br>
+        <strong>API:</strong> /api/evaluations/*<br>
+        /api/workloads/[namespace]
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:12px; padding:12px; background:#fdf2f8; border:1px solid #fbcfe8; border-radius:8px; font-size:11px; color:#be185d;">
+    <strong>Data Flow:</strong> K8s Cluster → kube-state-metrics (exporter) → Prometheus (scrape) → DCIM /api/metrics/instant (PromQL query) → Frontend workloads page
+  </div>
+</div>
+</div>
+
+<!-- ===== TAB: Alerts ===== -->
+<div class="tab-panel" id="tab-alerts">
+<div class="diagram">
+  <h2>Alert System Data Flow</h2>
+  <div class="row">
+    <div class="card red" style="flex:2">
+      <div class="card-title"><div class="icon">A</div> Alert Pipeline</div>
+      <div class="card-desc" style="font-size:12px; line-height:2;">
+        <strong>1.</strong> AlertRule (DB) 에 PromQL + 임계값 + 심각도 저장<br>
+        <strong>2.</strong> <code>/api/cron/alert-check</code> → 각 rule의 PromQL 실행<br>
+        <strong>3.</strong> Prometheus 결과가 임계값 초과 시 → Alert 레코드 생성<br>
+        <strong>4.</strong> MaintenanceWindow 체크 → 억제 기간이면 skip<br>
+        <strong>5.</strong> NotificationChannel로 알림 발송 (Slack/Teams/Webhook/Email)<br>
+        <strong>6.</strong> 미확인 시 EscalationPolicy에 따라 에스컬레이션
+      </div>
+    </div>
+    <div class="card green">
+      <div class="card-title"><div class="icon">DB</div> Alert Prisma Models</div>
+      <table class="detail-table">
+        <tr><th>Model</th><th>Role</th></tr>
+        <tr><td>AlertRule</td><td>규칙 정의 (PromQL + 조건)</td></tr>
+        <tr><td>Alert</td><td>발생한 알림 (FIRING/RESOLVED)</td></tr>
+        <tr><td>AlertAcknowledgement</td><td>알림 확인 기록</td></tr>
+        <tr><td>MaintenanceWindow</td><td>알림 억제 기간</td></tr>
+        <tr><td>NotificationChannel</td><td>알림 채널 (Slack/Email/...)</td></tr>
+        <tr><td>EscalationPolicy</td><td>에스컬레이션 규칙</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== TAB: Settings / Other ===== -->
+<div class="tab-panel" id="tab-other">
+<div class="diagram">
+  <h2>Settings, Capacity, Reports & Other Features</h2>
+  <div class="row">
+    <div class="card gray">
+      <div class="card-title"><div class="icon">⚙</div> Settings Pages</div>
+      <table class="detail-table">
+        <tr><th>Page</th><th>Data Source</th><th>API</th></tr>
+        <tr><td>Prometheus 진단</td><td>Prometheus + DB</td><td>/api/discovery/diagnostic</td></tr>
+        <tr><td>서버 자동 탐지</td><td>Prometheus + DB</td><td>/api/discovery/sync, register</td></tr>
+        <tr><td>BMC 설정</td><td>PostgreSQL</td><td>/api/equipment/bulk-bmc</td></tr>
+        <tr><td>사용자 관리</td><td>PostgreSQL</td><td>/api/users (ADMIN only)</td></tr>
+        <tr><td>만료 추적</td><td>PostgreSQL + Prom</td><td>/api/expiry-tracker/*</td></tr>
+      </table>
+    </div>
+    <div class="card amber">
+      <div class="card-title"><div class="icon">📊</div> Capacity Planning</div>
+      <table class="detail-table">
+        <tr><th>Feature</th><th>Data Source</th></tr>
+        <tr><td>공간 사용률</td><td>PostgreSQL (Equipment + Rack)</td></tr>
+        <tr><td>전력/CPU/메모리</td><td>Prometheus (실시간)</td></tr>
+        <tr><td>월별 증가 추이</td><td>PostgreSQL (createdAt)</td></tr>
+        <tr><td>고갈 예측</td><td>선형 회귀 (서버 계산)</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card gray">
+      <div class="card-title"><div class="icon">🔍</div> Additional Features</div>
+      <table class="detail-table">
+        <tr><th>Feature</th><th>Data Source</th><th>Tech</th></tr>
+        <tr><td>글로벌 검색 (Cmd+K)</td><td>PostgreSQL</td><td>Equipment+Room+Rack+Alert 동시 검색</td></tr>
+        <tr><td>통합 검색 (Inventory)</td><td>PostgreSQL</td><td>패싯 필터 (CPU/Mem/제조사/BIOS)</td></tr>
+        <tr><td>서버 비교</td><td>PostgreSQL + Prometheus</td><td>2~4대 MetricChart 병렬</td></tr>
+        <tr><td>펌웨어 관리</td><td>PostgreSQL</td><td>모델별 BIOS 버전 비교</td></tr>
+        <tr><td>메모리 인벤토리</td><td>PostgreSQL</td><td>전 서버 DIMM 현황</td></tr>
+        <tr><td>감사 로그</td><td>PostgreSQL</td><td>AuditLog (모든 CUD 기록)</td></tr>
+        <tr><td>PDF 리포트</td><td>브라우저</td><td>window.print() + CSS @media</td></tr>
+        <tr><td>다국어 (i18n)</td><td>정적</td><td>504개 키 (한/영)</td></tr>
+      </table>
+    </div>
+    <div class="card blue">
+      <div class="card-title"><div class="icon">🔐</div> Auth & Security</div>
+      <table class="detail-table">
+        <tr><th>Feature</th><th>Tech</th></tr>
+        <tr><td>로그인</td><td>NextAuth.js CredentialsProvider</td></tr>
+        <tr><td>세션</td><td>JWT Strategy (24h)</td></tr>
+        <tr><td>라우트 보호</td><td>middleware.ts (미인증→/login)</td></tr>
+        <tr><td>RBAC</td><td>ADMIN / OPERATOR / VIEWER</td></tr>
+        <tr><td>감사 로그</td><td>모든 CUD → AuditLog</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+</div><!-- .page -->
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
